@@ -1,0 +1,82 @@
+---
+name: brainstorming
+description: Use esta skill antes de escrever qualquer código. Ativa quando o usuário quer começar algo novo, descreve uma funcionalidade, diz "quero fazer X", "preciso de uma feature que", "como eu faria para" ou qualquer pedido de nova implementação sem plano definido. Não deixa o agente ir direto pro código — primeiro entende o que realmente precisa ser feito.
+---
+
+# Brainstorming
+
+Refinamento de ideia antes de qualquer linha de código.
+
+## Princípio
+
+Nunca comece a implementar sem antes entender o problema real. Uma ideia vaga gera código errado. Perguntas certas agora evitam retrabalho depois.
+
+## Quando NÃO usar
+
+- O usuário já tem um plano claro e detalhado → use `writing-plans`
+- O usuário está debugando algo existente → use `systematic-debugging`
+- O usuário quer apenas uma mudança pontual e simples (ex: "muda a cor desse botão")
+
+## Processo
+
+### Passo 1 — Entender o problema real
+
+Faça perguntas para refinar a ideia. Foque em:
+
+- **O quê:** o que exatamente deve acontecer? qual é o comportamento esperado?
+- **Para quem:** quem vai usar isso? qual é o contexto de uso?
+- **Critério de sucesso:** como sabemos que está pronto e funcionando?
+- **Restrições:** há algo que não pode mudar? integrações existentes? limitações técnicas?
+
+Faça uma pergunta por vez. Não bombardeie com todas de uma vez.
+
+### Passo 2 — Explorar alternativas
+
+Com base nas respostas, apresente 2–3 abordagens possíveis. Para cada uma:
+- O que faz
+- Vantagem principal
+- Desvantagem ou risco
+
+Recomende uma abordagem com justificativa clara. Aguarde o usuário escolher ou ajustar.
+
+### Passo 3 — Apresentar o design em blocos
+
+Com a abordagem escolhida, descreva o design proposto em seções curtas:
+- O que será criado ou modificado
+- Como as partes se conectam
+- O que fica fora do escopo (importante para evitar scope creep)
+
+Apresente uma seção por vez e aguarde confirmação antes de continuar.
+
+### Passo 4 — Salvar o documento de design
+
+Após aprovação do design, salve em `docs/design.md`:
+
+```markdown
+# Design: [nome da feature]
+Data: [data]
+
+## Problema
+[descrição do problema]
+
+## Solução escolhida
+[descrição da abordagem]
+
+## O que será feito
+[lista do escopo]
+
+## Fora do escopo
+[lista do que não será feito]
+
+## Critério de sucesso
+[como saber que está pronto]
+```
+
+Informe ao usuário que o design foi salvo e sugira usar `writing-plans` para criar o plano de implementação.
+
+## Regras
+
+- Nunca proponha código durante o brainstorming
+- Se o usuário tentar pular direto para implementação, redirecione gentilmente: "Antes de codar, deixa eu entender melhor o que você precisa"
+- Mantenha o foco no problema, não na solução técnica
+- Se o usuário já souber exatamente o que quer, valide rapidamente e passe para `writing-plans`
