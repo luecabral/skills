@@ -8,6 +8,10 @@ description: Use ao criar qualquer tela ou componente novo nesta stack (Rails + 
 Referência de espaçamento, layout e componentes para esta stack.
 Todos os valores são Tailwind (CDN). Nenhuma separação por contexto — os padrões são universais.
 
+## Comportamento
+
+Aplique os padrões diretamente. Não descreva, não explique, não narre o que está usando. Produza o HTML correto e siga em frente.
+
 ---
 
 ## Sistema de espaçamento
