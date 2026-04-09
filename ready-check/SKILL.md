@@ -34,10 +34,19 @@ Para cada arquivo alterado, verifique:
 - [ ] Há edge cases óbvios não tratados? (null, undefined, array vazio, usuário não autenticado)
 - [ ] Há lógica condicional complexa que poderia ser simplificada?
 
-**Segurança** (repete checagem do vibesec)
-- [ ] Inputs do usuário são sanitizados?
-- [ ] Recursos verificam propriedade antes de retornar?
+**Segurança** (revisão final antes de expor para revisão)
+- [ ] Inputs do usuário são sanitizados em todas as camadas (frontend e backend)?
+- [ ] Recursos verificam propriedade antes de retornar (sem IDOR)?
 - [ ] Dados sensíveis não aparecem em logs ou respostas de API?
+- [ ] Nenhuma secret está no código, comentários ou arquivos commitados?
+- [ ] Security headers estão configurados (CSP, HSTS, X-Frame-Options, nosniff)?
+- [ ] Rate limit aplicado nos endpoints de auth e dados sensíveis?
+- [ ] Sessão invalida no logout e na troca de senha?
+- [ ] Cookies com `HttpOnly`, `Secure` e `SameSite`?
+- [ ] Se há multi-tenancy: `tenant_id` validado no servidor em todas as queries?
+- [ ] Se há uploads: MIME type, magic bytes e tamanho validados no servidor?
+- [ ] Se há operações financeiras ou contadores: protegidos contra race condition?
+- [ ] Se há IA no sistema: inputs protegidos contra prompt injection?
 
 **UX** (repete checagem do ux-validation)
 - [ ] Ações assíncronas têm feedback visual?
@@ -138,6 +147,21 @@ Testou todos os fluxos acima?
 → Sim: seguir para open-pr
 → Não ainda: aguardar o usuário testar e retornar
 ```
+
+### Parte 3 — Checklist de pipeline (se o projeto tiver CI/CD)
+
+Antes de liberar para o `open-pr`, confirme que o pipeline inclui:
+
+- [ ] Lint e formatação automáticos
+- [ ] Testes unitários e de integração rodando no CI
+- [ ] SAST — análise estática de segurança (Semgrep, SonarQube, Bandit)
+- [ ] Dependency audit (npm audit, pip-audit, Snyk)
+- [ ] Secret scanning bloqueando merge se encontrar credenciais (GitLeaks, TruffleHog)
+- [ ] Container scan (Trivy) — se o projeto usar Docker
+- [ ] DAST em staging (OWASP ZAP) — se disponível
+- [ ] Deploy com least privilege (sem credenciais de prod no CI)
+
+Se o projeto ainda não tiver CI/CD configurado, sinalize como ponto de atenção — não bloqueie, mas registre no corpo do PR na seção "O que tem mais risco".
 
 ## Regras
 

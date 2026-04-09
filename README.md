@@ -1,15 +1,15 @@
-# Fluxo de Vibecoding — Mapa de Skills
+# Skills de Vibecoding
 
 Guia de quando usar cada skill, o que trigga cada uma e como elas se conectam.
 
 ---
 
-## Visão geral do fluxo
+## Fluxo principal
 
 ```
 💡 IDEIA
     ↓
-[brainstorming] ──── refina a ideia, define o escopo
+[brainstorming] ──── refina a ideia + threat modeling
     ↓
 [writing-plans] ──── cria o plano de tasks + cria a branch
     ↓
@@ -22,6 +22,7 @@ Guia de quando usar cada skill, o que trigga cada uma e como elas se conectam.
     │  [ux-validation] ── checa interface │
     │       ↓                             │
     │  [write-tests] ── escreve e roda    │
+    │       (inclui testes de segurança)  │
     │       ↓                             │
     │  testes passaram?                   │
     │    não → [systematic-debugging]     │
@@ -30,16 +31,16 @@ Guia de quando usar cada skill, o que trigga cada uma e como elas se conectam.
     │  [smart-commit] ── commita a task   │
     └─────────────────────────────────────┘
     ↓
-[ready-check] ──── revisão de código + roteiro de teste manual
+[ready-check] ──── revisão + segurança + pipeline CI/CD
     ↓
-[open-pr] ──── abre o PR com corpo + changelog
+[open-pr] ──── rebase + PR com corpo + changelog
     ↓
 [review-pr] ──── roteiro de staging para o revisor
 ```
 
 ---
 
-## Detalhamento por skill
+## Skills do fluxo
 
 ---
 
@@ -56,8 +57,9 @@ Guia de quando usar cada skill, o que trigga cada uma e como elas se conectam.
 
 **O que entrega:**
 - Perguntas para refinar a ideia
+- **Threat modeling** para features com dados, auth ou integrações (Passo 1.5): ativos, atacantes, vetores de ataque, tabela de risco
 - 2–3 abordagens com prós e contras
-- Design aprovado salvo em `docs/design.md`
+- Design aprovado salvo em `docs/design.md` (inclui seção "Riscos de segurança")
 
 **Próxima skill:** `writing-plans`
 
@@ -94,9 +96,10 @@ Guia de quando usar cada skill, o que trigga cada uma e como elas se conectam.
 - Está implementando qualquer feature com dados do usuário
 
 **O que entrega:**
-- Checklist de segurança verificado
+- Checklist de segurança verificado (IDOR, XSS/Injection, auth, SSRF, exposição de dados, sessão, rate limit, security headers, multi-tenancy, segredos, uploads, race conditions, LGPD)
 - Relatório de problemas com código corrigido
 - Bloqueantes impedem o avanço
+- **Auto-ataque:** após checklist, reavalia como atacante até zerar críticos e altos
 
 **Próxima skill:** `ux-validation` (se houver interface), `write-tests`
 
@@ -139,6 +142,7 @@ Guia de quando usar cada skill, o que trigga cada uma e como elas se conectam.
 
 **O que entrega:**
 - Testes de happy path, sad path e edge cases
+- **Testes de segurança** (obrigatório se a task tocou em auth, dados ou uploads): 401/403 sem token ou token cruzado, 403 cross-tenant, 429 rate limit, rejeição de SQL injection, XSS e upload inválido
 - Testes rodados automaticamente
 - Liberação para `smart-commit` se tudo estiver verde
 - Acionamento de `systematic-debugging` se algum falhar
@@ -228,7 +232,7 @@ Guia de quando usar cada skill, o que trigga cada uma e como elas se conectam.
 **O que faz:**
 
 *Parte 1 — Revisão de código:*
-- Funcionalidade, segurança, UX, qualidade geral
+- Funcionalidade, segurança (12 itens: headers, secrets, rate limit, sessão, multi-tenancy, uploads, race conditions, prompt injection), UX, qualidade geral
 - Relatório com bloqueantes, sugestões e nitpicks
 - Aplica correções com confirmação
 
@@ -237,6 +241,10 @@ Guia de quando usar cada skill, o que trigga cada uma e como elas se conectam.
 - Gera roteiro passo a passo em linguagem simples
 - Inclui cenários de erro e checklist de regressão
 - Aguarda confirmação de que os fluxos foram testados
+
+*Parte 3 — Checklist de pipeline CI/CD:*
+- Verifica se lint, testes, SAST, dependency audit, secret scanning, container scan e DAST estão configurados
+- Sinaliza no corpo do PR se algum item estiver faltando
 
 **Próxima skill:** `open-pr`
 
@@ -264,6 +272,8 @@ Guia de quando usar cada skill, o que trigga cada uma e como elas se conectam.
 *Corpo do PR — para humano:*
 - "Staging" — URL do ambiente
 - "O que testar" — roteiro de fluxos em linguagem simples
+
+*Rebase:* sincroniza a branch com `origin/main` antes do push para manter histórico linear (usa `--force-with-lease` se a branch já foi publicada)
 
 *Changelog:* resumo em linguagem não-técnica postado como comentário no PR
 
@@ -305,6 +315,59 @@ smart-commit ───→ próxima task ou ready-check
 ready-check ────→ open-pr
 open-pr ────────→ review-pr (para o revisor)
 ```
+
+---
+
+## Skills fora do fluxo
+
+Skills acionadas por contexto específico, independente de onde você está no fluxo.
+
+---
+
+### 🎨 design-system
+**Momento:** ao criar qualquer tela ou componente novo
+**Objetivo:** garantir consistência visual sem retrabalho
+
+**Trigga quando o usuário diz:**
+- "cria a tela de X"
+- "faz o layout de Y"
+- "como estruturo essa página"
+- Sempre que for escrever HTML com classes Tailwind
+
+**Stack:** Rails + Tailwind CDN + Hotwire
+
+**O que entrega:**
+- Sistema de espaçamento (2 valores base para seções e componentes)
+- Container de página, cabeçalho, tipografia e grids padronizados
+- Componentes prontos: card, tabela, tabs, botões, estado vazio, breadcrumb, badges
+- Checklist de consistência visual antes de finalizar a tela
+
+---
+
+### 🚨 incident-response
+**Momento:** antes do primeiro deploy em produção, ou quando um incidente está ativo
+**Objetivo:** garantir que o time sabe o que fazer quando algo der errado
+
+**Trigga quando o usuário diz:**
+- "vamos subir para prod"
+- "como a gente responde se der problema"
+- "o que fazer se vazar dados"
+- "precisa do plano de contingência"
+- "tem algo estranho acontecendo em prod"
+
+**Dois modos:**
+- `preparação` — antes de ir para produção: define alertas, playbook, backups e comunicação
+- `resposta ativa` — durante um incidente: triagem, contenção, comunicação e post-mortem
+
+**O que entrega:**
+- Classificação de severidade de incidentes
+- Playbook de resposta por cenário (vazamento, sistema fora do ar, credencial exposta)
+- Checklist de backups testados
+- Plano de comunicação (interno, usuários, ANPD em 72h se dados pessoais expostos)
+- Template de post-mortem
+- Plano salvo em `docs/incident-response.md`
+
+**Não substitui:** monitoramento e alertas — esses precisam estar configurados na infra
 
 ---
 

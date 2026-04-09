@@ -42,6 +42,20 @@ Para a task implementada, defina os cenários de teste:
 - Funcionalidades adjacentes que usam os mesmos arquivos modificados
 - Integrações que dependem dos dados ou funções alterados
 
+**Segurança** — obrigatório se a task tocou em auth, dados, uploads ou controle de acesso:
+- Acesso sem token → deve retornar 401
+- Token expirado → deve retornar 401
+- Token válido de outro usuário → deve retornar 403
+- Usuário A tentando acessar recurso do usuário B → deve retornar 403
+- Tenant A tentando acessar dados do tenant B → deve retornar 403
+- Exceder rate limit → deve retornar 429
+- Payload com SQL injection → deve ser rejeitado
+- Payload com XSS → deve ser sanitizado
+- Upload de arquivo com tipo inválido → deve ser rejeitado
+- Upload de arquivo acima do tamanho máximo → deve ser rejeitado
+
+Se a task não tocou em nenhum desses pontos, escreva explicitamente "Testes de segurança: não aplicável para esta task." — nunca pule silenciosamente.
+
 ### Passo 3 — Gerar os testes
 
 Escreva os testes seguindo as convenções do projeto. Se não houver framework de teste configurado:

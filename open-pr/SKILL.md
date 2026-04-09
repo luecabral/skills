@@ -123,15 +123,40 @@ Exiba título, corpo e changelog. Aguarde confirmação ou ajustes antes de cria
 
 O usuário pode ajustar qualquer seção antes de confirmar.
 
-### Passo 7 — Publicar a branch
+### Passo 7 — Sincronizar com a main antes de publicar
+
+Atualize a branch com as últimas mudanças da main para garantir histórico linear e evitar conflitos no PR:
+
+```bash
+git fetch origin
+git rebase origin/main
+```
+
+**Se houver conflitos:**
+- Liste os arquivos em conflito e explique o conflito ao usuário
+- Não resolva automaticamente — aguarde resolução manual
+- Após resolução, instrua: `git rebase --continue`
+- Só avance após rebase concluído sem conflitos
+
+**Por que rebase e não merge:** o rebase mantém histórico linear — os commits da feature aparecem em sequência após os da main, sem commit de merge extra. Facilita a revisão do PR e o `git log`.
+
+### Passo 8 — Publicar a branch
 
 ```bash
 git push -u origin HEAD
 ```
 
-Se o push falhar, informe o erro e encerre sem criar o PR.
+Se o push falhar por histórico divergente (branch já publicada antes do rebase), oriente:
 
-### Passo 8 — Criar o PR
+```bash
+git push --force-with-lease origin HEAD
+```
+
+`--force-with-lease` é mais seguro que `--force`: falha se outra pessoa tiver feito push na branch desde o último fetch.
+
+Se o push falhar por outro motivo, informe o erro e encerre sem criar o PR.
+
+### Passo 9 — Criar o PR
 
 ```bash
 gh pr create \
@@ -143,7 +168,7 @@ EOF
 )"
 ```
 
-### Passo 9 — Postar o changelog como comentário
+### Passo 10 — Postar o changelog como comentário
 
 ```bash
 gh pr comment <número do PR> --body "$(cat <<'EOF'
@@ -154,7 +179,7 @@ EOF
 )"
 ```
 
-### Passo 10 — Confirmar
+### Passo 11 — Confirmar
 
 Exiba a URL do PR e informe que foi criado como draft com o changelog postado como comentário.
 

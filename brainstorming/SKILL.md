@@ -30,6 +30,42 @@ Faça perguntas para refinar a ideia. Foque em:
 
 Faça uma pergunta por vez. Não bombardeie com todas de uma vez.
 
+### Passo 1.5 — Threat Modeling (obrigatório para features com dados, auth ou integrações externas)
+
+Se a feature tocar em autenticação, dados do usuário, pagamentos, uploads, APIs externas ou controle de acesso, faça threat modeling antes de propor abordagens.
+
+**Pergunte e documente:**
+
+**Ativos** — o que precisa ser protegido?
+- Quais dados trafegam ou são armazenados? São sensíveis (pessoais, financeiros)?
+- Há dinheiro, créditos ou recursos escassos envolvidos?
+
+**Atacantes** — quem pode tentar explorar isso?
+- Usuário malicioso autenticado (cliente do próprio sistema)
+- Atacante externo sem autenticação
+- Insider com acesso legítimo (funcionário, contratado)
+- Bot ou scraper automatizado
+- Dependência comprometida (supply chain)
+
+**Vetores** — como poderiam atacar? (marque os relevantes para a feature)
+- [ ] Acesso a dados de outro usuário (IDOR)
+- [ ] Injeção em queries (SQL/NoSQL Injection)
+- [ ] Execução de script no browser (XSS)
+- [ ] Falsificação de requisição (CSRF)
+- [ ] Enumeração de usuários ou recursos
+- [ ] Race condition (especialmente em pagamentos e contadores)
+- [ ] Upload de arquivo malicioso
+- [ ] Prompt injection (se houver IA)
+- [ ] Abuso de rate (brute force, scraping)
+
+**Classifique cada vetor identificado:**
+
+| Vetor | Probabilidade | Impacto | Prioridade |
+|---|---|---|---|
+| [vetor] | Alta/Média/Baixa | Alto/Médio/Baixo | 🔴/🟡/🟢 |
+
+Documente os vetores de alta prioridade em `docs/design.md` na seção "Riscos de segurança". Eles virarão tasks explícitas no `writing-plans`.
+
 ### Passo 2 — Explorar alternativas
 
 Com base nas respostas, apresente 2–3 abordagens possíveis. Para cada uma:
@@ -70,6 +106,9 @@ Data: [data]
 
 ## Critério de sucesso
 [como saber que está pronto]
+
+## Riscos de segurança
+[vetores identificados no threat modeling com prioridade — deixe vazio se não aplicável]
 ```
 
 Informe ao usuário que o design foi salvo e sugira usar `writing-plans` para criar o plano de implementação.
