@@ -64,6 +64,8 @@ Padding interno:
 
 Card de stat: ícone `w-12 h-12` em container `rounded-lg`, número em `text-3xl font-bold`, label em `text-sm text-gray-600`.
 
+**Todo card/background precisa de título.** Nunca renderize um `bg-white rounded-xl` sem um `<h2>` ou `<h3>` no topo com o nome da seção.
+
 ---
 
 ## Botões
@@ -114,7 +116,7 @@ Card de stat: ícone `w-12 h-12` em container `rounded-lg`, número em `text-3xl
 
   <%= form_with ... class: "mt-6 space-y-6" do |f| %>
     <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
-      <%# Título do card — 16px %>
+      <%# Título do card — obrigatório, 16px %>
       <h2 class="text-base font-semibold text-gray-800">Informações</h2>
 
       <%# Cada campo: label + input com gap de 8px %>
