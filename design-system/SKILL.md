@@ -91,6 +91,52 @@ Card de stat: ícone `w-12 h-12` em container `rounded-lg`, número em `text-3xl
 
 ---
 
+## Formulários (páginas de criar/editar)
+
+**Estrutura da página:**
+```erb
+<div class="px-6 py-6 max-w-7xl mx-auto">
+  <%# Título — 18px %>
+  <h1 class="text-lg font-bold text-gray-900 mb-1">Editar X</h1>
+
+  <%# Breadcrumb logo abaixo do título %>
+  <%= breadcrumb_component do |b| %>
+    <%= b.with_list do |list| %>
+      <%= list.with_item do |item| %>
+        <% item.with_previous_page(href: index_path) { "Seção" } %>
+        <%= item.with_separator %>
+      <% end %>
+      <%= list.with_item do |item| %>
+        <% item.with_current_page { "Editar X" } %>
+      <% end %>
+    <% end %>
+  <% end %>
+
+  <%= form_with ... class: "mt-6 space-y-6" do |f| %>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
+      <%# Título do card — 16px %>
+      <h2 class="text-base font-semibold text-gray-800">Informações</h2>
+
+      <%# Cada campo: label + input com gap de 8px %>
+      <div class="space-y-2">
+        <%= label_component(...) %>
+        <%= input_field_component(...) %>
+        <%= helper_text_component { "..." } %>
+      </div>
+    </div>
+  <% end %>
+</div>
+```
+
+**Regras:**
+- Título da página: `text-lg font-bold text-gray-900` (18px)
+- Breadcrumb: logo abaixo do título, sem margem extra entre eles
+- Card padding: `p-6` (24px)
+- Entre campos dentro do card: `space-y-4` (16px)
+- Entre label e input: `space-y-2` (8px) — usar `<div class="space-y-2">` envolvendo label + input + helper
+
+---
+
 ## Checklist antes de finalizar
 
 - [ ] Container de página não duplicado
