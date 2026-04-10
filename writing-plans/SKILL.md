@@ -71,11 +71,11 @@ git checkout -b <nome-da-branch>
 
 Confirme ao usuário que a branch foi criada e está ativa.
 
-### Passo 5 — Salvar o plano
+### Passo 5 — Apresentar o plano final
 
-Salve o plano em `docs/current-plan.md`:
+Exiba o plano final na conversa no formato abaixo. Não crie nenhum arquivo.
 
-```markdown
+```
 # Plano: [descrição da feature]
 Branch: [nome da branch]
 Iniciado em: [data]
@@ -86,7 +86,7 @@ Iniciado em: [data]
 - [ ] 3. [descrição da task] — `caminho/do/arquivo.ext`
 ```
 
-Informe ao usuário que o plano foi salvo e que pode começar a implementar a task 1.
+Informe ao usuário que pode começar a implementar a task 1.
 
 ## Regras
 

@@ -1,6 +1,6 @@
 ---
 name: smart-commit
-description: Use ao commitar mudanças durante ou após a implementação. Ativa quando o usuário quer commitar, diz "salva isso", "faz o commit", "commitei a task X" ou quando o write-tests libera o commit com testes passando. Lê o plano em docs/current-plan.md para nomear os commits a partir das tasks, agrupa arquivos por contexto lógico e pede confirmação antes de executar cada commit.
+description: Use ao commitar mudanças durante ou após a implementação. Ativa quando o usuário quer commitar, diz "salva isso", "faz o commit", "commitei a task X" ou quando o write-tests libera o commit com testes passando. Lê o plano em docs/current-plan.md para nomear os commits a partir das tasks, agrupa arquivos por contexto lógico e executa os commits diretamente sem pedir confirmação.
 ---
 
 # Smart Commit
@@ -106,41 +106,22 @@ Infira pelo diff.
 - **Gramática:** verbo no presente do indicativo, primeira letra maiúscula, sem ponto final
 - **Objetividade:** baseado no diff real — não invente funcionalidades
 
-### Passo 6 — Apresentar plano e confirmar
+### Passo 6 — Executar os commits em ordem
 
-Exiba a tabela de commits antes de executar qualquer comando git:
-
-```
-Grupo              | Arquivos                     | Mensagem proposta
--------------------|------------------------------|------------------
-componentes/views  | components/SignupForm.jsx    | feat: Adiciona componente de formulário de cadastro
-testes             | components/SignupForm.test.js | feat: Adiciona testes do formulário de cadastro
-documentação       | docs/signup-flow.md          | docs: Atualiza documentação do fluxo de cadastro
-```
-
-Aguarde confirmação. O usuário pode:
-- Aprovar → executar os commits
-- Ajustar mensagem → atualizar e reapresentar
-- Reagrupar arquivos → atualizar e reapresentar
-
-### Passo 7 — Executar os commits em ordem
-
-Para cada grupo (na ordem da tabela aprovada):
+Para cada grupo (na ordem lógica da tabela do Passo 5):
 
 1. Stage apenas os arquivos do grupo:
 ```bash
 git add <arquivo1> <arquivo2> ...
 ```
 
-2. Commit com a mensagem aprovada:
+2. Commit com a mensagem gerada:
 ```bash
 git commit -m "$(cat <<'EOF'
 <mensagem do grupo>
 EOF
 )"
 ```
-
-3. Aguarde confirmação antes de passar para o próximo grupo.
 
 Se um commit falhar (ex: hook de pre-commit), investigue o erro, corrija e crie um **novo** commit. Nunca use `--amend` nem `--no-verify`.
 
@@ -166,5 +147,5 @@ Informe quantos commits foram criados e qual task foi marcada como concluída. S
 - Documentação atualizada sempre vai no mesmo PR que a mudança que a originou — nunca deixe pra depois
 - Se identificar documentação desatualizada mas o dev não quiser atualizar agora, registre como pendência explícita antes de continuar
 - Nunca use `--amend` ou `--no-verify`
-- Nunca commite sem confirmação do usuário
+- Execute os commits diretamente sem pedir confirmação ao usuário
 - Se houver código de debug esquecido (console.log, debugger, print), sinalize antes de commitar
