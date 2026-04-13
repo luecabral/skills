@@ -5,25 +5,25 @@ description: Use ao criar qualquer tela ou componente novo nesta stack (Rails + 
 
 # Design System
 
-Padrões de layout para Rails + Tailwind CDN + Hotwire. Aplique diretamente — sem descrever ou narrar o que está usando.
-
----
-
-## Espaçamento
-
-- Entre **seções** da página: `mt-6`
-- Entre **componentes** dentro de uma seção: `gap-4` / `space-y-4`
-- Entre itens densos dentro de um card: `space-y-3`
-- Entre título do card e seu conteúdo: `mb-4`
-- Entre cabeçalho/breadcrumb/tabs e o conteúdo: `mb-6`
-
-Seção = bloco temático com título próprio. Componente = card, item de lista, campo.
+Padrões de layout para Rails + Tailwind CDN + Hotwire baseados no Majestic Monolith. Aplique diretamente — sem descrever ou narrar o que está usando.
 
 ---
 
 ## Container de página
 
-`px-6 py-6 max-w-7xl mx-auto` — verificar se o layout já provê antes de adicionar.
+**Engine (InkDashboard):**
+```erb
+<div class="container mx-auto flex flex-col items-start gap-6 relative">
+  <%# Para formulários, adicionar mb-8 %>
+</div>
+```
+
+**Monólito (fora da engine):**
+```erb
+<div class="w-full">
+  <%# O layout já provê o container, não duplicar %>
+</div>
+```
 
 ---
 
@@ -31,162 +31,353 @@ Seção = bloco temático com título próprio. Componente = card, item de lista
 
 | Nível | Classes |
 |---|---|
-| Título de página (H1) | `text-2xl font-bold text-gray-900` |
-| Título de seção (H2) | `text-lg font-semibold text-gray-900` |
-| Título de sub-seção / card (H3) | `text-base font-semibold text-gray-800` |
+| Título de página (H1) | `font-bold text-2xl text-gray-900 dark:text-white` |
+| Título de card (H4) | `text-gray-900 text-xl font-semibold` |
+| Título de seção dentro do card | `text-gray-900 text-base font-semibold leading-6` |
+| Subtítulo de seção | `text-sm text-gray-500 leading-5` ou `text-base font-normal text-gray-500` |
 | Texto corrido | `text-sm text-gray-700` |
-| Subtítulo abaixo do H1 | `text-sm text-gray-600` |
-| Meta / caption | `text-xs text-gray-500` |
-| Label de formulário | `text-sm font-medium text-gray-700` |
+| Label de formulário | `text-sm font-medium text-gray-900` |
+| Helper text | `text-sm font-normal text-gray-500` |
 
-Não inventar tamanhos intermediários — usar apenas esta escala.
+Não inventar tamanhos — usar apenas esta escala.
+
+---
+
+## Espaçamento
+
+- **Entre cards/seções**: `gap-6` (usar `flex flex-col gap-6`)
+- **Dentro do card entre elementos**: `gap-6` ou `gap-4`
+- **Entre campo e label**: `gap-2` (8px)
+- **Entre título de card e conteúdo**: sem margem (line-heights cuidam disso)
 
 ---
 
 ## Grids
 
-- 4 colunas (stats compactos): `grid grid-cols-2 lg:grid-cols-4 gap-4`
-- 3 colunas (cards médios): `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5`
-- 2-3 colunas (cards maiores): `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`
-
-Regra: quanto mais colunas e menor o card, menor o gap.
+- **3 colunas desktop, 1 mobile (toolbar de index)**: `grid lg:grid-cols-3 grid-cols-1 lg:grid-rows-1 grid-rows-2 gap-6`
+- **4 stats cards**: `grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4`
 
 ---
 
-## Card
+## Cards
 
-Base: `bg-white rounded-xl border border-gray-200 shadow-sm`
-
-Padding interno:
-- Padrão: `p-6`
-- Compacto (stat): `p-5`
-- Estado vazio: `p-12 text-center`
-
-Card de stat: ícone `w-12 h-12` em container `rounded-lg`, número em `text-3xl font-bold`, label em `text-sm text-gray-600`.
-
-**Todo card/background precisa de título e subtítulo.** Nunca renderize um `bg-white rounded-xl` sem um cabeçalho no topo. O espaçamento entre título e subtítulo vem das line-heights — sem margin entre eles:
+**Base padrão:**
 ```erb
-<div>
-  <p class="text-base font-semibold text-gray-900 leading-6">Título da Seção</p>
-  <p class="text-sm text-gray-500 leading-5">Subtítulo descritivo da seção</p>
-</div>
+<section class="bg-white p-4 flex flex-col gap-6 rounded-lg">
+  <%# Cabeçalho obrigatório %>
+  <div>
+    <p class="text-gray-900 text-base font-semibold leading-6">Título da Seção</p>
+    <p class="text-sm text-gray-500 leading-5">Subtítulo descritivo da seção</p>
+  </div>
+  
+  <%# Conteúdo %>
+</section>
 ```
+
+**Regras:**
+- Padding: `p-4` (16px)
+- Border radius: `rounded-lg`
+- Background: `bg-white`
+- Sem border/shadow por padrão
+- Interno: `flex flex-col gap-6` ou `gap-4`
+- **Todo card precisa de título + subtítulo no cabeçalho**
 
 ---
 
-## Selects e date fields
+## Breadcrumb
 
-Usar as mesmas classes do `input_field_component` (estado default):
+Usar `breadcrumb_component` (padrão da engine):
+
 ```erb
-class: "bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-pink-500 focus:border-pink-500 block w-full p-2.5"
+<%= breadcrumb_component(background: :transparent) do |breadcrumb| %>
+  <%= breadcrumb.with_list do |list| %>
+    <%= list.with_item do |item|%>
+      <% item.with_previous_page(href: "#") do %>
+        Configurar loja
+      <% end %>
+      <%= item.with_separator %>
+    <% end %>
+    <%= list.with_item(class: "text-sm font-medium text-gray-500") do |item| %>
+      <% item.with_current_page do %>
+        Nome da Página
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
 ```
-
-Aplicar em `f.select`, `f.date_field` e qualquer outro campo nativo que não use `input_field_component`.
 
 ---
 
 ## Botões
 
-- Primário: `px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white text-sm font-medium rounded-lg transition-colors`
-- Primário grande (CTA): `px-6 py-3 bg-pink-600 hover:bg-pink-700 text-white font-semibold rounded-lg transition`
-- Secundário: `px-4 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors`
-- Destrutivo (ícone): `p-2 text-red-600 hover:bg-red-50 rounded-lg transition`
+- **Primário**: `flex items-center justify-center gap-2 px-5 py-3 bg-pink-600 hover:bg-pink-700 text-white text-sm font-medium rounded-lg`
+- **Primário outline (Cancelar)**: `inline-flex items-center justify-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-md text-pink-600 text-sm font-medium border border-pink-600`
+- **Secundário**: `px-4 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50`
 
 ---
 
-## Outros componentes
+## Página Index (lista)
 
-**Tabs:** borda inferior `border-b border-gray-200`, ativa em `border-pink-500 text-pink-600`, inativa em `border-transparent text-gray-500`.
+**Estrutura completa:**
 
-**Badge/pill:** `px-3 py-1 rounded-full text-xs font-medium` — verde (ativo), gray (inativo), amber (pendente), pink (destaque).
-
-**Breadcrumb:** `text-sm text-gray-500`, separador `text-gray-300`, item atual `text-gray-700 font-medium`, hover em `text-pink-600`.
-
-**Separador dentro de card:** `border-t border-gray-200 mt-4 pt-4`
-
-**Checkboxes:** sempre usar `checkbox_component` para campos booleanos. Nunca usar `f.check_box` ou `check_box_tag` com classes manuais para campos booleanos.
 ```erb
-<%= checkbox_component(name: "model[field]", id: "model_field", checked: record.field?) do |cb| %>
-  <% cb.with_helper_text { "Texto descritivo abaixo do label" } %>
-  Label do campo
-<% end %>
-```
-Para checkboxes de array (ex: `ids[]`), usar `check_box_tag` com as classes do ink_components:
-```erb
-<%= check_box_tag "ids[]", item.id, selected, id: "item_#{item.id}",
-      class: "w-4 h-4 bg-gray-100 border-gray-300 rounded focus:ring-2 text-pink-600 focus:ring-pink-500" %>
-<label for="item_<%= item.id %>" class="ms-2 mb-0 text-sm font-medium text-gray-900"><%= item.nome %></label>
-```
+<div class="container mx-auto flex flex-col items-start gap-6 relative">
+  <%# 1. Cabeçalho %>
+  <div class="flex flex-col items-start self-stretch gap-2">
+    <div class="flex flex-row items-center justify-between">
+      <h3 class="font-bold text-2xl text-gray-900 dark:text-white">Título da Página</h3>
+    </div>
 
-**Ações de formulário (criar/editar):** botão de submit centralizado, sem borda separadora, sem botão Cancelar.
-```erb
-<div class="flex justify-center">
-  <%= f.submit "Criar X", class: "px-4 py-2 bg-pink-600 hover:bg-pink-700 text-white text-sm font-medium rounded-lg transition-colors" %>
+    <%= breadcrumb_component(background: :transparent) do |breadcrumb| %>
+      <%# ... breadcrumb ... %>
+    <% end %>
+
+    <%= error_boundary { render InkDashboard::CustomBanner::Component.new(...) } %>
+  </div>
+
+  <%# 2. Card principal %>
+  <section class="w-full h-full bg-white flex flex-col items-start gap-6 p-4 self-stretch rounded-lg">
+    <%# 2.1 Header do card %>
+    <div class="w-full flex lg:flex-row flex-col items-start lg:justify-between gap-6 lg:gap-0">
+      <div class="flex flex-col items-start self-stretch">
+        <h4 class="text-gray-900 text-xl font-semibold">Subtítulo da Lista</h4>
+        <p class="text-base font-normal text-gray-500">Descrição com <a href="#" class="text-pink-600 hover:text-pink-700 underline">link de ajuda</a>.</p>
+      </div>
+
+      <%= error_boundary { render InkDashboard::CustomTooltip::Component.new(...) } %>
+    </div>
+
+    <%# 2.2 Toolbar: busca + botão criar + filtros %>
+    <div class="w-full grid lg:grid-cols-3 grid-cols-1 lg:grid-rows-1 grid-rows-2 items-center self-stretch gap-6 px-2">
+      <%# Busca (ocupa 2 colunas no desktop) %>
+      <%= form_with url: path, method: :get, data: { turbo: true, turbo_frame: :_top }, class: "relative lg:col-span-2" do |f| %>
+        <%= f.search_field :query, class: "bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-pink-600 focus:border-pink-600 block w-full pl-11 py-3 px-4", value: params[:query], placeholder: "Busque por..." %>
+        <%= icon_component(name: "search", type: :outline, class: "absolute w-5 h-5 left-3 top-3 text-gray-600") %>
+      <% end %>
+
+      <%# Botão criar %>
+      <button data-modal-target="creating-modal" data-modal-toggle="creating-modal" type="button" class="flex items-center justify-center gap-2 px-5 py-3 bg-pink-600 hover:bg-pink-700 text-white text-sm font-medium rounded-lg">
+        <%= icon_component(name: "plus", type: :outline, class: "text-white w-5 h-5") %>
+        Criar X
+      </button>
+    </div>
+
+    <%# 2.3 Tabela %>
+    <%= turbo_frame_tag :search, class: "w-full" do %>
+      <%= render InkDashboard::Table::Component.new(class: "w-full h-auto text-left text-gray-500 text-base shadow") do |component| %>
+        <% component.with_header do |header| %>
+          <% header.with_row(class: "bg-gray-50 font-semibold uppercase border-b border-gray-200") do |row| %>
+            <% row.with_cell(class: "p-4 text-sm") { "Coluna 1" } %>
+            <% row.with_cell(class: "p-4 text-sm") { "Coluna 2" } %>
+            <% row.with_cell(class: "p-4 text-sm text-center") { "Ações" } %>
+          <% end %>
+        <% end %>
+
+        <% component.with_body do |body| %>
+          <% @records.each do |record| %>
+            <% body.with_row(class: "border-b border-gray-200 hover:bg-gray-50") do |row| %>
+              <% row.with_cell do %>
+                <a href="<%= edit_path(record) %>" data-turbo="false" class="w-full block text-left p-4">
+                  <%= record.name %>
+                </a>
+              <% end %>
+              <%# ... mais células ... %>
+            <% end %>
+          <% end %>
+        <% end %>
+
+        <% component.with_pagination(data: @records, default_params: params) %>
+      <% end %>
+    <% end %>
+  </section>
+
+  <%# 3. Empty state (quando @records.empty?) %>
+  <section class="w-full h-full bg-white flex flex-col items-center gap-6 p-4 self-stretch rounded-lg">
+    <div class="flex justify-center w-full">
+      <%= image_tag "ink_dashboard/navigation_chareacter.png" %>
+    </div>
+    <p class="text-center text-base text-gray-800 leading-6 font-semibold w-full max-w-[406px]">
+      Título do estado vazio
+    </p>
+    <p class="leading-tight text-sm font-normal text-center text-gray-500 max-w-[406px]">
+      Descrição incentivando o usuário a criar o primeiro registro
+    </p>
+    <%# Botão criar %>
+  </section>
 </div>
 ```
 
-**Estado vazio:** sempre presente em listas que podem estar vazias — ícone `w-16 h-16 mx-auto text-gray-400`, título, frase de incentivo, CTA primário grande.
-
-**Tabela:** wrapper com card base + `overflow-hidden`, `thead bg-gray-50`, células `px-6 py-4`, hover em `hover:bg-gray-50`.
-
 ---
 
-## Formulários (páginas de criar/editar)
+## Formulários (criar/editar)
 
-**Estrutura da página:**
+**Estrutura completa:**
+
 ```erb
-<div class="px-6 py-6 max-w-7xl mx-auto">
-  <%# Título — 24px %>
-  <h1 class="text-2xl font-bold text-gray-900 mb-1">Editar X</h1>
+<div class="container mx-auto flex flex-col items-start gap-6 relative mb-8">
+  <%# 1. Cabeçalho %>
+  <div class="flex flex-col items-start self-stretch gap-2">
+    <div class="flex flex-row items-center justify-between">
+      <h3 class="font-bold text-2xl text-gray-900 dark:text-white">Criar/Editar X</h3>
+    </div>
 
-  <%# Breadcrumb logo abaixo do título %>
-  <%= breadcrumb_component do |breadcrumb| %>
-    <%= breadcrumb.with_list do |list| %>
-      <%= list.with_item do |item| %>
-        <% item.with_previous_page(href: index_path) do %>Seção<% end %>
-        <%= item.with_separator %>
-      <% end %>
-      <%= list.with_item do |item| %>
-        <% item.with_current_page do %>Editar X<% end %>
+    <%= breadcrumb_component(background: :transparent) do |breadcrumb| %>
+      <%= breadcrumb.with_list do |list| %>
+        <%= list.with_item do |item|%>
+          <% item.with_previous_page(href: "#") do %>Seção<% end %>
+          <%= item.with_separator %>
+        <% end %>
+        <%= list.with_item do |item|%>
+          <% item.with_previous_page(href: index_path) do %>Lista<% end %>
+          <%= item.with_separator %>
+        <% end %>
+        <%= list.with_item(class: "text-sm font-medium text-gray-500") do |item| %>
+          <% item.with_current_page do %>Criar/Editar<% end %>
+        <% end %>
       <% end %>
     <% end %>
-  <% end %>
+  </div>
 
-  <%= form_with ... class: "mt-6 space-y-6" do |f| %>
-    <div class="bg-white rounded-xl border border-gray-200 shadow-sm p-6 space-y-4">
-      <%# Cabeçalho do card — título + subtítulo obrigatórios %>
-      <div>
-        <p class="text-base font-semibold text-gray-900 leading-6">Informações</p>
-        <p class="text-sm text-gray-500 leading-5">Subtítulo descritivo da seção</p>
-      </div>
+  <%# 2. Layout: form à esquerda, sidebar opcional à direita %>
+  <div class="w-full flex lg:flex-row flex-col gap-7 items-start">
+    
+    <%# 2.1 Formulário %>
+    <%= form_with(model: record, url: url, builder: InkComponents::FormBuilder, local: true, data: { controller: "..." }, class: "w-full flex flex-col gap-6") do |f| %>
+      
+      <%# Card de seção 1 %>
+      <section class="bg-white p-4 flex flex-col gap-6 rounded-lg">
+        <div>
+          <p class="text-gray-900 text-base font-semibold leading-6">Informações Gerais</p>
+          <p class="text-sm text-gray-500 leading-5">Subtítulo descritivo da seção</p>
+        </div>
 
-      <%# Cada campo: label + input com gap de 8px %>
-      <div class="space-y-2">
-        <%= label_component(...) %>
-        <%= input_field_component(...) %>
-        <%= helper_text_component { "..." } %>
-      </div>
-    </div>
-  <% end %>
+        <%# Campo 1 %>
+        <div class="flex flex-col gap-2">
+          <%= label_component(state: :default, for: "record_name", class: "text-sm font-normal") do %>
+            <span class="text-gray-500">*</span> Nome <span class="text-gray-500">(obrigatório)</span>
+          <% end %>
+          <%= input_field_component(id: "record_name", scale: :md, state: :default, name: "record[name]", value: record.name, placeholder: "Ex: valor", required: true) %>
+          <p class="text-gray-500 leading-tight text-sm font-normal">Texto de ajuda</p>
+        </div>
+
+        <%# Checkbox %>
+        <%= checkbox_component(id: "show_banner", name: "record[show_banner]", checked: record.show_banner?) do |checkbox| %>
+          <% checkbox.with_helper_text { "Texto descritivo abaixo do checkbox" } %>
+          Label do checkbox
+        <% end %>
+      </section>
+
+      <%# Card de seção 2 %>
+      <section class="bg-white p-4 flex flex-col gap-6 rounded-lg">
+        <div>
+          <p class="text-gray-900 text-base font-semibold leading-6">Datas Ativas</p>
+          <p class="text-sm text-gray-500 leading-5">Defina o período de validade</p>
+        </div>
+
+        <%# Date + Time fields %>
+        <div class="relative gap-2 w-full flex flex-col">
+          <label for="starts_date_at" class="text-sm font-medium leading-none text-gray-900 cursor-pointer">Data inicial</label>
+          <div class="inline-flex items-center gap-4 w-full">
+            <input data-controller="ink-dashboard--date-pick" type="text" name="record[starts_date_at]" id="starts_date_at" value="<%= record.starts_at&.strftime('%d/%m/%Y') %>" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-pink-600 focus:border-pink-600 block w-full pl-11 p-2.5">
+            <input type="time" name="record[starts_time_at]" id="starts_time_at" value="<%= record.starts_at&.strftime('%H:%M') %>" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-pink-600 focus:border-pink-600 block w-full p-2.5">
+          </div>
+        </div>
+      </section>
+
+      <%# Ações: Cancelar + Salvar centralizados %>
+      <section class="w-full flex flex-row gap-4 justify-center">
+        <a href="<%= index_path %>" class="inline-flex items-center justify-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-md text-pink-600 text-sm font-medium border border-pink-600">
+          Cancelar
+        </a>
+        <button type="submit" class="inline-flex items-center justify-center gap-2 px-3 py-2 bg-pink-600 hover:bg-pink-700 text-white text-sm font-medium rounded-lg">
+          Salvar
+        </button>
+      </section>
+    <% end %>
+
+    <%# 2.2 Sidebar opcional (ex: simulação de desconto) %>
+    <%# ... %>
+  </div>
 </div>
 ```
 
 **Regras:**
-- Título da página: `text-xl font-bold text-gray-900` (20px)
-- Breadcrumb: logo abaixo do título, sem margem extra entre eles
-- Card padding: `p-6` (24px)
-- Entre campos dentro do card: `space-y-4` (16px)
-- Entre label e input: `space-y-2` (8px) — usar `<div class="space-y-2">` envolvendo label + input + helper
-- **Cada grupo de informações semanticamente distinto deve ser um card separado** — não agrupar tudo em um único card. Ex: "Informações Gerais", "Critérios", "Período", "Configurações" → um card cada.
-- Opcional no título do card: `<span class="text-sm font-normal text-gray-500">(Opcional)</span>` inline no `<h2>`
+- Container: `container mx-auto flex flex-col gap-6 mb-8`
+- Formulário: `flex flex-col gap-6` entre cards
+- Card: `bg-white p-4 rounded-lg` com `flex flex-col gap-6` interno
+- Cada seção semanticamente distinta = card separado
+- Botões: Cancelar (outline) + Salvar (primário), centralizados
+- Campos condicionais: usar `data-controller="ink-dashboard--toggle-input"` + checkbox que mostra/esconde campo
+
+---
+
+## Selects e date fields
+
+Aplicar as mesmas classes dos inputs:
+```erb
+class: "bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-pink-600 focus:border-pink-600 block w-full p-2.5"
+```
+
+---
+
+## Tabelas
+
+Usar sempre `InkDashboard::Table::Component`:
+- Header: `bg-gray-50 font-semibold uppercase border-b border-gray-200`
+- Cell: `p-4 text-sm`
+- Rows: `border-b border-gray-200 hover:bg-gray-50`
+- Primeira coluna sticky: `class: "p-4 text-sm sticky left-0 z-10 bg-gray-50"` (header) e `sticky left-0 z-10 bg-white` (body)
+
+---
+
+## Badge/Status
+
+Usar `badge_component` ou `InkDashboard::Badge::Component`:
+```erb
+<%= badge_component(color: :green, size: :xs) { "Ativa" } %>
+<%= badge_component(color: :red, size: :xs) { "Pausada" } %>
+```
+
+---
+
+## Modal de criação com seleção de tipo
+
+Padrão para recursos com subtipos (ex: Promoções, Regras de Frete):
+
+```erb
+<%= modal_component(modal_id: "creating-modal", max_width: :lg) do |component| %>
+  <% component.with_trigger do %>
+    <%= button_component(builder: :button_tag, size: :md, type: :button, data: { modal_target: "creating-modal", modal_toggle: "creating-modal" }) do %>
+      <%= icon_component(name: "plus", type: :outline, class: "text-white w-5 h-5") %>
+      Criar X
+    <% end %>
+  <% end %>
+  <% component.with_header(modal_id: "creating-modal", title: "Criar X", subtitle: "Selecione o tipo desejado") do |header| %>
+    <% header.with_close_button %>
+  <% end %>
+  <% component.with_body do %>
+    <ul class="w-full flex flex-col items-start gap-3">
+      <li class="w-full">
+        <a href="<%= new_type1_path %>" data-turbo="false" class="w-full inline-flex items-center justify-start p-3 gap-3 hover:bg-gray-50 rounded-lg">
+          <%= icon_component(name: "icon1", type: :outline, class: "text-pink-600 w-6 h-6") %>
+          <p class="text-sm font-normal text-gray-900">Tipo 1</p>
+        </a>
+      </li>
+    </ul>
+  <% end %>
+<% end %>
+```
 
 ---
 
 ## Checklist antes de finalizar
 
-- [ ] Container de página não duplicado
-- [ ] Cabeçalho com `mb-6`
-- [ ] Seções com `mt-6`, componentes com `gap-4` ou `space-y-4`
-- [ ] Cards com `bg-white rounded-xl border border-gray-200 shadow-sm`
-- [ ] Estado vazio implementado em toda lista
+- [ ] Container correto (engine: `container mx-auto flex flex-col gap-6`, monólito: `w-full`)
+- [ ] Cabeçalho: título + breadcrumb (sem margem entre eles)
+- [ ] Cards: `bg-white p-4 rounded-lg` com `flex flex-col gap-6`
+- [ ] Todo card tem título + subtítulo
+- [ ] Formulário: cards separados por seção semântica, `gap-6` entre eles
+- [ ] Botões: Cancelar + Salvar centralizados
+- [ ] Tabela via `InkDashboard::Table::Component`
+- [ ] Empty state quando lista vazia
 - [ ] Tipografia dentro da escala definida
