@@ -136,8 +136,8 @@ Para checkboxes de array (ex: `ids[]`), usar `check_box_tag` com as classes do i
 **Estrutura da página:**
 ```erb
 <div class="px-6 py-6 max-w-7xl mx-auto">
-  <%# Título — 20px %>
-  <h1 class="text-xl font-bold text-gray-900 mb-1">Editar X</h1>
+  <%# Título — 24px %>
+  <h1 class="text-2xl font-bold text-gray-900 mb-1">Editar X</h1>
 
   <%# Breadcrumb logo abaixo do título %>
   <%= breadcrumb_component do |breadcrumb| %>
