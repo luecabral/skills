@@ -59,7 +59,7 @@ Regra geral: quanto mais colunas e menor o card, menor o gap.
 
 **Base padrão:**
 ```erb
-<section class="bg-white p-4 flex flex-col gap-6 rounded-lg">
+<section class="bg-white p-4 flex flex-col gap-6 rounded-lg border border-gray-200">
   <%# Cabeçalho obrigatório — todo card precisa de título + subtítulo %>
   <div>
     <p class="text-gray-900 text-base font-semibold leading-6">Título da Seção</p>
@@ -74,7 +74,7 @@ Regra geral: quanto mais colunas e menor o card, menor o gap.
 - Padding: `p-4` (16px)
 - Border radius: `rounded-lg`
 - Background: `bg-white`
-- Sem border/shadow por padrão
+- Border: `border border-gray-200` (outline cinza claro)
 - Interno: `flex flex-col gap-6` (ou `gap-4` para conteúdo mais denso)
 - **Todo card precisa de título + subtítulo no cabeçalho** — nunca renderize um `bg-white rounded-lg` sem cabeçalho
 - **Cada grupo de informações semanticamente distinto = card separado**
@@ -266,7 +266,7 @@ Para checkboxes de array (ex: `ids[]`):
     <%= form_with(model: record, url: url, builder: InkComponents::FormBuilder, local: true, class: "w-full flex flex-col gap-6") do |f| %>
 
       <%# Card por grupo semântico %>
-      <section class="bg-white p-4 flex flex-col gap-6 rounded-lg">
+      <section class="bg-white p-4 flex flex-col gap-6 rounded-lg border border-gray-200">
         <div>
           <p class="text-gray-900 text-base font-semibold leading-6">Informações Gerais</p>
           <p class="text-sm text-gray-500 leading-5">Subtítulo descritivo da seção</p>
@@ -354,7 +354,7 @@ Padrão para recursos com subtipos (ex: Promoções, Regras de Frete):
 
 - [ ] Container correto para o contexto (engine: `container mx-auto flex flex-col gap-6` / monólito: `w-full`)
 - [ ] Cabeçalho: título + breadcrumb sem margem entre eles
-- [ ] Cards: `bg-white p-4 rounded-lg` com `flex flex-col gap-6`
+- [ ] Cards: `bg-white p-4 rounded-lg border border-gray-200` com `flex flex-col gap-6`
 - [ ] Todo card tem título + subtítulo obrigatórios
 - [ ] Formulário: cards separados por seção semântica, `gap-6` entre eles
 - [ ] Botões de formulário: Cancelar (outline) + Salvar (primário), centralizados
