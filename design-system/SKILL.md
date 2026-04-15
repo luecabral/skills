@@ -3,19 +3,23 @@ name: design-system
 description: Use ao criar qualquer tela ou componente novo nesta stack (Rails + Tailwind CDN + Hotwire). Ativa quando o usuário diz "cria a tela de X", "faz o layout de Y", "como estruturo essa página", ou sempre que for escrever HTML com classes Tailwind. Garante que espaçamentos, grids, tipografia e componentes seguem o padrão estabelecido — sem retrabalho de consistência visual.
 ---
 
-# Design System
+# Design System — Área Admin
 
-Padrões de layout para Rails + Tailwind CDN + Hotwire (Majestic Monolith + InkDashboard Engine). Aplique diretamente — sem descrever ou narrar o que está usando.
+Padrões de layout para telas da **área administrativa** (Rails + Tailwind CDN + Hotwire + InkDashboard Engine). Aplique diretamente — sem descrever ou narrar o que está usando.
 
 ---
 
-## Contexto: Engine vs Monólito
+## Contexto: Container de Página Admin
 
 | Contexto | Container de página |
 |---|---|
-| **Engine (InkDashboard)** | `<div class="container mx-auto flex flex-col items-start gap-6 relative">` |
-| **Monólito (fora da engine)** | `<div class="w-full">` — o layout já provê o container, não duplicar |
-| **Formulários (ambos)** | adicionar `mb-8` ao container |
+| **Páginas Admin (padrão)** | `<div class="container mx-auto flex flex-col items-start gap-6 relative pt-[42px]">` |
+| **Formulários Admin** | `<div class="container mx-auto flex flex-col items-start gap-6 relative pt-[42px] mb-8">` |
+| **Páginas Públicas** | `<div class="w-full">` — o layout já provê o container, não duplicar |
+
+**IMPORTANTE:**
+- O `pt-[42px]` é **obrigatório** em todas as páginas admin para espaçamento superior
+- Formulários adicionam `mb-8` ao final
 
 ---
 
@@ -147,27 +151,27 @@ Para checkboxes de array (ex: `ids[]`):
 
 ---
 
-## Página Index (lista)
+## Página Index Admin (lista)
+
+**Regras específicas:**
+- **Sem breadcrumb** — índices admin não têm navegação em breadcrumb
+- **Sempre com subtítulo** — o card principal sempre tem título + subtítulo descritivo
+- **Container obrigatório:** `pt-[42px]` para espaçamento superior
 
 ```erb
-<div class="container mx-auto flex flex-col items-start gap-6 relative">
-  <%# 1. Cabeçalho %>
-  <div class="flex flex-col items-start self-stretch gap-2">
-    <div class="flex flex-row items-center justify-between">
-      <h3 class="font-bold text-2xl text-gray-900 dark:text-white">Título da Página</h3>
-    </div>
-    <%= breadcrumb_component(background: :transparent) do |breadcrumb| %>
-      <%# ... %>
-    <% end %>
+<div class="container mx-auto flex flex-col items-start gap-6 relative pt-[42px]">
+  <%# 1. Cabeçalho: apenas título H3, SEM breadcrumb %>
+  <div class="flex flex-col items-start self-stretch">
+    <h3 class="font-bold text-2xl text-gray-900 dark:text-white">Título da Página</h3>
   </div>
 
   <%# 2. Card principal %>
-  <section class="w-full h-full bg-white flex flex-col items-start gap-6 p-4 self-stretch rounded-lg">
-    <%# 2.1 Header do card %>
+  <section class="w-full h-full bg-white flex flex-col items-start gap-6 p-4 self-stretch rounded-lg border border-gray-200">
+    <%# 2.1 Header do card: título + subtítulo OBRIGATÓRIOS %>
     <div class="w-full flex lg:flex-row flex-col items-start lg:justify-between gap-6 lg:gap-0">
       <div class="flex flex-col items-start self-stretch">
         <h4 class="text-gray-900 text-xl font-semibold">Subtítulo da Lista</h4>
-        <p class="text-base font-normal text-gray-500">Descrição opcional com <a href="#" class="text-pink-600 hover:text-pink-700 underline">link de ajuda</a>.</p>
+        <p class="text-base font-normal text-gray-500">Descrição da seção (sempre presente)</p>
       </div>
     </div>
 
@@ -186,65 +190,77 @@ Para checkboxes de array (ex: `ids[]`):
     </div>
 
     <%# 2.3 Tabela %>
-    <%= turbo_frame_tag :search, class: "w-full" do %>
-      <%= render InkDashboard::Table::Component.new(class: "w-full h-auto text-left text-gray-500 text-base shadow") do |component| %>
-        <% component.with_header do |header| %>
-          <% header.with_row(class: "bg-gray-50 font-semibold uppercase border-b border-gray-200") do |row| %>
-            <% row.with_cell(class: "p-4 text-sm") { "Coluna 1" } %>
-            <% row.with_cell(class: "p-4 text-sm") { "Coluna 2" } %>
-            <% row.with_cell(class: "p-4 text-sm text-center") { "Ações" } %>
-          <% end %>
-        <% end %>
-
-        <% component.with_body do |body| %>
+    <% if @records.empty? %>
+      <%# Empty state %>
+      <div class="w-full flex flex-col items-center gap-6 py-8">
+        <div class="flex justify-center w-full">
+          <%= image_tag "ink_dashboard/navigation_chareacter.png" %>
+        </div>
+        <p class="text-center text-base text-gray-800 leading-6 font-semibold w-full max-w-[406px]">
+          Título do estado vazio
+        </p>
+        <p class="leading-tight text-sm font-normal text-center text-gray-500 max-w-[406px]">
+          Descrição incentivando o usuário a criar o primeiro registro
+        </p>
+        <button class="flex items-center justify-center gap-2 px-5 py-3 bg-pink-600 hover:bg-pink-700 text-white text-sm font-medium rounded-lg">
+          <%= icon_component(name: "plus", type: :outline, class: "text-white w-5 h-5") %>
+          Criar X
+        </button>
+      </div>
+    <% else %>
+      <%= render layout: "universidade/admin/shared/table",
+                 locals: {
+                   columns: [
+                     { label: "Coluna 1" },
+                     { label: "Coluna 2", align: :center },
+                     { label: "Ações", align: :right }
+                   ]
+                 } do %>
+        <tbody>
           <% @records.each do |record| %>
-            <% body.with_row(class: "border-b border-gray-200 hover:bg-gray-50") do |row| %>
-              <% row.with_cell do %>
-                <a href="<%= edit_path(record) %>" data-turbo="false" class="w-full block text-left p-4">
-                  <%= record.name %>
-                </a>
-              <% end %>
-            <% end %>
+            <tr class="border-b border-gray-200 hover:bg-gray-50">
+              <td class="px-4 py-3">
+                <%= link_to record.name, edit_path(record), class: "text-sm text-gray-900" %>
+              </td>
+              <td class="px-4 py-3 text-center">
+                <%= badge_component(color: :pink, size: :xs) { record.count } %>
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex items-center justify-end gap-1">
+                  <%= link_to edit_path(record), class: "p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded" do %>
+                    <%= icon_component(name: "pencil-square", type: :outline, class: "w-4 h-4") %>
+                  <% end %>
+                </div>
+              </td>
+            </tr>
           <% end %>
-        <% end %>
-
-        <% component.with_pagination(data: @records, default_params: params) %>
+        </tbody>
       <% end %>
     <% end %>
-  </section>
-
-  <%# 3. Empty state (quando @records.empty?) %>
-  <section class="w-full h-full bg-white flex flex-col items-center gap-6 p-4 self-stretch rounded-lg">
-    <div class="flex justify-center w-full">
-      <%= image_tag "ink_dashboard/navigation_chareacter.png" %>
-    </div>
-    <p class="text-center text-base text-gray-800 leading-6 font-semibold w-full max-w-[406px]">
-      Título do estado vazio
-    </p>
-    <p class="leading-tight text-sm font-normal text-center text-gray-500 max-w-[406px]">
-      Descrição incentivando o usuário a criar o primeiro registro
-    </p>
-    <button class="flex items-center justify-center gap-2 px-5 py-3 bg-pink-600 hover:bg-pink-700 text-white text-sm font-medium rounded-lg">
-      <%= icon_component(name: "plus", type: :outline, class: "text-white w-5 h-5") %>
-      Criar X
-    </button>
   </section>
 </div>
 ```
 
-**Tabelas — regras de célula:**
-- Header: `bg-gray-50 font-semibold uppercase border-b border-gray-200`
-- Células: `p-4 text-sm`
+**Tabelas — uso do partial:**
+- Usar `render layout: "universidade/admin/shared/table"` com locals `columns: []`
+- Cada coluna: `{ label: "Nome", align: :left|:center|:right, width: "w-32" }` (align e width opcionais)
+- Dentro do bloco: renderizar `<tbody>` e `<tr>` com HTML tradicional
+- Header: automaticamente gerado pelo partial (bg-gray-50, uppercase, border)
+- Células: `px-4 py-3 text-sm`
 - Rows: `border-b border-gray-200 hover:bg-gray-50`
-- Coluna sticky: `p-4 text-sm sticky left-0 z-10 bg-gray-50` (header) / `sticky left-0 z-10 bg-white` (body)
+- Coluna sticky (quando necessário): `sticky left-0 z-10 bg-gray-50` (header) / `sticky left-0 z-10 bg-white` (body)
 
 ---
 
-## Formulários (criar/editar)
+## Formulários Admin (criar/editar)
+
+**Regras específicas:**
+- **Com breadcrumb** — formulários têm navegação (diferente de índices)
+- **Container obrigatório:** `pt-[42px]` + `mb-8`
 
 ```erb
-<div class="container mx-auto flex flex-col items-start gap-6 relative mb-8">
-  <%# 1. Cabeçalho %>
+<div class="container mx-auto flex flex-col items-start gap-6 relative pt-[42px] mb-8">
+  <%# 1. Cabeçalho com breadcrumb %>
   <div class="flex flex-col items-start self-stretch gap-2">
     <h3 class="font-bold text-2xl text-gray-900 dark:text-white">Criar/Editar X</h3>
     <%= breadcrumb_component(background: :transparent) do |breadcrumb| %>
@@ -350,15 +366,17 @@ Padrão para recursos com subtipos (ex: Promoções, Regras de Frete):
 
 ---
 
-## Checklist antes de finalizar
+## Checklist antes de finalizar — Páginas Admin
 
-- [ ] Container correto para o contexto (engine: `container mx-auto flex flex-col gap-6` / monólito: `w-full`)
-- [ ] Cabeçalho: título + breadcrumb sem margem entre eles
-- [ ] Cards: `bg-white p-4 rounded-lg border border-gray-200` com `flex flex-col gap-4`
-- [ ] Todo card tem título + subtítulo obrigatórios
+- [ ] Container: `container mx-auto flex flex-col items-start gap-6 relative pt-[42px]`
+- [ ] Formulários: adicionar `mb-8` ao container (além do `pt-[42px]`)
+- [ ] **Index:** sem breadcrumb, apenas H3 no cabeçalho
+- [ ] **Formulários:** com breadcrumb (Lista → Criar/Editar)
+- [ ] Card principal: sempre com título (H4) + subtítulo obrigatórios
+- [ ] Cards internos: `bg-white p-4 rounded-lg border border-gray-200` com `flex flex-col gap-4`
 - [ ] Formulário: cards separados por seção semântica, `gap-6` entre eles
 - [ ] Botões de formulário: Cancelar (outline) + Salvar (primário), centralizados
-- [ ] Tabela via `InkDashboard::Table::Component`
+- [ ] Tabela via partial `render layout: "universidade/admin/shared/table"`
 - [ ] Empty state implementado em toda lista (com imagem `navigation_chareacter.png`)
 - [ ] Tipografia dentro da escala definida
 - [ ] Selects/date fields com as classes padrão de input
