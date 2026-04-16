@@ -51,7 +51,7 @@ Tudo o mais (testes, debug, documentação, revisão) acontece automaticamente.
     ↓
 "faz o commit"
     ↓
-[smart-commit] ─────┬─→ verifica docs desatualizadas
+[smart-commit] ─────┬─→ [vibecodado-docs] checklist de docs (se AGENTS.md existir)
                     ├─→ [write-tests] cria testes se não existirem
                     ├─→ roda todos os testes
                     ├─→ [systematic-debugging] se falhar
@@ -67,7 +67,7 @@ Tudo o mais (testes, debug, documentação, revisão) acontece automaticamente.
     ↓
 "abre o PR"
     ↓
-[open-pr] ──────────┬─→ push (se ainda não foi feito)
+[open-pr] ──────────┬─→ [vibecodado-docs] checklist consolidado da branch
                     ├─→ [ready-check] revisão de código
                     ├─→ [ux-validation] se houver UI
                     ├─→ rebase com main
@@ -215,6 +215,18 @@ O roteiro é executável por qualquer pessoa, técnica ou não. Para revisores q
 ## Skills fora do fluxo
 
 Skills acionadas por contexto específico.
+
+---
+
+### 📝 vibecodado-docs
+
+Metodologia completa de documentação para projetos vibecodados por pessoas não-tech. Cria e mantém documentação dual-audience: legível para humanos leigos **e** usada como contexto de guia por agentes de IA.
+
+A estrutura gira em torno do `AGENTS.md` — um briefing que todo agente lê antes de qualquer coisa — e de arquivos em `docs/features/` e `docs/flows/` para detalhar cada parte do sistema. Para projetos pequenos, só o `AGENTS.md` já resolve.
+
+A skill é acionada automaticamente pelo `smart-commit` (verificação leve a cada commit) e pelo `open-pr` (verificação consolidada de toda a branch antes do PR). Em ambos os casos, o agente percorre um checklist e bloqueia o avanço se houver documentação desatualizada.
+
+**Quando usar:** "documenta isso", "cria o AGENTS.md", "explica como funciona pra IA", "registra essa feature", ou ao iniciar um projeto novo
 
 ---
 
