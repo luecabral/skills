@@ -2,40 +2,76 @@
 
 Skills são instruções que ensinam a IA a se comportar de um jeito específico em cada etapa do desenvolvimento. Em vez de dar o mesmo contexto repetido toda vez, você ativa a skill certa e ela já sabe o que fazer, o que checar e o que entregar.
 
-Este repositório organiza o fluxo completo de desenvolvimento — do primeiro rascunho de uma ideia até o PR revisado e pronto para produção.
+Este repositório organiza um fluxo de desenvolvimento minimalista — do primeiro rascunho de uma ideia até o PR revisado e pronto para produção.
 
 ---
 
-## Fluxo principal
+## Princípios das skills
+
+✅ **Independentes**: cada skill funciona sozinha, sem depender de arquivos intermediários  
+✅ **Inferem do Git**: usam commits e diff como fonte de verdade  
+✅ **Não duplicam trabalho**: verificam o que já foi feito antes de refazer  
+✅ **Automáticas quando possível**: você só interage quando realmente necessário  
+✅ **Encadeiam quando faz sentido**: smart-commit chama write-tests, open-pr chama ready-check
+
+---
+
+## Fluxo mínimo
+
+```
+1. "cria a branch feature/X"
+2. "implementa Y"
+3. "faz o commit"     → testes + validações automáticas
+4. "abre o PR"        → revisão + push + PR automático
+```
+
+Tudo o mais (testes, debug, documentação, revisão) acontece automaticamente.
+
+---
+
+## Fluxo completo
 
 ```
 💡 IDEIA
     ↓
-[brainstorming] ──── refina a ideia + threat modeling
-    ↓
-[writing-plans] ──── cria o plano de tasks + cria a branch
+[brainstorming] ──── explora possibilidades e refina o problema
+    ↓ (opcional)
+[writing-plans] ──── planeja tasks + cria branch
     ↓
     ┌─────────────────────────────────────┐
-    │  por task, repete até o plano acabar │
+    │  DESENVOLVIMENTO                    │
     │                                     │
     │  implementa o código                │
     │       ↓                             │
-    │  [vibesec] ── checa segurança       │
-    │  [ux-validation] ── checa interface │
-    │       ↓                             │
-    │  [write-tests] ── escreve e roda    │
-    │       (inclui testes de segurança)  │
-    │       ↓                             │
-    │  testes passaram?                   │
-    │    não → [systematic-debugging]     │
-    │           [verification-before-completion]
-    │    sim ↓                            │
-    │  [smart-commit] ── commita a task   │
+    │  Skills ativam conforme necessário: │
+    │  • design-system (UI em Rails)     │
+    │  • ux-validation (telas)           │
+    │  • vibesec (auth/dados)            │
     └─────────────────────────────────────┘
     ↓
-[ready-check] ──── revisão + segurança + pipeline CI/CD
+"faz o commit"
     ↓
-[open-pr] ──── rebase + PR com corpo + changelog
+[smart-commit] ─────┬─→ verifica docs desatualizadas
+                    ├─→ [write-tests] cria testes se não existirem
+                    ├─→ roda todos os testes
+                    ├─→ [systematic-debugging] se falhar
+                    ├─→ [verification-before-completion]
+                    └─→ commita quando tudo verde
+    ↓
+(opcional) "faz o push"
+    ↓
+[push] ─────────────┬─→ verifica código de debug
+                    ├─→ roda todos os testes
+                    ├─→ [systematic-debugging] se falhar
+                    └─→ push da branch
+    ↓
+"abre o PR"
+    ↓
+[open-pr] ──────────┬─→ push (se ainda não foi feito)
+                    ├─→ [ready-check] revisão de código
+                    ├─→ [ux-validation] se houver UI
+                    ├─→ rebase com main
+                    └─→ cria PR draft
     ↓
 [review-pr] ──── roteiro de staging para o revisor
 ```
@@ -48,23 +84,23 @@ Este repositório organiza o fluxo completo de desenvolvimento — do primeiro r
 
 ### 💡 brainstorming
 
-Quem vibecoda tende a ir direto para o código antes de entender o problema de verdade. Essa skill freia esse impulso. Ela faz as perguntas certas para descobrir o que realmente precisa ser feito — o comportamento esperado, quem vai usar, o que fica fora do escopo — antes de qualquer linha de código.
+Use quando quiser **explorar possibilidades** ou entender como fazer algo antes de começar. Essa skill faz perguntas para refinar o problema, identificar restrições e explorar alternativas. Não propõe código — foca no entendimento.
 
-Para features que envolvem dados, autenticação ou integrações externas, ela também faz um **threat modeling**: mapeia o que precisa ser protegido, quem poderia atacar e quais vetores de risco existem. Esse mapa vira parte do documento de design e depois se transforma em tasks de segurança no plano.
+Para features que envolvem dados, autenticação ou integrações externas, ela também faz **threat modeling**: mapeia ativos, atacantes e vetores de risco. Os riscos de alta prioridade são documentados para virar tasks de segurança depois.
 
-O resultado é um documento de design salvo em `docs/design.md`, que serve de base para o `writing-plans`.
+Apresenta o design refinado na conversa, não cria arquivos.
 
-**Quando usar:** sempre que a ideia ainda for vaga ou não houver plano definido.
+**Quando usar:** "como eu poderia fazer X", "quero explorar ideias de Y", "qual a melhor abordagem para Z"
 
 ---
 
 ### 📋 writing-plans
 
-Sem um plano, a implementação vira uma sequência de decisões improvisadas. Essa skill quebra a ideia aprovada no brainstorming em tasks pequenas, de 2 a 5 minutos cada — específicas o suficiente para gerar commits limpos e revisões precisas.
+**Planejamento sob demanda.** Quebra uma implementação complexa em tasks pequenas (2-5 min cada), deriva o nome da branch e a cria.
 
-Além do plano, ela cria a branch no repositório com nome padronizado (`feat/descricao`, `fix/descricao`) e salva tudo em `docs/current-plan.md`. Esse arquivo é o fio que conecta as próximas skills: o `write-tests` lê para saber o que testar, o `smart-commit` lê para nomear os commits, o `ready-check` lê para saber se o plano está completo.
+O plano é apresentado na conversa para guiar o desenvolvimento. Não é obrigatório — outras skills (smart-commit, write-tests) inferem o contexto diretamente do Git se não houver plano.
 
-**Quando usar:** após o brainstorming ser aprovado, ou quando a ideia já está clara e só falta organizar a execução.
+**Quando usar:** apenas quando você pedir explicitamente: "faz o planejamento", "cria o plano", "planeja isso"
 
 ---
 
@@ -92,13 +128,13 @@ Ela tem dois modos: `guide` para construir algo novo (orienta durante a implemen
 
 ### 🧪 write-tests
 
-Testes escritos depois da implementação, mas antes do commit — esse é o momento certo no fluxo de vibecoding. Essa skill lê a task implementada, identifica os cenários relevantes e escreve os testes: o caminho feliz (happy path), os erros esperados (sad path), os casos extremos (edge cases) e a regressão (o que pode ter quebrado ao redor).
+Testes escritos depois da implementação, mas antes do commit. Essa skill **infere o que foi implementado** via `git status` e `git diff`, identifica os cenários relevantes e escreve os testes: happy path, sad path, edge cases e regressão.
 
-Se a task tocou em autenticação, dados ou uploads, ela também gera testes de segurança obrigatórios: acesso sem token, token de outro usuário, cross-tenant, rate limit, inputs maliciosos, arquivo de tipo inválido. Esses testes não são opcionais — se não forem aplicáveis, precisa ser declarado explicitamente.
+Se a mudança tocou em autenticação, dados ou uploads, gera **testes de segurança obrigatórios**: acesso sem token, cross-tenant, rate limit, inputs maliciosos, arquivos inválidos.
 
-Os testes são rodados antes de liberar para o `smart-commit`. Se algum falhar, aciona o `systematic-debugging` automaticamente.
+Roda os testes e só libera o commit quando estiverem verdes. Se falharem, aciona `systematic-debugging` automaticamente.
 
-**Quando usar:** após concluir a implementação de uma task, antes de commitar.
+**Quando usar:** "escreve os testes", ou automaticamente via `smart-commit`
 
 ---
 
@@ -124,31 +160,45 @@ Depois de implementar ou corrigir algo, é fácil declarar "pronto" sem verifica
 
 ### 💾 smart-commit
 
-Commits com mensagem "ajustes", "fix", "wip" ou "alterações" não dizem nada para quem revisa ou para o `git log` no futuro. Essa skill gera mensagens semânticas baseadas na task do plano, no formato `tipo: Mensagem em português, presente do indicativo`.
+**Fluxo completo de commit:** verifica docs desatualizadas → cria/roda testes → debuga se falhar → commita quando verde.
 
-Antes de commitar, ela verifica se há documentação desatualizada e aguarda atualização. Depois agrupa os arquivos por contexto lógico, confirma com o usuário e marca a task como concluída no `docs/current-plan.md`.
+Gera mensagens semânticas no formato `tipo: Mensagem em português` inferindo o contexto dos últimos commits e do diff atual. Agrupa arquivos por contexto lógico (banco, modelos, controllers, componentes, testes, docs, config) e executa os commits diretamente.
 
-**Quando usar:** após a task estar implementada, testada e verificada.
+**Quando usar:** "faz o commit", "salva isso", "commita"
+
+---
+
+### 📤 push
+
+**Push seguro:** validações técnicas antes de publicar a branch.
+
+Verifica código de debug esquecido (`console.log`, `debugger`, `print`), roda todos os testes, aciona `systematic-debugging` se falharem, e só então faz push.
+
+NÃO faz rebase (isso é no `open-pr`) nem revisão de código (apenas validações técnicas).
+
+**Quando usar:** "faz o push", "sobe a branch", "publica a branch"
 
 ---
 
 ### 🔍 ready-check
 
-Antes de pedir revisão de outra pessoa, você deve ter feito a sua própria. Essa skill garante que o código está limpo, seguro e que os fluxos visíveis ao usuário foram testados manualmente — tudo isso antes de abrir o PR.
+Revisão de código antes de abrir o PR. Analisa funcionalidade, segurança (12 itens obrigatórios), UX e qualidade geral. Gera roteiro de teste manual para validar os fluxos implementados.
 
-Ela tem três partes: revisão do código (funcionalidade, segurança em 12 itens, UX e qualidade geral), roteiro de teste manual para o próprio desenvolvedor validar no ambiente local, e checklist de pipeline CI/CD para garantir que lint, testes, análise de segurança estática e secret scanning estão configurados.
+Identifica bloqueantes, sugestões e nitpicks. Se houver bloqueantes, pergunta se quer corrigir antes de prosseguir.
 
-**Quando usar:** após todas as tasks do plano estarem concluídas, antes de abrir o PR.
+**Quando usar:** automaticamente via `open-pr`, ou "revisa antes do PR"
 
 ---
 
 ### 🚀 open-pr
 
-O corpo de um PR precisa funcionar para duas audiências completamente diferentes: a IA que vai revisar o código precisa de contexto técnico (intenção, decisões, onde focar); o humano que vai testar no staging precisa de um roteiro em linguagem simples (o que fazer, o que deve aparecer, o que fazer se der errado).
+**Fluxo completo de PR:** validações → push → revisão → PR draft.
 
-Essa skill gera os dois ao mesmo tempo, quando o contexto ainda está fresco. Antes do push, faz o rebase com `origin/main` para manter o histórico linear. Depois cria o PR como draft e posta o changelog — escrito em linguagem não-técnica — como comentário.
+Detecta se a branch já foi publicada. Se não, faz validações técnicas (testes + código limpo) antes do push. Executa `ready-check` para revisão de código, faz rebase com main, gera título, corpo (contexto para IA + roteiro para humano) e changelog.
 
-**Quando usar:** após o `ready-check` liberar e os fluxos terem sido testados manualmente.
+Cria o PR como draft.
+
+**Quando usar:** "abre o PR", "sobe o PR", "cria o PR"
 
 ---
 
@@ -162,37 +212,20 @@ O roteiro é executável por qualquer pessoa, técnica ou não. Para revisores q
 
 ---
 
-## Conexões entre skills
-
-```
-brainstorming ──→ writing-plans
-writing-plans ──→ [ciclo de tasks]
-vibesec ────────→ write-tests (bloqueantes resolvidos primeiro)
-ux-validation ──→ write-tests (bloqueantes resolvidos primeiro)
-write-tests ────→ smart-commit (se verde)
-write-tests ────→ systematic-debugging (se falhar)
-systematic-debugging → verification-before-completion
-verification-before-completion → smart-commit
-smart-commit ───→ próxima task ou ready-check
-ready-check ────→ open-pr
-open-pr ────────→ review-pr (para o revisor)
-```
-
----
-
 ## Skills fora do fluxo
 
-Skills acionadas por contexto específico, independente de onde você está no fluxo.
+Skills acionadas por contexto específico.
 
 ---
 
 ### 🖼️ design-system
 
-Manter consistência visual em um projeto que cresce é difícil — especialmente quando mais de uma pessoa escreve HTML. Essa skill carrega os padrões visuais estabelecidos no projeto (espaçamento, tipografia, grid, componentes) e os aplica diretamente ao criar qualquer tela nova, sem precisar replicar decisões a cada vez.
+**Apenas para projetos Ruby/Rails.** Carrega os padrões visuais do projeto (espaçamento, tipografia, grid, componentes) e aplica diretamente ao criar telas com Tailwind CDN.
 
-Os padrões são para a stack Rails + Tailwind CDN + Hotwire e cobrem espaçamento (seções vs. componentes), escala tipográfica, variantes de grid, card, botões, tabela, tabs, badges, breadcrumb e estado vazio.
+Cobre container de página admin, escala tipográfica, grids responsivos, cards, botões, tabelas, tabs, badges, breadcrumb e estados vazios.
 
-**Quando usar:** sempre que for criar ou modificar uma tela ou componente com Tailwind.
+**Quando usar:** sempre ao criar ou modificar HTML com Tailwind em projetos Rails
+
 
 ---
 
@@ -203,16 +236,3 @@ Todo sistema que vai para produção vai, em algum momento, enfrentar um problem
 Essa skill tem dois modos. **Preparação** (antes de ir para prod): define o que conta como incidente, configura alertas de detecção, monta playbooks de resposta por cenário (vazamento, fora do ar, credencial exposta), valida backups e define quem notificar — incluindo a obrigação legal de notificar a ANPD em 72h em caso de vazamento de dados pessoais (LGPD). **Resposta ativa** (durante um incidente): conduz a triagem, prioriza contenção antes de investigação, preserva evidências e produz o post-mortem.
 
 **Quando usar:** antes do primeiro deploy em produção, ou imediatamente quando um incidente estiver ativo.
-
----
-
-## Arquivo de estado compartilhado
-
-**`docs/current-plan.md`** é o fio que conecta as skills durante o desenvolvimento:
-
-- **`writing-plans`** cria e salva o arquivo
-- **`write-tests`** lê para entender a task sendo testada
-- **`smart-commit`** lê para nomear commits e marca tasks como `[x]`
-- **`ready-check`** lê para verificar se todas as tasks estão concluídas
-
-Não delete este arquivo durante o desenvolvimento. Ele é gerado automaticamente a cada nova branch pelo `writing-plans`.

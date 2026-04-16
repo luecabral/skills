@@ -1,6 +1,6 @@
 ---
 name: design-system
-description: Use ao criar qualquer tela ou componente novo nesta stack (Rails + Tailwind CDN + Hotwire). Ativa quando o usuário diz "cria a tela de X", "faz o layout de Y", "como estruturo essa página", ou sempre que for escrever HTML com classes Tailwind. Garante que espaçamentos, grids, tipografia e componentes seguem o padrão estabelecido — sem retrabalho de consistência visual.
+description: Use ao criar qualquer tela ou componente novo em projetos Rails (stack Rails + Tailwind CDN + Hotwire). Ativa APENAS se o projeto tiver Gemfile ou arquivos .rb, e quando o usuário diz "cria a tela de X", "faz o layout de Y", "como estruturo essa página", ou sempre que for escrever HTML com classes Tailwind. Garante que espaçamentos, grids, tipografia e componentes seguem o padrão estabelecido — sem retrabalho de consistência visual.
 ---
 
 # Design System — Área Admin

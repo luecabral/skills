@@ -1,21 +1,67 @@
 ---
 name: smart-commit
-description: Use ao commitar mudanças durante ou após a implementação. Ativa quando o usuário quer commitar, diz "salva isso", "faz o commit", "commitei a task X" ou quando o write-tests libera o commit com testes passando. Lê o plano em docs/current-plan.md para nomear os commits a partir das tasks, agrupa arquivos por contexto lógico e executa os commits diretamente sem pedir confirmação.
+description: Use ao commitar mudanças. Ativa quando o usuário diz "faz o commit", "salva isso", "commita". Executa automaticamente o fluxo completo: verifica docs desatualizadas, testa o código (write-tests), debuga se falhar (systematic-debugging), só então commita. Infere o contexto do Git para nomear os commits, agrupa arquivos por contexto lógico e executa os commits diretamente sem pedir confirmação.
 ---
 
 # Smart Commit
 
-Commits semânticos e contextualizados a partir do plano de implementação.
+Fluxo completo: testes → debug → commit.
 
 ## Princípio
 
-Um bom commit conta o que mudou e por quê — não apenas "o que eu mexi". Com o plano disponível, o nome da task já carrega a intenção. Esta skill une esse contexto ao diff real para gerar mensagens precisas.
-
-## Pré-condição
-
-Esta skill assume que `write-tests` já rodou e os testes estão passando. Se não estiverem, não prossiga — retorne ao `write-tests`.
+Quando você pede pra commitar, assume-se que o código está pronto. Esta skill garante que está **realmente** pronto: executa os testes automaticamente, debuga se falharem, e só então commita. Um bom commit conta o que mudou e por quê — não apenas "o que eu mexi".
 
 ## Processo
+
+### Passo 0 — Garantir que os testes passam
+
+Antes de qualquer commit, verifique se há testes para o código alterado.
+
+```bash
+git status --short
+```
+
+**1. Identificar arquivos de implementação alterados** (excluindo arquivos de teste)
+
+**2. Para cada arquivo de implementação, verificar se já existe teste:**
+- Procure por arquivo de teste correspondente seguindo as convenções do projeto:
+  - `*.test.js`, `*.spec.js`, `__tests__/*.js` (JavaScript/TypeScript)
+  - `*_spec.rb`, `spec/**/*_spec.rb` (Ruby/Rails)
+  - `test_*.py`, `*_test.py` (Python)
+  - Outros padrões identificados no projeto
+
+**3. Decidir ação:**
+
+**Se os testes JÁ EXISTEM para os arquivos alterados:**
+→ Apenas rode os testes (não crie novos)
+
+**Se NÃO EXISTEM testes para algum arquivo:**
+→ **Acione `write-tests` automaticamente** para gerar os testes faltantes
+
+**4. Rodar todos os testes do projeto:**
+
+```bash
+# Detectar e rodar automaticamente conforme o projeto
+npm test          # Node/JS
+npx vitest run    # Vitest
+pytest            # Python
+bundle exec rspec # Ruby/Rails
+```
+
+**Se todos os testes passarem:**
+→ Siga para o Passo 1 (commit)
+
+**Se algum teste falhar:**
+```
+❌ X teste(s) falhando:
+[lista dos testes que falharam com a mensagem de erro]
+
+Acionando systematic-debugging para investigar...
+```
+
+**Acione `systematic-debugging` automaticamente** com o contexto do erro. Não prossiga para o commit até que todos os testes estejam verdes.
+
+Após o debugging corrigir o problema, **rode os testes novamente** antes de prosseguir.
 
 ### Passo 1 — Coletar estado atual
 
@@ -28,13 +74,17 @@ git diff HEAD
 
 Se não houver nenhuma alteração, informe o usuário e encerre.
 
-### Passo 2 — Identificar a task do plano
+### Passo 2 — Identificar o contexto da mudança
 
-Leia `docs/current-plan.md`. Identifique qual task (ou tasks) os arquivos alterados correspondem.
+Infira o contexto da mudança pelo diff e pelos commits recentes da branch:
 
-Se não for óbvio pelo diff, pergunte ao usuário: "Qual task você está commitando?"
+```bash
+git log --oneline -5
+```
 
-Se `current-plan.md` não existir, siga sem ele — infira o contexto pelo diff.
+O histórico de commits + o diff atual revelam claramente o que está sendo implementado. Use isso para gerar a mensagem de commit.
+
+**Só pergunte ao usuário se o diff for muito ambíguo** (ex: múltiplas mudanças não relacionadas em arquivos diversos sem padrão claro).
 
 ### Passo 3 — Verificar documentação relacionada
 
@@ -125,21 +175,13 @@ EOF
 
 Se um commit falhar (ex: hook de pre-commit), investigue o erro, corrija e crie um **novo** commit. Nunca use `--amend` nem `--no-verify`.
 
-### Passo 8 — Atualizar o plano
-
-Após os commits bem-sucedidos, marque a task como concluída em `docs/current-plan.md`:
-
-```
-- [x] 1. Criar componente de formulário de cadastro ✓
-```
-
-### Passo 9 — Resumo final
+### Passo 8 — Resumo final
 
 ```bash
 git log --oneline -5
 ```
 
-Informe quantos commits foram criados e qual task foi marcada como concluída. Se houver tasks restantes no plano, indique qual é a próxima.
+Informe quantos commits foram criados e o que foi implementado com base no histórico.
 
 ## Regras
 

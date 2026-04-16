@@ -1,6 +1,6 @@
 ---
 name: write-tests
-description: Use após implementar uma task e antes de commitar. Ativa quando o usuário diz "escreve os testes", "testa isso", "tá pronto pra commitar", "acabei de implementar" ou quando acaba de concluir uma task do plano. Lê a task do current-plan.md, gera testes para o comportamento implementado, roda e só libera o commit quando estiver verde.
+description: Use após implementar uma task e antes de commitar, ou quando o usuário diz "escreve os testes", "testa isso". Infere o que foi implementado via Git (diff + commits), gera testes para o comportamento, roda e só libera o commit quando estiver verde.
 ---
 
 # Write Tests
@@ -15,9 +15,22 @@ Testes não são opcional — são a garantia de que o que foi implementado func
 
 ### Passo 1 — Carregar contexto
 
-Leia `docs/current-plan.md` para identificar qual task foi implementada. Se o arquivo não existir, pergunte ao usuário o que foi implementado.
+Infira o que foi implementado usando Git:
 
-Leia os arquivos alterados para entender o comportamento implementado — não apenas o diff, mas o arquivo completo para ter contexto de como a função/componente se encaixa no sistema.
+```bash
+git status --short
+git diff HEAD
+git log -1 --oneline
+```
+
+Leia os arquivos alterados completamente (não apenas o diff) para entender o comportamento implementado e como a função/componente se encaixa no sistema.
+
+Com base no diff e nos arquivos, identifique:
+- Qual comportamento novo foi adicionado
+- Quais funções/componentes foram criados ou modificados
+- Qual é o objetivo da mudança
+
+**Só pergunte ao usuário se o diff for muito ambíguo e não for possível inferir a intenção.**
 
 ### Passo 2 — Identificar o que testar
 

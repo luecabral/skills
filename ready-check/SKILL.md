@@ -1,6 +1,6 @@
 ---
 name: ready-check
-description: Use antes de abrir qualquer PR. Ativa quando o usuário diz "tá pronto", "posso abrir o PR", "revisa antes de subir", "o que tá faltando" ou quando todas as tasks do current-plan.md estão marcadas como concluídas. Faz as duas coisas necessárias antes do PR: revisa o código e gera o roteiro de teste manual para o dev validar localmente.
+description: Use antes de abrir qualquer PR. Ativa quando o usuário diz "tá pronto", "posso abrir o PR", "revisa antes de subir", "o que tá faltando" ou quando julgar que a implementação está completa. Faz as duas coisas necessárias antes do PR: revisa o código e gera o roteiro de teste manual para o dev validar localmente.
 ---
 
 # Ready Check
@@ -30,7 +30,7 @@ Liste todos os arquivos alterados em relação à main.
 Para cada arquivo alterado, verifique:
 
 **Funcionalidade**
-- [ ] O código faz o que a task descreveu?
+- [ ] O código faz o que foi proposto implementar?
 - [ ] Há edge cases óbvios não tratados? (null, undefined, array vazio, usuário não autenticado)
 - [ ] Há lógica condicional complexa que poderia ser simplificada?
 

@@ -88,7 +88,7 @@ Documente:
 - **Externamente:** como notificar usuários afetados? (email, banner no sistema, post em status page?)
 - **ANPD:** para vazamentos de dados pessoais, notificação obrigatória em 72h
 
-Salve o playbook em `docs/incident-response.md`.
+Apresente o playbook na conversa para o usuário salvar onde preferir.
 
 ---
 

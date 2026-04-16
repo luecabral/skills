@@ -1,6 +1,6 @@
 ---
 name: brainstorming
-description: Use esta skill antes de escrever qualquer código. Ativa quando o usuário quer começar algo novo, descreve uma funcionalidade, diz "quero fazer X", "preciso de uma feature que", "como eu faria para" ou qualquer pedido de nova implementação sem plano definido. Não deixa o agente ir direto pro código — primeiro entende o que realmente precisa ser feito.
+description: Use quando o usuário quer explorar possibilidades ou entender como fazer algo. Ativa quando diz "como eu poderia fazer X", "quero explorar ideias de Y", "qual a melhor abordagem para Z", "não sei bem como resolver isso" ou expressa curiosidade sobre soluções. Ajuda a refinar o problema e explorar alternativas através de perguntas antes de qualquer implementação. Apresenta o design na conversa, não cria arquivos.
 ---
 
 # Brainstorming
@@ -84,11 +84,11 @@ Com a abordagem escolhida, descreva o design proposto em seções curtas:
 
 Apresente uma seção por vez e aguarde confirmação antes de continuar.
 
-### Passo 4 — Salvar o documento de design
+### Passo 4 — Apresentar o resumo final do design
 
-Após aprovação do design, salve em `docs/design.md`:
+Após aprovação do design, apresente o resumo na conversa (não crie arquivo):
 
-```markdown
+```
 # Design: [nome da feature]
 Data: [data]
 
@@ -111,7 +111,7 @@ Data: [data]
 [vetores identificados no threat modeling com prioridade — deixe vazio se não aplicável]
 ```
 
-Informe ao usuário que o design foi salvo e sugira usar `writing-plans` para criar o plano de implementação.
+Se for uma feature complexa, sugira usar `writing-plans` para criar o plano de implementação.
 
 ## Regras
 

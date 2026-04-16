@@ -1,21 +1,71 @@
 ---
 name: open-pr
-description: Use ao abrir um Pull Request. Ativa quando o usuário diz "abre o PR", "sobe o PR", "cria o PR" ou após o ready-check liberar. Gera título, corpo com contexto para IA e roteiro para humano, gera o changelog e cria o PR como draft.
+description: Use ao abrir um Pull Request. Ativa quando o usuário diz "abre o PR", "sobe o PR", "cria o PR". Executa automaticamente o ready-check (revisão de código + roteiro de teste), faz push se necessário, gera título, corpo com contexto para IA e roteiro para humano, gera o changelog e cria o PR como draft.
 ---
 
 # Open PR
 
-Título, corpo, changelog e criação do PR em um passo só.
+Fluxo completo: validações → push → ready-check → criação do PR.
 
 ## Princípio
 
-O corpo do PR serve duas audiências diferentes: a IA que vai revisar o código precisa de contexto de intenção e risco; o humano que vai testar no staging precisa de roteiro claro e simples. Esta skill gera os dois no mesmo momento, quando o contexto está fresco.
-
-## Pré-condição
-
-Esta skill assume que `ready-check` já rodou e os fluxos foram testados. Se não foram, redirecione para o `ready-check` antes de continuar.
+O corpo do PR serve duas audiências diferentes: a IA que vai revisar o código precisa de contexto de intenção e risco; o humano que vai testar no staging precisa de roteiro claro e simples. Esta skill faz a revisão final automaticamente e publica o PR.
 
 ## Processo
+
+### Passo 0 — Detectar se a branch já foi publicada
+
+```bash
+git branch --show-current
+git log origin/$(git branch --show-current)..HEAD --oneline 2>/dev/null
+```
+
+**Se a branch não existir no remoto (erro no git log):**
+→ Branch ainda não foi publicada
+→ Executar validações técnicas (testes + código limpo)
+
+**Se a branch existir e não houver commits diferentes:**
+→ Branch já sincronizada
+→ Pular validações técnicas (foram feitas no push)
+
+**Se a branch existir mas houver commits novos locais:**
+→ Push foi feito antes, mas há commits novos
+→ Executar validações técnicas apenas nos novos commits
+
+### Passo 0.1 — Validações técnicas (apenas se necessário)
+
+Execute este passo APENAS se a branch não foi publicada ou há commits novos.
+
+**1. Verificar código de debug:**
+Procure por: `console.log`, `debugger`, `print(`, `puts `, `p `, `pp `
+
+Se encontrar, pergunte ao usuário se quer remover antes de continuar.
+
+**2. Rodar todos os testes:**
+```bash
+npm test / npx vitest run / pytest / bundle exec rspec
+```
+
+Se algum teste falhar, acione `systematic-debugging` e não prossiga até que todos estejam verdes.
+
+**Se a branch já foi publicada e está sincronizada:**
+→ Pular este passo completamente (validações já foram feitas)
+
+### Passo 0 — Executar ready-check automaticamente
+
+Antes de abrir o PR, **acione `ready-check` automaticamente** para:
+1. Revisar o código e identificar problemas
+2. Gerar roteiro de teste manual
+
+**Se ready-check identificar bloqueantes:**
+- Apresente os problemas ao usuário
+- Pergunte se quer corrigir antes de abrir o PR ou seguir assim mesmo
+- Se optar por corrigir, aplique as correções e rode ready-check novamente
+
+**Se não houver bloqueantes:**
+→ Siga para o Passo 1
+
+Use o roteiro de teste gerado pelo ready-check na seção "O que testar" do PR (Passo 4).
 
 ### Passo 1 — Coletar dados da branch
 

@@ -1,6 +1,6 @@
 ---
 name: writing-plans
-description: Use após o brainstorming ou quando houver uma ideia clara do que implementar. Ativa quando o usuário diz "pode começar", "bora implementar", "cria o plano", "como a gente faz isso" ou quando há um design aprovado sem plano de execução. Cria o plano de tasks, deriva o nome da branch, cria a branch e salva o plano em docs/current-plan.md para que o smart-commit possa nomear os commits corretamente.
+description: Use quando o usuário explicitamente pedir "faz o planejamento", "cria o plano", "planeja isso". Quebra a implementação em tasks pequenas (2-5 min cada), deriva o nome da branch e cria a branch. Apresenta o plano na conversa, não cria arquivos. O smart-commit infere o contexto do Git se não houver plano.
 ---
 
 # Writing Plans
@@ -15,7 +15,19 @@ Um plano claro antes de codar evita decisões ruins no meio da implementação. 
 
 ### Passo 1 — Carregar contexto
 
-Leia `docs/design.md` se existir (gerado pelo brainstorming). Se não existir, pergunte ao usuário o que será implementado antes de continuar.
+Verifique se há uma branch atual com commits que indiquem o que está sendo feito:
+
+```bash
+git log --oneline
+git diff main...HEAD
+```
+
+Se houver trabalho em andamento, use isso como contexto.
+
+Se não houver nada no Git ainda, pergunte ao usuário:
+- O que será implementado?
+- Qual é o comportamento esperado?
+- Há alguma restrição técnica ou de integração?
 
 ### Passo 2 — Quebrar em tasks
 
@@ -92,6 +104,5 @@ Informe ao usuário que pode começar a implementar a task 1.
 
 - Nunca crie a branch sem confirmação do nome
 - Nunca comece a implementar — o plano termina na criação da branch
-- Se o usuário quiser pular o plano e ir direto pro código, explique: o `smart-commit` usa o `current-plan.md` para nomear os commits. Sem plano, os commits serão genéricos
 - Tasks não devem ser grandes demais: se uma task parece demorar mais de 10 minutos, quebre em duas
-- O arquivo `docs/current-plan.md` será atualizado pelo `smart-commit` conforme as tasks forem concluídas
+- O plano é apresentado na conversa para guiar o desenvolvimento — não é obrigatório para usar outras skills
