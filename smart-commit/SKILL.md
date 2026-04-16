@@ -88,22 +88,39 @@ O histórico de commits + o diff atual revelam claramente o que está sendo impl
 
 ### Passo 3 — Verificar documentação relacionada
 
-Antes de agrupar os arquivos para commit, verifique se há documentação que precisa ser atualizada.
+Antes de agrupar os arquivos para commit, verifique se o projeto usa a metodologia `vibecodado-docs` (presença de `AGENTS.md` ou pasta `docs/` na raiz).
 
-Leia o diff e identifique:
-- Comportamentos visíveis ao usuário que mudaram (fluxos, ações, resultados)
-- Endpoints ou APIs que foram criados, modificados ou removidos
+**Se o projeto usar `vibecodado-docs`:**
+
+Percorra o checklist abaixo com base no diff atual:
+
+```
+[ ] AGENTS.md — a descrição do projeto ainda bate com o que foi feito?
+[ ] AGENTS.md > Estrutura de Pastas — algum arquivo/pasta foi criado, movido ou removido?
+[ ] AGENTS.md > Regras e Restrições — surgiu alguma nova restrição importante?
+[ ] AGENTS.md > Status Atual — algo mudou de status?
+[ ] docs/features/ — tem feature nova, modificada ou removida?
+[ ] docs/flows/ — algum fluxo existente foi impactado?
+[ ] docs/changelog.md — registrar o que mudou (sempre, sem exceção)
+```
+
+Para cada item marcado como necessário, faça a atualização da documentação antes de prosseguir. Apresente o diff ao usuário para confirmação.
+
+Se algum item precisar de atualização mas o usuário não quiser fazer agora, registre como pendência explícita antes de continuar.
+
+**Se o projeto NÃO usar `vibecodado-docs`:**
+
+Leia o diff e identifique mudanças com impacto em qualquer doc existente:
+- Comportamentos visíveis ao usuário que mudaram
+- Endpoints ou APIs criados, modificados ou removidos
 - Configurações ou variáveis de ambiente que mudaram
-- Funcionalidades que foram adicionadas ou removidas
-
-Em seguida, busque no projeto por arquivos de documentação relacionados:
+- Funcionalidades adicionadas ou removidas
 
 ```bash
-# Encontrar docs existentes
 find . -name "*.md" -not -path "*/node_modules/*" -not -path "*/.git/*"
 ```
 
-Para cada mudança relevante identificada no diff, verifique se há um arquivo de doc que a descreve. Se houver e o conteúdo estiver desatualizado:
+Para cada mudança relevante, verifique se há um arquivo de doc que a descreve. Se houver e estiver desatualizado:
 
 ```
 📄 DOCUMENTAÇÃO A ATUALIZAR
@@ -117,7 +134,7 @@ Atualize antes de continuar o commit.
 
 Aguarde o dev atualizar a documentação antes de prosseguir.
 
-Se não houver documentação desatualizada ou a mudança não impactar nenhuma doc existente, informe e siga para o Passo 4.
+Se não houver documentação desatualizada, informe e siga para o Passo 4.
 
 ### Passo 4 — Agrupar arquivos por contexto
 

@@ -51,6 +51,31 @@ Se algum teste falhar, acione `systematic-debugging` e não prossiga até que to
 **Se a branch já foi publicada e está sincronizada:**
 → Pular este passo completamente (validações já foram feitas)
 
+### Passo 0 — Verificar documentação da branch (vibecodado-docs)
+
+Se o projeto usar a metodologia `vibecodado-docs` (presença de `AGENTS.md` ou pasta `docs/` na raiz), rode a verificação completa sobre **todos os commits da branch** antes de abrir o PR.
+
+```bash
+git diff main...HEAD --stat
+git diff main...HEAD
+```
+
+Percorra o checklist consolidado da branch inteira:
+
+```
+[ ] AGENTS.md — reflete todas as mudanças feitas na branch?
+[ ] AGENTS.md > Estrutura de Pastas — arquivos/pastas criados, movidos ou removidos na branch?
+[ ] AGENTS.md > Regras e Restrições — novas restrições que surgiram durante o desenvolvimento?
+[ ] AGENTS.md > Status Atual — algo mudou de status ao longo da branch?
+[ ] docs/features/ — todas as features novas ou modificadas têm doc atualizada?
+[ ] docs/flows/ — algum fluxo foi impactado pelo conjunto de mudanças da branch?
+[ ] docs/changelog.md — há uma entrada consolidada descrevendo o que esta branch entrega?
+```
+
+Para cada item pendente, faça a atualização e apresente o diff ao usuário para confirmação antes de seguir.
+
+Se o usuário não quiser atualizar algum item agora, registre explicitamente no corpo do PR (seção "Decisões técnicas relevantes") que a documentação está desatualizada e o que falta.
+
 ### Passo 0 — Executar ready-check automaticamente
 
 Antes de abrir o PR, **acione `ready-check` automaticamente** para:
