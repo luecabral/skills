@@ -51,7 +51,7 @@ Tudo o mais (testes, debug, documentação, revisão) acontece automaticamente.
     ↓
 "faz o commit"
     ↓
-[smart-commit] ─────┬─→ [vibecodado-docs] checklist de docs (se AGENTS.md existir)
+[smart-commit] ─────┬─→ [context-docs] checklist de docs (se AGENTS.md existir)
                     ├─→ [write-tests] cria testes se não existirem
                     ├─→ roda todos os testes
                     ├─→ [systematic-debugging] se falhar
@@ -67,7 +67,7 @@ Tudo o mais (testes, debug, documentação, revisão) acontece automaticamente.
     ↓
 "abre o PR"
     ↓
-[open-pr] ──────────┬─→ [vibecodado-docs] checklist consolidado da branch
+[open-pr] ──────────┬─→ [context-docs] checklist consolidado da branch
                     ├─→ [ready-check] revisão de código
                     ├─→ [ux-validation] se houver UI
                     ├─→ rebase com main
@@ -218,7 +218,7 @@ Skills acionadas por contexto específico.
 
 ---
 
-### 📝 vibecodado-docs
+### 📝 context-docs
 
 Metodologia completa de documentação para projetos vibecodados por pessoas não-tech. Cria e mantém documentação dual-audience: legível para humanos leigos **e** usada como contexto de guia por agentes de IA.
 

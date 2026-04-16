@@ -51,9 +51,9 @@ Se algum teste falhar, acione `systematic-debugging` e não prossiga até que to
 **Se a branch já foi publicada e está sincronizada:**
 → Pular este passo completamente (validações já foram feitas)
 
-### Passo 0 — Verificar documentação da branch (vibecodado-docs)
+### Passo 0 — Verificar documentação da branch (context-docs)
 
-Se o projeto usar a metodologia `vibecodado-docs` (presença de `AGENTS.md` ou pasta `docs/` na raiz), rode a verificação completa sobre **todos os commits da branch** antes de abrir o PR.
+Se o projeto usar a metodologia `context-docs` (presença de `AGENTS.md` ou pasta `docs/` na raiz), rode a verificação completa sobre **todos os commits da branch** antes de abrir o PR.
 
 ```bash
 git diff main...HEAD --stat

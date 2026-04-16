@@ -88,9 +88,9 @@ O histórico de commits + o diff atual revelam claramente o que está sendo impl
 
 ### Passo 3 — Verificar documentação relacionada
 
-Antes de agrupar os arquivos para commit, verifique se o projeto usa a metodologia `vibecodado-docs` (presença de `AGENTS.md` ou pasta `docs/` na raiz).
+Antes de agrupar os arquivos para commit, verifique se o projeto usa a metodologia `context-docs` (presença de `AGENTS.md` ou pasta `docs/` na raiz).
 
-**Se o projeto usar `vibecodado-docs`:**
+**Se o projeto usar `context-docs`:**
 
 Percorra o checklist abaixo com base no diff atual:
 
@@ -108,7 +108,7 @@ Para cada item marcado como necessário, faça a atualização da documentação
 
 Se algum item precisar de atualização mas o usuário não quiser fazer agora, registre como pendência explícita antes de continuar.
 
-**Se o projeto NÃO usar `vibecodado-docs`:**
+**Se o projeto NÃO usar `context-docs`:**
 
 Leia o diff e identifique mudanças com impacto em qualquer doc existente:
 - Comportamentos visíveis ao usuário que mudaram

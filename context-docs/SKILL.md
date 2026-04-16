@@ -1,5 +1,5 @@
 ---
-name: vibecodado-docs
+name: context-docs
 description: >
   Metodologia completa de documentação para projetos vibecodados por pessoas não-tech.
   Cria e mantém documentação dual-audience: legível para humanos leigos E usada como
