@@ -111,11 +111,23 @@ Data: [data]
 [vetores identificados no threat modeling com prioridade — deixe vazio se não aplicável]
 ```
 
-Se for uma feature complexa, sugira usar `writing-plans` para criar o plano de implementação.
+### Passo 5 — Perguntar sobre o plano de desenvolvimento (OBRIGATÓRIO)
+
+Após apresentar o resumo, **sempre** pergunte:
+
+> "Quer que eu crie o plano de desenvolvimento para isso? Posso quebrar em tasks pequenas e já definir a ordem de implementação."
+
+- Se o usuário confirmar (sim, pode, vai em frente, etc.) → execute imediatamente a skill `writing-plans`
+- Se o usuário recusar → encerre o brainstorming sem implementar nada
+
+**Nunca inicie a implementação diretamente a partir do brainstorming, mesmo que o usuário peça.**
+Se isso acontecer, redirecione: "Deixa eu primeiro criar o plano via `writing-plans` para organizarmos as tasks antes de codar."
 
 ## Regras
 
 - Nunca proponha código durante o brainstorming
+- Nunca inicie implementação ao final do brainstorming — sempre passe por `writing-plans`
+- A pergunta do Passo 5 é obrigatória, sem exceções
 - Se o usuário tentar pular direto para implementação, redirecione gentilmente: "Antes de codar, deixa eu entender melhor o que você precisa"
 - Mantenha o foco no problema, não na solução técnica
 - Se o usuário já souber exatamente o que quer, valide rapidamente e passe para `writing-plans`
