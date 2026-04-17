@@ -25,7 +25,7 @@ git log origin/$(git branch --show-current)..HEAD --oneline 2>/dev/null
 → Executar validações técnicas (testes + código limpo)
 
 **Se a branch existir e não houver commits diferentes:**
-→ Branch já sincronizada
+→ Branch already synchronized
 → Pular validações técnicas (foram feitas no push)
 
 **Se a branch existir mas houver commits novos locais:**

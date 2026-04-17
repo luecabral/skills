@@ -25,16 +25,30 @@ Padrões de layout para telas da **área administrativa** (Rails + Tailwind CDN 
 
 ## Tipografia
 
+### Escala de fontes (base 16px — Tailwind padrão)
+
+| Classe Tailwind | px | Uso |
+|---|---|---|
+| `text-xl` | 20px | **Título de página** (H1/H3 principal) |
+| `text-lg` | 18px | **Título de card/seção** (dentro do background) |
+| `text-base` | 16px | Texto de destaque / label importante |
+| `text-sm` | 14px | Texto corrido, labels de formulário, subtítulos |
+| `text-xs` | 12px | Helper text, captions, badges |
+| `text-2xl` | 24px | Números de destaque (dashboard stats) |
+| `text-[10px]` | 10px | Micro-labels (uso restrito) |
+
+**Regra:** apenas esses tamanhos. Nunca inventar intermediários.
+
+### Classes completas por nível
+
 | Nível | Classes |
 |---|---|
-| Título de página (H1) | `font-bold text-2xl text-gray-900 dark:text-white` |
-| Título de seção/card | `text-gray-900 text-base font-semibold leading-6` |
+| Título de página (H1/H3) | `font-bold text-xl text-gray-900 dark:text-white` |
+| Título de card/seção | `text-gray-900 text-lg font-semibold leading-6` |
 | Subtítulo de seção | `text-sm text-gray-500 leading-5` |
 | Texto corrido | `text-sm text-gray-700` |
 | Label de formulário | `text-sm font-medium text-gray-900` |
-| Helper text / caption | `text-sm font-normal text-gray-500` |
-
-Não inventar tamanhos intermediários — usar apenas esta escala.
+| Helper text / caption | `text-xs font-normal text-gray-500` |
 
 ---
 
@@ -182,7 +196,7 @@ Para checkboxes de array (ex: `ids[]`):
 
   <%# 1. Cabeçalho: título da página %>
   <div class="flex flex-col items-start self-stretch">
-    <h3 class="font-bold text-2xl text-gray-900 dark:text-white">Título da Página</h3>
+    <h3 class="font-bold text-xl text-gray-900 dark:text-white">Título da Página</h3>
   </div>
 
   <%# 2. Background: APENAS título do card + subtítulo + toolbar com busca %>
@@ -275,7 +289,7 @@ Para checkboxes de array (ex: `ids[]`):
   <div class="flex flex-col items-start self-stretch gap-2">
     <div class="flex flex-row items-center justify-between w-full">
       <div>
-        <h1 class="font-bold text-2xl text-gray-900 dark:text-white">Título da Página</h1>
+        <h1 class="font-bold text-xl text-gray-900 dark:text-white">Título da Página</h1>
         <p class="text-sm text-gray-500">Descrição do que o usuário pode fazer nesta seção</p>
       </div>
       <%= link_to new_admin_item_path,
@@ -404,7 +418,7 @@ Quando uma página tem várias seções de conteúdo (ex: "Analytics", "Trilhas"
 <div class="container mx-auto flex flex-col items-start gap-6 relative pt-[42px]">
   
   <%# Título da página %>
-  <h3 class="font-bold text-2xl">Analytics</h3>
+  <h3 class="font-bold text-xl">Analytics</h3>
 
   <%# Section 1: Header com toolbar %>
   <section class="w-full bg-white flex flex-col items-start gap-6 p-4 self-stretch rounded-lg border border-gray-200">
@@ -471,7 +485,7 @@ Quando uma página tem várias seções de conteúdo (ex: "Analytics", "Trilhas"
 <div class="container mx-auto flex flex-col items-start gap-6 relative pt-[42px] mb-8">
   <%# 1. Cabeçalho com breadcrumb %>
   <div class="flex flex-col items-start self-stretch gap-2">
-    <h3 class="font-bold text-2xl text-gray-900 dark:text-white">Criar/Editar X</h3>
+    <h3 class="font-bold text-xl text-gray-900 dark:text-white">Criar/Editar X</h3>
     <%= breadcrumb_component(background: :transparent) do |breadcrumb| %>
       <%= breadcrumb.with_list do |list| %>
         <%= list.with_item do |item| %>
