@@ -32,7 +32,7 @@ O script nao executa a aplicacao auditada. Ele apenas analisa os arquivos do rep
 Defina uma variavel com o caminho da skill (em qualquer repositorio):
 
 ```bash
-SEC_AUDIT_SCRIPT="/caminho/para/security-checklist/scripts/index.ts"
+SEC_AUDIT_SCRIPT="/caminho/para/security-audit/scripts/index.ts"
 ```
 
 Comandos:
@@ -64,7 +64,7 @@ Requisitos:
 ## Estrutura
 
 ```text
-security-checklist/
+security-audit/
 ├── SKILL.md
 ├── SECURITY_CHECKLIST.md
 ├── REMEDIATION_GUIDE.md
@@ -123,19 +123,19 @@ Isso reduz falsos positivos em projetos fora do stack de origem.
 ## Copiando para outro projeto
 
 ```bash
-cp -r /origem/security-checklist /destino/tools/security-checklist
+cp -r /origem/security-audit /destino/tools/security-audit
 ```
 
 Opcional no `.gitignore` do destino:
 
 ```bash
-echo "tools/security-checklist/memory/" >> /destino/.gitignore
+echo "tools/security-audit/memory/" >> /destino/.gitignore
 ```
 
 Depois, execute com o caminho real do script:
 
 ```bash
-npx tsx /destino/tools/security-checklist/scripts/index.ts
+npx tsx /destino/tools/security-audit/scripts/index.ts
 ```
 
 ---
