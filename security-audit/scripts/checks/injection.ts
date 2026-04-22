@@ -1,22 +1,44 @@
 import type { CategoryResult, CheckContext, CheckItem } from '../types.js';
 import { globFiles, grepInFiles } from '../utils.js';
 
-export async function check(projectRoot: string, _context?: CheckContext): Promise<CategoryResult> {
+export async function check(projectRoot: string, context?: CheckContext): Promise<CategoryResult> {
   const items: CheckItem[] = [];
 
-  const allTsFiles = await globFiles(projectRoot, ['**/*.ts', '**/*.tsx']);
-  const serverFiles = await globFiles(projectRoot, [
-    'app/api/**/*.ts',
-    'pages/api/**/*.ts',
-    'src/app/api/**/*.ts',
-    'src/pages/api/**/*.ts',
-    'lib/**/*.ts',
-    'server/**/*.ts',
-    'src/lib/**/*.ts',
+  const [allTsFiles, serverFiles] = await Promise.all([
+    globFiles(projectRoot, ['**/*.ts', '**/*.tsx'], context),
+    globFiles(projectRoot, [
+      'app/api/**/*.ts',
+      'pages/api/**/*.ts',
+      'src/app/api/**/*.ts',
+      'src/pages/api/**/*.ts',
+      'lib/**/*.ts',
+      'server/**/*.ts',
+      'src/lib/**/*.ts',
+    ], context)
   ]);
 
   // E1 — Detecção de eval() com variáveis (anti-pattern)
-  const evalMatches = await grepInFiles(allTsFiles, /\beval\s*\(/);
+  // E2 — Detecção de new Function() (anti-pattern)
+  // E3 — exec/execSync com interpolação de variáveis (anti-pattern)
+  // E4 — Template literals em queries SQL (anti-pattern)
+  // E5 — Uso de cliente/ORM com queries parametrizadas
+  const [
+    evalMatches,
+    newFunctionMatches,
+    execMatches,
+    execWithInterpolation,
+    sqlTemplateMatchesRaw,
+    parameterizedClientMatches,
+    rawSqlMatches
+  ] = await Promise.all([
+    grepInFiles(allTsFiles, /\beval\s*\(/, context),
+    grepInFiles(allTsFiles, /new\s+Function\s*\(/, context),
+    grepInFiles(serverFiles, /\bexec\s*\(|execSync\s*\(/, context),
+    grepInFiles(serverFiles, /exec\s*\(`[^`]*\$\{|execSync\s*\(`[^`]*\$\{/, context),
+    grepInFiles(serverFiles, /`[^`]*SELECT[^`]*\$\{|`[^`]*INSERT[^`]*\$\{|`[^`]*UPDATE[^`]*\$\{|`[^`]*DELETE[^`]*\$\{/i, context),
+    grepInFiles(serverFiles, /\.from\(|supabase\.\w+\(|rpc\(|prisma\.|knex\(|drizzle|sequelize|mongoose|query\([^`]*\$\d+/i, context),
+    grepInFiles(serverFiles, /\.query\s*\(`|pg\.query|pool\.query/i, context)
+  ]);
   items.push({
     id: 'E1',
     description: 'Nunca eval() com input do usuário',
@@ -30,7 +52,6 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
   });
 
   // E2 — Detecção de new Function() (anti-pattern)
-  const newFunctionMatches = await grepInFiles(allTsFiles, /new\s+Function\s*\(/);
   items.push({
     id: 'E2',
     description: 'Nunca new Function() com input do usuário',
@@ -44,11 +65,6 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
   });
 
   // E3 — exec/execSync com interpolação de variáveis (anti-pattern)
-  const execMatches = await grepInFiles(serverFiles, /\bexec\s*\(|execSync\s*\(/);
-  const execWithInterpolation = await grepInFiles(
-    serverFiles,
-    /exec\s*\(`[^`]*\$\{|execSync\s*\(`[^`]*\$\{/,
-  );
   items.push({
     id: 'E3',
     description: 'Nunca interpolar input em comandos shell (exec/execSync)',
@@ -64,10 +80,6 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
   });
 
   // E4 — Template literals em queries SQL (anti-pattern)
-  const sqlTemplateMatchesRaw = await grepInFiles(
-    serverFiles,
-    /`[^`]*SELECT[^`]*\$\{|`[^`]*INSERT[^`]*\$\{|`[^`]*UPDATE[^`]*\$\{|`[^`]*DELETE[^`]*\$\{/i,
-  );
   // Filter out false positives: Supabase RPC calls, comments, log messages
   const sqlTemplateMatches = sqlTemplateMatchesRaw.filter((m) => {
     // Supabase client operations (safe - parameterized)
@@ -91,11 +103,6 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
   });
 
   // E5 — Uso de cliente/ORM com queries parametrizadas
-  const parameterizedClientMatches = await grepInFiles(
-    serverFiles,
-    /\.from\(|supabase\.\w+\(|rpc\(|prisma\.|knex\(|drizzle|sequelize|mongoose|query\([^`]*\$\d+/i,
-  );
-  const rawSqlMatches = await grepInFiles(serverFiles, /\.query\s*\(`|pg\.query|pool\.query/i);
   items.push({
     id: 'E5',
     description: 'Queries parametrizadas (ORM/query builder/driver seguro)',

@@ -33,75 +33,49 @@ O script nao executa a aplicacao auditada. Ele apenas analisa os arquivos do rep
 Defina uma variavel com o caminho da skill (em qualquer repositorio):
 
 ```bash
-SEC_AUDIT_SCRIPT="/caminho/para/security-audit/scripts/index.ts"
+SEC_AUDIT_SCRIPT="/caminho/para/security-audit/dist/index.js"
 ```
 
 Comandos:
 
 ```bash
 # Auditoria no projeto atual
-npx tsx "$SEC_AUDIT_SCRIPT"
+node "$SEC_AUDIT_SCRIPT"
 
 # Auditoria de um projeto especifico
-npx tsx "$SEC_AUDIT_SCRIPT" /caminho/do/projeto
+node "$SEC_AUDIT_SCRIPT" /caminho/do/projeto
 
 # Saida JSON (pipeline)
-npx tsx "$SEC_AUDIT_SCRIPT" --json
+node "$SEC_AUDIT_SCRIPT" --json
+
+# Saida SARIF
+node "$SEC_AUDIT_SCRIPT" --sarif
 
 # Marcar item como N/A
-npx tsx "$SEC_AUDIT_SCRIPT" --na K1 "Sem funcionalidades de IA" "nome"
+node "$SEC_AUDIT_SCRIPT" --na K1 "Sem funcionalidades de IA" "nome"
+
+# Responder verificações manuais (F/J/K/O)
+node "$SEC_AUDIT_SCRIPT" --answer-manual
 
 # Ver configuracao
-npx tsx "$SEC_AUDIT_SCRIPT" --configure
+node "$SEC_AUDIT_SCRIPT" --configure
 ```
 
 Requisitos:
 
 - Node.js 18+
-- `tsx` disponivel via `npx`
 
 ---
 
-## Estrutura
+## Memória e Histórico
 
-```text
-security-audit/
-├── SKILL.md
-├── SECURITY_CHECKLIST.md
-├── REMEDIATION_GUIDE.md
-├── README.md
-├── scripts/
-│   ├── index.ts
-│   ├── stack.ts
-│   ├── types.ts
-│   ├── utils.ts
-│   ├── reporter.ts
-│   ├── memory.ts
-│   ├── runtime.ts
-│   ├── modules/
-│   │   └── index.ts
-│   └── checks/
-│       ├── access-control.ts
-│       ├── auth-session.ts
-│       ├── validation.ts
-│       ├── client-side.ts
-│       ├── injection.ts
-│       ├── files.ts
-│       ├── secrets-crypto.ts
-│       ├── hardening.ts
-│       ├── dependencies.ts
-│       ├── tests.ts
-│       ├── error-handling.ts
-│       ├── rails-stack.ts
-│       ├── postgres-rails.ts
-│       ├── redis-infra.ts
-│       ├── sidekiq-infra.ts
-│       └── hotwire-frontend.ts
-└── memory/
-    └── {hash-do-projeto}/
-        ├── config.json
-        └── history.json
-```
+A skill salva automaticamente:
+- `<projectRoot>/.security-audit.json` — config do projeto (versionada no repositório, recomendada para compartilhar com o time)
+- `<caminho-da-skill>/memory/{hash}/config.json` — config local do projeto (não versionada, para uso pessoal)
+- `<caminho-da-skill>/memory/{hash}/history.json` — histórico de auditorias (não versionada)
+
+O hash é gerado a partir do path absoluto do projeto, permitindo múltiplos projetos com históricos separados.
+A configuração do repositório (`.security-audit.json`) tem prioridade sobre a configuração local.
 
 ---
 
@@ -159,6 +133,23 @@ npx tsx /destino/tools/security-audit/scripts/index.ts
 ---
 
 ## Estendendo checks/modulos
+
+### Via YAML (Regras Customizadas)
+
+Você pode adicionar regras simples específicas para o seu projeto criando um arquivo `.security-audit.rules.yaml` na raiz do projeto:
+
+```yaml
+rules:
+  - id: CUSTOM-1
+    description: "Sem console.log em server code"
+    severity: medium
+    glob: "app/api/**/*.ts"
+    pattern: "console\\.log"
+    expect: absent
+    remediation: "Use logger estruturado"
+```
+
+### Via Código (Módulos Completos)
 
 1. Crie um novo arquivo em `scripts/checks/`.
 2. Exporte `check(projectRoot, context)`.

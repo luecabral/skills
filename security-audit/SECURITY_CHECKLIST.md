@@ -15,6 +15,16 @@
 - ⚠️ Parcial / Verificação necessária
 - ⏭️ N/A ou verificação manual
 
+## Verificações Manuais
+
+Algumas categorias não podem ser verificadas automaticamente com precisão. Use o comando `--answer-manual` para responder a estas verificações:
+
+```bash
+node /caminho/para/security-audit/dist/scripts/index.js --answer-manual
+```
+
+As respostas são salvas e expiram após 90 dias.
+
 ---
 
 ## A. Broken Access Control (BOLA/IDOR)

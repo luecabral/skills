@@ -2,10 +2,10 @@ import { join } from 'node:path';
 import type { CategoryResult, CheckContext, CheckItem } from '../types.js';
 import { fileExists, globFiles, grepInFiles, readJsonFile } from '../utils.js';
 
-export async function check(projectRoot: string, _context?: CheckContext): Promise<CategoryResult> {
+export async function check(projectRoot: string, context?: CheckContext): Promise<CategoryResult> {
   const items: CheckItem[] = [];
 
-  const allTsFiles = await globFiles(projectRoot, ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx']);
+  const allTsFiles = await globFiles(projectRoot, ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'], context);
   // Exclude node_modules (already excluded in globFiles), but also test files for secret detection
   const sourceFiles = allTsFiles.filter(
     (f) => !f.includes('.test.') && !f.includes('.spec.') && !f.includes('__tests__'),
@@ -41,7 +41,7 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
   let hardcodedDetail = '';
 
   for (const pattern of hardcodedSecretPatterns) {
-    const matches = await grepInFiles(sourceFiles, pattern);
+    const matches = await grepInFiles(sourceFiles, pattern, context);
     const realMatches = matches.filter((m) => !isLikelyFalsePositive(m.text));
     if (realMatches.length > 0) {
       hardcodedFound = true;
@@ -79,10 +79,25 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
   });
 
   // H3 — memzero / limpeza de memória sensível
-  const memzeroMatches = await grepInFiles(
-    allTsFiles,
-    /memzero|sodium\.memzero|fill\(0\)|pagehide.*clear|clearTimeout.*crypto|wipe.*key|zeroMemory/i,
-  );
+  // H4 — argon2 / Argon2id como KDF
+  // H5 — NEXT_PUBLIC_ com valores que parecem secrets
+  // H6 — localStorage com dados sensíveis
+  const [
+    memzeroMatches,
+    argon2InCode,
+    hasWeakHash,
+    nextPublicSecretsRaw,
+    envFiles,
+    localStorageSecrets
+  ] = await Promise.all([
+    grepInFiles(allTsFiles, /memzero|sodium\.memzero|fill\(0\)|pagehide.*clear|clearTimeout.*crypto|wipe.*key|zeroMemory/i, context),
+    grepInFiles(allTsFiles, /argon2|Argon2id|argon2id/i, context),
+    grepInFiles(allTsFiles, /\.createHash\(['"]md5['"]|\.createHash\(['"]sha1['"]\)|bcrypt(?!js)/i, context),
+    grepInFiles(allTsFiles, /NEXT_PUBLIC_.*(?:SECRET|KEY|TOKEN|PASSWORD|PRIVATE)/i, context),
+    globFiles(projectRoot, ['.env', '.env.local', '.env.production', '.env.development'], context),
+    grepInFiles(allTsFiles, /localStorage\.(setItem|getItem)\s*\(\s*['"].*(?:token|key|secret|password|auth)/i, context)
+  ]);
+
   items.push({
     id: 'H3',
     description: 'Limpeza de memória após uso de dados sensíveis (memzero)',
@@ -94,16 +109,13 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
     remediation: 'Zere buffers com chaves após uso: key.fill(0) ou use sodium.memzero() da libsodium',
   });
 
-  // H4 — argon2 / Argon2id como KDF
   const pkg = await readJsonFile<{ dependencies?: Record<string, string>; devDependencies?: Record<string, string> }>(
     join(projectRoot, 'package.json'),
   );
   const hasArgon2Pkg =
     (pkg?.dependencies && ('argon2' in pkg.dependencies || 'argon2id' in pkg.dependencies)) ||
     (pkg?.devDependencies && ('argon2' in pkg.devDependencies));
-  const argon2InCode = await grepInFiles(allTsFiles, /argon2|Argon2id|argon2id/i);
   const hasArgon2 = hasArgon2Pkg || argon2InCode.length > 0;
-  const hasWeakHash = await grepInFiles(allTsFiles, /\.createHash\(['"]md5['"]|\.createHash\(['"]sha1['"]\)|bcrypt(?!js)/i);
   items.push({
     id: 'H4',
     description: 'KDF robusto (Argon2id) para derivação de chaves/senhas',
@@ -117,16 +129,11 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
     remediation: 'Use argon2id para derivar chaves de senhas: `await argon2.hash(password, { type: argon2.argon2id })`',
   });
 
-  // H5 — NEXT_PUBLIC_ com valores que parecem secrets
   // Known safe NEXT_PUBLIC_ vars (Supabase anon key and URL are designed to be public)
   const safeNextPublicPatterns = /NEXT_PUBLIC_SUPABASE_URL|NEXT_PUBLIC_SUPABASE_ANON_KEY|NEXT_PUBLIC_SITE_URL|NEXT_PUBLIC_APP_URL/i;
 
-  const nextPublicSecrets = (await grepInFiles(
-    allTsFiles,
-    /NEXT_PUBLIC_.*(?:SECRET|KEY|TOKEN|PASSWORD|PRIVATE)/i,
-  )).filter((m) => !safeNextPublicPatterns.test(m.text));
-  const envFiles = await globFiles(projectRoot, ['.env', '.env.local', '.env.production', '.env.development']);
-  const nextPublicInEnv = (await grepInFiles(envFiles, /^NEXT_PUBLIC_.*(?:SECRET|KEY|TOKEN|PASS)/im))
+  const nextPublicSecrets = nextPublicSecretsRaw.filter((m) => !safeNextPublicPatterns.test(m.text));
+  const nextPublicInEnv = (await grepInFiles(envFiles, /^NEXT_PUBLIC_.*(?:SECRET|KEY|TOKEN|PASS)/im, context))
     .filter((m) => !safeNextPublicPatterns.test(m.text));
   items.push({
     id: 'H5',
@@ -140,11 +147,6 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
     remediation: 'Variáveis NEXT_PUBLIC_ são expostas ao browser. Use variáveis sem NEXT_PUBLIC_ para secrets.',
   });
 
-  // H6 — localStorage com dados sensíveis
-  const localStorageSecrets = await grepInFiles(
-    allTsFiles,
-    /localStorage\.(setItem|getItem)\s*\(\s*['"].*(?:token|key|secret|password|auth)/i,
-  );
   items.push({
     id: 'H6',
     description: 'Secrets nunca em localStorage/sessionStorage',

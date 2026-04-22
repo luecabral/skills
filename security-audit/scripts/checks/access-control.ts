@@ -8,16 +8,39 @@ import {
   fileContains,
 } from '../utils.js';
 
-export async function check(projectRoot: string, _context?: CheckContext): Promise<CategoryResult> {
+export async function check(projectRoot: string, context?: CheckContext): Promise<CategoryResult> {
   const items: CheckItem[] = [];
 
   const migrationDir = join(projectRoot, 'supabase', 'migrations');
   const migrationFiles = (await fileExists(migrationDir))
-    ? await globFiles(migrationDir, ['**/*.sql'])
+    ? await globFiles(migrationDir, ['**/*.sql'], context)
     : [];
 
   // A1 — RLS habilitado em todas as tabelas
-  const rlsMatches = await grepInFiles(migrationFiles, /ENABLE ROW LEVEL SECURITY/i);
+  // A2 — Funções SECURITY DEFINER
+  // A3 — CREATE POLICY com WITH CHECK
+  // A4 — Controle de acesso por coluna (column-level security)
+  // A7 — Views ou funções RPC para limitar colunas expostas
+  const [
+    rlsMatches,
+    secDefMatches,
+    policyMatches,
+    withCheckMatches,
+    columnSecMatches,
+    columnAccessMatches,
+    viewMatches,
+    rpcMatches
+  ] = await Promise.all([
+    grepInFiles(migrationFiles, /ENABLE ROW LEVEL SECURITY/i, context),
+    grepInFiles(migrationFiles, /SECURITY DEFINER/i, context),
+    grepInFiles(migrationFiles, /CREATE POLICY/i, context),
+    grepInFiles(migrationFiles, /WITH CHECK/i, context),
+    grepInFiles(migrationFiles, /GRANT\s+(SELECT\s*\([^)]+\)|UPDATE\s*\([^)]+\))/i, context),
+    grepInFiles(migrationFiles, /current_workspace_id|has_vault_access|has_\w+_access/i, context),
+    grepInFiles(migrationFiles, /CREATE\s+(OR REPLACE\s+)?VIEW/i, context),
+    grepInFiles(migrationFiles, /CREATE\s+(OR REPLACE\s+)?FUNCTION/i, context)
+  ]);
+
   if (migrationFiles.length === 0) {
     items.push({
       id: 'A1',
@@ -45,8 +68,6 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
     });
   }
 
-  // A2 — Funções SECURITY DEFINER
-  const secDefMatches = await grepInFiles(migrationFiles, /SECURITY DEFINER/i);
   items.push({
     id: 'A2',
     description: 'Funções SECURITY DEFINER para lógica sensível',
@@ -59,9 +80,6 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
     remediation: 'Use SECURITY DEFINER em funções que precisam de privilégios elevados',
   });
 
-  // A3 — CREATE POLICY com WITH CHECK
-  const policyMatches = await grepInFiles(migrationFiles, /CREATE POLICY/i);
-  const withCheckMatches = await grepInFiles(migrationFiles, /WITH CHECK/i);
   if (policyMatches.length === 0) {
     items.push({
       id: 'A3',
@@ -82,11 +100,7 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
     });
   }
 
-  // A4 — Controle de acesso por coluna (column-level security)
-  const columnSecMatches = await grepInFiles(migrationFiles, /GRANT\s+(SELECT\s*\([^)]+\)|UPDATE\s*\([^)]+\))/i);
-  const hasColumnAccess =
-    columnSecMatches.length > 0 ||
-    (await grepInFiles(migrationFiles, /current_workspace_id|has_vault_access|has_\w+_access/i)).length > 0;
+  const hasColumnAccess = columnSecMatches.length > 0 || columnAccessMatches.length > 0;
   items.push({
     id: 'A4',
     description: 'Controle de acesso por coluna para dados sensíveis',
@@ -105,10 +119,11 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
     'pages/api/**/*.ts',
     'src/app/api/**/*.ts',
     'src/pages/api/**/*.ts',
-  ]);
+  ], context);
   const authCheckMatches = await grepInFiles(
     routeFiles,
     /getUser|getSession|auth\(\)|verifyToken|checkPermission|requireAuth|withAuth|authenticatedUser/i,
+    context
   );
   items.push({
     id: 'A5',
@@ -129,10 +144,11 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
     '**/*.spec.ts',
     '**/*.spec.tsx',
     '__tests__/**/*.ts',
-  ]);
+  ], context);
   const crossTenantTests = await grepInFiles(
     testFiles,
     /cross.workspace|cross.tenant|isolation|privilege.escalation|other.user|outro.usu/i,
+    context
   );
   items.push({
     id: 'A6',
@@ -146,10 +162,6 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
     remediation: 'Adicione testes que tentam acessar recursos de outro tenant e esperam 403/404',
   });
 
-  // A7 — Views ou funções RPC para limitar colunas expostas
-  const viewMatches = await grepInFiles(migrationFiles, /CREATE\s+(OR REPLACE\s+)?VIEW/i);
-  // Match functions that RETURN TABLE, SETOF, JSON, or VOID (all are RPC-style functions)
-  const rpcMatches = await grepInFiles(migrationFiles, /CREATE\s+(OR REPLACE\s+)?FUNCTION/i);
   items.push({
     id: 'A7',
     description: 'Views ou funções RPC para limitar colunas expostas',

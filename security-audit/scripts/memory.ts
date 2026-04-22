@@ -24,14 +24,53 @@ function getHistoryPath(projectRoot: string): string {
 }
 
 export async function loadConfig(projectRoot: string): Promise<ProjectConfig | null> {
-  const configPath = getConfigPath(projectRoot);
-  if (!(await fileExists(configPath))) return null;
-  try {
-    const content = await readFile(configPath, 'utf-8');
-    return JSON.parse(content) as ProjectConfig;
-  } catch {
-    return null;
+  const localConfigPath = getConfigPath(projectRoot);
+  const repoConfigPath = join(projectRoot, '.security-audit.json');
+  
+  let localConfig: ProjectConfig | null = null;
+  let repoConfig: Partial<ProjectConfig> | null = null;
+
+  if (await fileExists(localConfigPath)) {
+    try {
+      const content = await readFile(localConfigPath, 'utf-8');
+      localConfig = JSON.parse(content) as ProjectConfig;
+    } catch {
+      // Ignore
+    }
   }
+
+  if (await fileExists(repoConfigPath)) {
+    try {
+      const content = await readFile(repoConfigPath, 'utf-8');
+      repoConfig = JSON.parse(content) as Partial<ProjectConfig>;
+    } catch {
+      // Ignore
+    }
+  }
+
+  if (!localConfig && !repoConfig) return null;
+
+  const baseConfig = localConfig || createDefaultConfig(projectRoot);
+  
+  if (repoConfig) {
+    // Merge repo config into base config, prioritizing repo config for shared fields
+    return {
+      ...baseConfig,
+      name: repoConfig.name ?? baseConfig.name,
+      type: repoConfig.type ?? baseConfig.type,
+      sensitiveData: repoConfig.sensitiveData ?? baseConfig.sensitiveData,
+      isPublic: repoConfig.isPublic ?? baseConfig.isPublic,
+      // Merge excluded items, prioritizing repo config
+      excludedItems: [
+        ...(repoConfig.excludedItems || []),
+        ...baseConfig.excludedItems.filter(
+          localItem => !(repoConfig?.excludedItems || []).some(repoItem => repoItem.itemId === localItem.itemId)
+        )
+      ]
+    };
+  }
+
+  return baseConfig;
 }
 
 export async function saveConfig(projectRoot: string, config: ProjectConfig): Promise<void> {
@@ -70,6 +109,8 @@ export async function saveAuditResult(projectRoot: string, report: AuditReport):
 
   const entry: AuditHistoryEntry = {
     timestamp: report.timestamp,
+    gate: report.gate,
+    coverage: report.coverage,
     score: report.score,
     breakdown: report.breakdown,
     criticalFailures: report.criticalFailures.map((item) => `[${item.id}] ${item.description}`),

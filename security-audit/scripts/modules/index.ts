@@ -38,6 +38,29 @@ function moduleFromCheck(params: {
 }
 
 export const AUDIT_MODULES: AuditModule[] = [
+  {
+    id: 'custom-rules',
+    name: 'Regras Customizadas',
+    layer: 'core',
+    scope: 'generic',
+    supports: () => true,
+    run: async (context) => {
+      const { runCustomRules } = await import('../rules-loader.js');
+      const result = await runCustomRules(context.projectRoot, context);
+      return result ? [result] : [];
+    },
+  },
+  {
+    id: 'manual-checklist',
+    name: 'Verificações Manuais',
+    layer: 'core',
+    scope: 'generic',
+    supports: () => true,
+    run: async (context) => {
+      const { check } = await import('../checks/manual-checklist.js');
+      return check(context.projectRoot, context);
+    },
+  },
   moduleFromCheck({
     id: 'core-auth-session',
     name: 'Core Auth & Session',

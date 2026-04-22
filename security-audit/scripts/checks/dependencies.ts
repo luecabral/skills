@@ -353,11 +353,16 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
   // L3 — GitHub workflow de auditoria
   const workflowDir = join(projectRoot, '.github', 'workflows');
   if (await fileExists(workflowDir)) {
-    const workflowFiles = await globFiles(workflowDir, ['**/*.yml', '**/*.yaml']);
-    const auditWorkflow = await grepInFiles(
-      workflowFiles,
-      /npm audit|pnpm audit|yarn audit|bundle-audit|brakeman|audit.*dependencies|snyk|dependabot/i,
-    );
+    const workflowFiles = await globFiles(workflowDir, ['**/*.yml', '**/*.yaml'], context);
+    const [auditWorkflow, cronSchedule] = await Promise.all([
+      grepInFiles(
+        workflowFiles,
+        /npm audit|pnpm audit|yarn audit|bundle-audit|brakeman|audit.*dependencies|snyk|dependabot/i,
+        context
+      ),
+      grepInFiles(workflowFiles, /schedule:|cron:/i, context)
+    ]);
+    
     items.push({
       id: 'L3',
       description: 'Auditoria automatizada em workflow CI/CD',
@@ -370,8 +375,6 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
     });
 
     // L4 — Auditoria agendada (cron)
-    const cronSchedule = await grepInFiles(workflowFiles, /schedule:|cron:/i);
-    const auditCron = await grepInFiles(workflowFiles, /schedule:[\s\S]*?cron:|audit[\s\S]*?cron:/i);
     items.push({
       id: 'L4',
       description: 'Auditoria semanal agendada (cron no workflow)',

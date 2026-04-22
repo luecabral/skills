@@ -10,7 +10,10 @@ export async function fileExists(filePath: string): Promise<boolean> {
   }
 }
 
-export async function readFileContent(filePath: string): Promise<string | null> {
+export async function readFileContent(filePath: string, context?: { io?: { cachedRead: (path: string) => Promise<string | null> } }): Promise<string | null> {
+  if (context?.io?.cachedRead) {
+    return context.io.cachedRead(filePath);
+  }
   try {
     return await readFile(filePath, 'utf-8');
   } catch {
@@ -18,8 +21,8 @@ export async function readFileContent(filePath: string): Promise<string | null> 
   }
 }
 
-export async function grepInFile(filePath: string, pattern: RegExp): Promise<{ line: number; text: string }[]> {
-  const content = await readFileContent(filePath);
+export async function grepInFile(filePath: string, pattern: RegExp, context?: { io?: { cachedRead: (path: string) => Promise<string | null> } }): Promise<{ line: number; text: string }[]> {
+  const content = await readFileContent(filePath, context);
   if (!content) return [];
 
   const results: { line: number; text: string }[] = [];
@@ -35,10 +38,11 @@ export async function grepInFile(filePath: string, pattern: RegExp): Promise<{ l
 export async function grepInFiles(
   files: string[],
   pattern: RegExp,
+  context?: { io?: { cachedRead: (path: string) => Promise<string | null> } }
 ): Promise<{ file: string; line: number; text: string }[]> {
   const results: { file: string; line: number; text: string }[] = [];
   for (const file of files) {
-    const matches = await grepInFile(file, pattern);
+    const matches = await grepInFile(file, pattern, context);
     for (const match of matches) {
       results.push({ file, ...match });
     }
@@ -46,7 +50,10 @@ export async function grepInFiles(
   return results;
 }
 
-export async function globFiles(rootDir: string, patterns: string[]): Promise<string[]> {
+export async function globFiles(rootDir: string, patterns: string[], context?: { io?: { cachedGlob: (patterns: string[]) => Promise<string[]> } }): Promise<string[]> {
+  if (context?.io?.cachedGlob) {
+    return context.io.cachedGlob(patterns);
+  }
   const results: string[] = [];
 
   async function walkDir(dir: string): Promise<void> {
@@ -125,17 +132,17 @@ export async function readJsonFile<T>(filePath: string): Promise<T | null> {
   }
 }
 
-export async function countMatches(files: string[], pattern: RegExp): Promise<number> {
+export async function countMatches(files: string[], pattern: RegExp, context?: { io?: { cachedRead: (path: string) => Promise<string | null> } }): Promise<number> {
   let count = 0;
   for (const file of files) {
-    const matches = await grepInFile(file, pattern);
+    const matches = await grepInFile(file, pattern, context);
     count += matches.length;
   }
   return count;
 }
 
-export async function fileContains(filePath: string, pattern: RegExp): Promise<boolean> {
-  const content = await readFileContent(filePath);
+export async function fileContains(filePath: string, pattern: RegExp, context?: { io?: { cachedRead: (path: string) => Promise<string | null> } }): Promise<boolean> {
+  const content = await readFileContent(filePath, context);
   if (!content) return false;
   return pattern.test(content);
 }

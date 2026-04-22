@@ -113,6 +113,14 @@ export async function detectStack(projectRoot: string): Promise<StackProfile> {
     (await fileExists(join(projectRoot, 'config', 'esbuild.js')));
   const hasEsbuild = hasEsbuildDep || hasEsbuildConfig;
 
+  const warnings: string[] = [];
+  if (hasGemfile && !hasRails) {
+    warnings.push('Gemfile detectado, mas Rails não foi identificado. Se este for um projeto Rails, por favor reporte.');
+  }
+  if (hasPackageJson && !hasNextjs && !hasExpress) {
+    warnings.push('package.json detectado, mas nenhum framework JS conhecido (Next.js, Express) foi identificado. Se estiver usando outro framework, por favor reporte.');
+  }
+
   return {
     ecosystem: detectEcosystem(hasNode, hasRuby),
     packageManager,
@@ -136,5 +144,6 @@ export async function detectStack(projectRoot: string): Promise<StackProfile> {
       ruby: hasRuby,
       node: hasNode,
     },
+    warnings,
   };
 }

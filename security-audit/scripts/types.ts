@@ -29,11 +29,16 @@ export interface StackProfile {
     ruby: boolean;
     node: boolean;
   };
+  warnings: string[];
 }
 
 export interface CheckContext {
   projectRoot: string;
   stack: StackProfile;
+  io?: {
+    cachedGlob: (patterns: string[]) => Promise<string[]>;
+    cachedRead: (path: string) => Promise<string | null>;
+  };
 }
 
 export interface AuditModule {
@@ -88,6 +93,8 @@ export interface AuditReport {
   stack: StackProfile;
   modules: ModuleExecution[];
   categories: CategoryResult[];
+  gate: 'pass' | 'fail';
+  coverage: { passed: number; total: number; percentage: number };
   score: { passed: number; total: number; percentage: number };
   breakdown: SeverityBreakdown;
   criticalFailures: CheckItem[];
@@ -98,6 +105,17 @@ export interface ExcludedItem {
   reason: string;
   author: string;
   date: string;
+}
+
+export interface CustomRule {
+  id: string;
+  description: string;
+  severity: Severity;
+  glob: string;
+  pattern?: string;
+  ast?: boolean;
+  expect: 'absent' | 'present';
+  remediation?: string;
 }
 
 export interface ProjectConfig {
@@ -112,6 +130,8 @@ export interface ProjectConfig {
 
 export interface AuditHistoryEntry {
   timestamp: string;
+  gate?: 'pass' | 'fail';
+  coverage?: { passed: number; total: number; percentage: number };
   score: { passed: number; total: number; percentage: number };
   breakdown: SeverityBreakdown;
   criticalFailures: string[];

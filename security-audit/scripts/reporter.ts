@@ -54,18 +54,18 @@ function formatLayerLabel(layer?: string): string {
 function formatTrend(report: AuditReport, lastAudit: AuditHistoryEntry | null): string {
   if (!lastAudit) return '';
 
-  const diff = report.score.percentage - lastAudit.score.percentage;
+  const diff = report.coverage.percentage - (lastAudit.coverage?.percentage ?? lastAudit.score.percentage);
   const sign = diff >= 0 ? '+' : '';
   const trendColor = diff >= 0 ? GREEN : RED;
   const trendArrow = diff >= 0 ? '📈' : '📉';
   const lastDate = new Date(lastAudit.timestamp).toLocaleDateString('pt-BR');
 
-  const prevPassed = lastAudit.score.passed;
-  const currPassed = report.score.passed;
+  const prevPassed = lastAudit.coverage?.passed ?? lastAudit.score.passed;
+  const currPassed = report.coverage.passed;
   const newPasses = currPassed - prevPassed;
   const newFails = lastAudit.criticalFailures.length - report.criticalFailures.length;
 
-  let out = `\n  ${trendArrow} ${BOLD}Tendência:${RESET} ${trendColor}${sign}${diff.toFixed(1)}%${RESET} desde última auditoria (${lastDate})\n`;
+  let out = `\n  ${trendArrow} ${BOLD}Tendência:${RESET} ${trendColor}${sign}${diff.toFixed(1)}%${RESET} de cobertura desde última auditoria (${lastDate})\n`;
 
   if (newPasses > 0) {
     out += `     ${GREEN}Novos ✅: ${newPasses} item(s) corrigido(s)${RESET}\n`;
@@ -129,12 +129,15 @@ export function formatTerminal(report: AuditReport, lastAudit: AuditHistoryEntry
   }
 
   // Score
-  const { passed, total, percentage } = report.score;
-  const { breakdown } = report;
+  const { passed, total, percentage } = report.coverage;
+  const { breakdown, gate } = report;
   const scoreCol = scoreColor(percentage);
+  const gateIcon = gate === 'pass' ? '✅' : '❌';
+  const gateColor = gate === 'pass' ? GREEN : RED;
 
   lines.push(`${BOLD}${LINE}${RESET}`);
-  lines.push(`${BOLD}  SCORE FINAL: ${scoreCol}${passed}/${total} itens (${percentage.toFixed(1)}%)${RESET}`);
+  lines.push(`${BOLD}  GATE DE SEGURANÇA: ${gateColor}${gateIcon} ${gate.toUpperCase()}${RESET}`);
+  lines.push(`${BOLD}  COBERTURA:         ${scoreCol}${passed}/${total} itens (${percentage.toFixed(1)}%)${RESET}`);
   lines.push('');
 
   const bd = breakdown;
@@ -185,4 +188,68 @@ export function formatNAItems(naItems: Array<{ id: string; reason: string; autho
 
 export function formatJson(report: AuditReport): string {
   return JSON.stringify(report, null, 2);
+}
+
+export function formatSarif(report: AuditReport): string {
+  const rules: any[] = [];
+  const results: any[] = [];
+  const ruleIds = new Set<string>();
+
+  for (const category of report.categories) {
+    for (const item of category.items) {
+      if (!ruleIds.has(item.id)) {
+        ruleIds.add(item.id);
+        rules.push({
+          id: item.id,
+          shortDescription: { text: item.description },
+          fullDescription: { text: item.remediation || item.description },
+          properties: {
+            category: category.name,
+            severity: item.severity
+          }
+        });
+      }
+
+      if (item.status === 'fail') {
+        let level = 'warning';
+        if (item.severity === 'critical' || item.severity === 'high') {
+          level = 'error';
+        } else if (item.severity === 'low') {
+          level = 'note';
+        }
+
+        results.push({
+          ruleId: item.id,
+          level,
+          message: { text: item.detail || item.description },
+          locations: item.file ? [
+            {
+              physicalLocation: {
+                artifactLocation: { uri: item.file }
+              }
+            }
+          ] : []
+        });
+      }
+    }
+  }
+
+  const sarif = {
+    version: '2.1.0',
+    $schema: 'https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json',
+    runs: [
+      {
+        tool: {
+          driver: {
+            name: 'Claude Security Audit',
+            informationUri: 'https://github.com/erikosodre/claude-skills',
+            rules
+          }
+        },
+        results
+      }
+    ]
+  };
+
+  return JSON.stringify(sarif, null, 2);
 }

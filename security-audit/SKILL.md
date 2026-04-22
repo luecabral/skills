@@ -19,7 +19,8 @@ O script detecta a raiz automaticamente por marcadores como `package.json`, `Gem
 
 Execute:
 ```bash
-npx tsx <caminho-da-skill>/scripts/index.ts
+node <caminho-da-skill>/dist/scripts/index.js
+# ou fallback em dev: npx tsx <caminho-da-skill>/scripts/index.ts
 ```
 
 Se for a primeira vez no projeto (sem `memory/` para ele), pergunte ao usuário:
@@ -32,13 +33,13 @@ Salve as respostas com:
 ```bash
 # O script cria config padrão automaticamente na primeira execução
 # Para reconfigurar:
-npx tsx <caminho-da-skill>/scripts/index.ts --configure
+node <caminho-da-skill>/dist/scripts/index.js --configure
 ```
 
 **Passo 3 — Executar a auditoria**
 
 ```bash
-npx tsx <caminho-da-skill>/scripts/index.ts [caminho-do-projeto]
+node <caminho-da-skill>/dist/scripts/index.js [caminho-do-projeto]
 ```
 
 O runtime resolve modulos automaticamente por stack/contexto:
@@ -47,6 +48,8 @@ O runtime resolve modulos automaticamente por stack/contexto:
 
 Flags disponíveis:
 - `--json` — saída em JSON para pipelines
+- `--sarif` — saída em formato SARIF 2.1.0
+- `--fail-on=<critical|high|medium|low>` — controla o exit code (padrão: critical)
 - `--configure` — mostra e edita configuração do projeto
 - `--na <ID> "<motivo>" "<autor>"` — marca item como N/A
 
@@ -70,19 +73,25 @@ Ofereça ajuda imediata:
 
 ```bash
 # Auditoria padrão
-npx tsx <caminho-da-skill>/scripts/index.ts
+node <caminho-da-skill>/dist/index.js
 
 # Auditoria de projeto específico
-npx tsx <caminho-da-skill>/scripts/index.ts /caminho/do/projeto
+node <caminho-da-skill>/dist/index.js /caminho/do/projeto
 
 # Saída JSON
-npx tsx <caminho-da-skill>/scripts/index.ts --json
+node <caminho-da-skill>/dist/index.js --json
+
+# Saída SARIF
+node <caminho-da-skill>/dist/index.js --sarif
 
 # Marcar LLM como N/A (sem IA no projeto)
-npx tsx <caminho-da-skill>/scripts/index.ts --na K1 "Sem IA no projeto" "eriko"
+node <caminho-da-skill>/dist/index.js --na K1 "Sem IA no projeto" "eriko"
 
 # Ver configuração atual
-npx tsx <caminho-da-skill>/scripts/index.ts --configure
+node <caminho-da-skill>/dist/index.js --configure
+
+# Responder verificações manuais (F/J/K/O)
+node <caminho-da-skill>/dist/index.js --answer-manual
 
 # Ver histórico (via arquivo diretamente)
 cat <caminho-da-skill>/memory/$(echo -n $(pwd) | sha256sum | cut -c1-12)/history.json
@@ -123,10 +132,12 @@ Mencione estas categorias ao usuário e peça que verifiquem manualmente.
 ## Memória e Histórico
 
 A skill salva automaticamente:
-- `<caminho-da-skill>/memory/{hash}/config.json` — config do projeto (gitignored)
-- `<caminho-da-skill>/memory/{hash}/history.json` — histórico de auditorias (gitignored)
+- `<projectRoot>/.security-audit.json` — config do projeto (versionada no repositório, recomendada para compartilhar com o time)
+- `<caminho-da-skill>/memory/{hash}/config.json` — config local do projeto (não versionada, para uso pessoal)
+- `<caminho-da-skill>/memory/{hash}/history.json` — histórico de auditorias (não versionada)
 
 O hash é gerado a partir do path absoluto do projeto, permitindo múltiplos projetos com históricos separados.
+A configuração do repositório (`.security-audit.json`) tem prioridade sobre a configuração local.
 
 ## Tom e Postura
 

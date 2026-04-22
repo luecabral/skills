@@ -17,7 +17,7 @@ import {
   getLastAudit,
   isItemExcluded,
 } from './memory.js';
-import { formatTerminal, formatJson, formatNAItems } from './reporter.js';
+import { formatTerminal, formatJson, formatSarif, formatNAItems } from './reporter.js';
 import { detectStack } from './stack.js';
 import { runAuditModules } from './runtime.js';
 import { AUDIT_MODULES } from './modules/index.js';
@@ -32,13 +32,19 @@ function getSelfCommand(): string {
 
 function parseArgs(argv: string[]): {
   json: boolean;
+  sarif: boolean;
+  failOn: Severity;
   configure: boolean;
+  answerManual: boolean;
   projectRoot?: string;
   na?: { itemId: string; reason: string; author: string };
 } {
   const args = argv.slice(2);
   let json = false;
+  let sarif = false;
+  let failOn: Severity = 'critical';
   let configure = false;
+  let answerManual = false;
   let projectRoot: string | undefined;
   let na: { itemId: string; reason: string; author: string } | undefined;
 
@@ -48,8 +54,23 @@ function parseArgs(argv: string[]): {
       json = true;
       continue;
     }
+    if (arg === '--sarif') {
+      sarif = true;
+      continue;
+    }
+    if (arg.startsWith('--fail-on=')) {
+      const val = arg.split('=')[1] as Severity;
+      if (['critical', 'high', 'medium', 'low'].includes(val)) {
+        failOn = val;
+      }
+      continue;
+    }
     if (arg === '--configure') {
       configure = true;
+      continue;
+    }
+    if (arg === '--answer-manual') {
+      answerManual = true;
       continue;
     }
     if (arg === '--na') {
@@ -67,7 +88,7 @@ function parseArgs(argv: string[]): {
     }
   }
 
-  return { json, configure, projectRoot, na };
+  return { json, sarif, failOn, configure, answerManual, projectRoot, na };
 }
 
 function calculateBreakdown(items: CheckItem[]): SeverityBreakdown {
@@ -102,12 +123,74 @@ async function configureScan(projectRoot: string): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const { json, configure, projectRoot: rootArg, na } = parseArgs(process.argv);
+  const { json, sarif, failOn, configure, answerManual, projectRoot: rootArg, na } = parseArgs(process.argv);
 
   const cwd = process.cwd();
   const projectRoot = rootArg
     ? (rootArg.startsWith('/') ? rootArg : join(cwd, rootArg))
     : await findProjectRoot(cwd);
+
+  // Handle --answer-manual
+  if (answerManual) {
+    const { loadManualAnswers, saveManualAnswers } = await import('./checks/manual-checklist.js');
+    const readline = await import('node:readline/promises');
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    
+    const answers = await loadManualAnswers(projectRoot);
+    const now = new Date();
+    const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
+    
+    // We need to import MANUAL_CHECKS from the module, but it's not exported.
+    // Let's just run the check to get the items that need answering.
+    const { check } = await import('./checks/manual-checklist.js');
+    const result = await check(projectRoot);
+    const pendingItems = result.items.filter(i => i.status === 'warn');
+    
+    if (pendingItems.length === 0) {
+      console.log('✅ Todas as verificações manuais estão em dia!');
+      rl.close();
+      process.exit(0);
+    }
+    
+    console.log(`\n📝 Encontradas ${pendingItems.length} verificações manuais pendentes ou vencidas.\n`);
+    
+    for (const item of pendingItems) {
+      console.log(`\n${item.description}`);
+      console.log(`Detalhe: ${item.detail}`);
+      
+      let answered: 'pass' | 'fail' | 'na' | null = null;
+      while (!answered) {
+        const response = await rl.question('Status (pass/fail/na): ');
+        const normalized = response.trim().toLowerCase();
+        if (['pass', 'fail', 'na'].includes(normalized)) {
+          answered = normalized as 'pass' | 'fail' | 'na';
+        } else {
+          console.log('Resposta inválida. Use pass, fail ou na.');
+        }
+      }
+      
+      const detail = await rl.question('Detalhes/Observações (opcional): ');
+      
+      const existingIndex = answers.findIndex(a => a.itemId === item.id);
+      const newAnswer = {
+        itemId: item.id,
+        answered,
+        detail: detail.trim() || undefined,
+        date: now.toISOString()
+      };
+      
+      if (existingIndex >= 0) {
+        answers[existingIndex] = newAnswer;
+      } else {
+        answers.push(newAnswer);
+      }
+    }
+    
+    await saveManualAnswers(projectRoot, answers);
+    console.log('\n✅ Respostas salvas com sucesso!');
+    rl.close();
+    process.exit(0);
+  }
 
   // Handle --configure
   if (configure) {
@@ -127,14 +210,45 @@ async function main(): Promise<void> {
   const config = (await loadConfig(projectRoot)) || createDefaultConfig(projectRoot);
   const lastAudit = await getLastAudit(projectRoot);
   const stack = await detectStack(projectRoot);
-  const context: CheckContext = { projectRoot, stack };
+  
+  // Initialize IO cache for this run
+  const globCache = new Map<string, string[]>();
+  const readCache = new Map<string, string | null>();
+  
+  const context: CheckContext = { 
+    projectRoot, 
+    stack,
+    io: {
+      cachedGlob: async (patterns: string[]) => {
+        const key = patterns.slice().sort().join('|');
+        if (globCache.has(key)) return globCache.get(key)!;
+        const { globFiles } = await import('./utils.js');
+        const result = await globFiles(projectRoot, patterns);
+        globCache.set(key, result);
+        return result;
+      },
+      cachedRead: async (path: string) => {
+        if (readCache.has(path)) return readCache.get(path)!;
+        const { readFileContent } = await import('./utils.js');
+        const result = await readFileContent(path);
+        readCache.set(path, result);
+        return result;
+      }
+    }
+  };
 
-  if (!json) {
+  if (!json && !sarif) {
     console.log(`\nAnalisando: ${projectRoot}`);
     console.log(
       `Stack detectado: eco=${stack.ecosystem}, pm=${stack.packageManager}, rails=${stack.frameworks.rails ? 'sim' : 'não'}, next=${stack.frameworks.nextjs ? 'sim' : 'não'}, postgres=${stack.services.postgres ? 'sim' : 'não'}, redis=${stack.services.redis ? 'sim' : 'não'}, sidekiq=${stack.services.sidekiq ? 'sim' : 'não'}`,
     );
-    console.log('Executando checks de segurança...\n');
+    if (stack.warnings.length > 0) {
+      console.log('\n⚠️  Avisos de Detecção de Stack:');
+      for (const warning of stack.warnings) {
+        console.log(`   - ${warning}`);
+      }
+    }
+    console.log('\nExecutando checks de segurança...\n');
   }
 
   let moduleExecution: AuditReport['modules'] = [];
@@ -179,6 +293,7 @@ async function main(): Promise<void> {
     total: scorableItems.length,
     percentage: scorableItems.length > 0 ? (passedItems.length / scorableItems.length) * 100 : 0,
   };
+  const coverage = { ...score };
 
   const breakdown = calculateBreakdown(scorableItems);
 
@@ -186,6 +301,8 @@ async function main(): Promise<void> {
   const criticalFailures = scorableItems.filter(
     (i) => i.status === 'fail' && (i.severity === 'critical' || i.severity === 'high'),
   );
+  
+  const gate = scorableItems.some(i => i.status === 'fail' && i.severity === 'critical') ? 'fail' : 'pass';
 
   const projectName = config.name || projectRoot.split('/').pop() || 'unknown';
 
@@ -196,6 +313,8 @@ async function main(): Promise<void> {
     stack,
     modules: moduleExecution,
     categories: filteredCategories,
+    gate,
+    coverage,
     score,
     breakdown,
     criticalFailures,
@@ -207,6 +326,8 @@ async function main(): Promise<void> {
   // Output
   if (json) {
     console.log(formatJson(report));
+  } else if (sarif) {
+    console.log(formatSarif(report));
   } else {
     console.log(formatTerminal(report, lastAudit));
     if (naItems.length > 0) {
@@ -214,8 +335,15 @@ async function main(): Promise<void> {
     }
   }
 
-  // Exit with error code if critical failures exist
-  process.exit(criticalFailures.length > 0 ? 1 : 0);
+  // Exit with error code if failures exist based on --fail-on
+  const severityLevels = { critical: 4, high: 3, medium: 2, low: 1 };
+  const failOnLevel = severityLevels[failOn];
+  
+  const hasFailures = scorableItems.some(
+    (i) => i.status === 'fail' && severityLevels[i.severity] >= failOnLevel
+  );
+
+  process.exit(hasFailures ? 1 : 0);
 }
 
 main().catch((err) => {
