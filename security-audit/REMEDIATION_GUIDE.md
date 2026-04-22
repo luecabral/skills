@@ -338,6 +338,99 @@ Isso previne enumeracao de usuarios.
 
 ---
 
+## P. PostgreSQL (Rails)
+
+### P1-P2 — Adapter e migrations
+Garanta `adapter: postgresql` em `config/database.yml` para os ambientes corretos.
+Mantenha migrations pequenas, reversiveis e revisadas em PR.
+
+### P3 — Foreign keys
+Adicione `add_foreign_key` ou `foreign_key: true` nas referencias entre tabelas.
+Sem FK, erros de integridade ficam escondidos na aplicacao.
+
+### P4 — Indices unicos
+Use `add_index ..., unique: true` para constraints de negocio.
+Isso evita corrida e duplicacao sob concorrencia.
+
+### P5 — Transacoes
+Use `ActiveRecord::Base.transaction` em fluxos com multiplas escritas.
+Isso evita estados parciais quando uma etapa falha.
+
+---
+
+## Q. Redis & Cache
+
+### Q1-Q2 — Conexao segura
+Use autenticacao e prefira `rediss://` em ambientes externos.
+Evite Redis aberto em rede sem ACL/TLS.
+
+### Q3 — Namespace
+Defina namespace de chaves por app/ambiente.
+Isso reduz colisao entre servicos e facilita invalidacao.
+
+### Q4 — TTL
+Aplique `expires_in`/TTL em entradas de cache.
+Sem TTL, dados stale podem persistir indefinidamente.
+
+### Q5 — Dados sensiveis
+Nao armazene password/token/secret em cache.
+Passe apenas IDs e busque dados sensiveis em storage seguro.
+
+---
+
+## R. Rails Stack
+
+### R1 — CSRF
+Mantenha `protect_from_forgery`/`verify_authenticity_token` ativo no controller base.
+
+### R2 — Strong Parameters
+Aplique `params.require(...).permit(...)` para todo payload mutavel.
+Isso previne mass assignment indevido.
+
+### R3 — before_action de authz/authn
+Defina guardas de autenticacao/autorizacao antes de acoes sensiveis.
+Nao dependa de validacao apenas na view.
+
+### R4-R5 — HTML e redirects
+Evite `raw/html_safe` com input do usuario.
+Valide destinos de `redirect_to` com allowlist para evitar open redirect.
+
+### R6 — Sessao/cookies
+Ative `force_ssl` e hardening de cookie store no ambiente de producao.
+
+---
+
+## S. Sidekiq
+
+### S1-S2 — Retry e operacao
+Configure retries por worker e trate dead jobs com observabilidade.
+
+### S3 — Idempotencia
+Garanta idempotencia por chave de negocio ou deduplicacao de jobs.
+Retry sem idempotencia gera efeitos duplicados.
+
+### S4 — Payload sensivel
+Nao enfileire secrets/tokens; passe IDs e recupere no worker.
+
+### S5 — Filas
+Defina filas/prioridades para isolamento de workloads criticos.
+
+---
+
+## T. Hotwire (Turbo + Stimulus)
+
+### T1-T2 — Baseline de seguranca
+Confirme Turbo/Stimulus configurados e `csrf_meta_tags` no layout base.
+
+### T3-T4 — HTML dinamico
+Evite `innerHTML`/`insertAdjacentHTML` sem sanitizacao e `raw/html_safe` em views.
+
+### T5 — Acoes mutantes
+Para links/forms mutantes via Turbo, aplique autorizacao no backend.
+Nunca trate autorizacao apenas no frontend.
+
+---
+
 ## O. Documentacao e Processos
 
 ### O1 — Changelog

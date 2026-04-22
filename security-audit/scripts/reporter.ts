@@ -46,6 +46,11 @@ function formatScopeLabel(scope?: string): string {
   return '';
 }
 
+function formatLayerLabel(layer?: string): string {
+  if (!layer) return '';
+  return `${DIM}[${layer}]${RESET}`;
+}
+
 function formatTrend(report: AuditReport, lastAudit: AuditHistoryEntry | null): string {
   if (!lastAudit) return '';
 
@@ -82,8 +87,11 @@ export function formatTerminal(report: AuditReport, lastAudit: AuditHistoryEntry
   lines.push(`${BOLD}  RELATÓRIO DE AUDITORIA DE SEGURANÇA${RESET}`);
   lines.push(`${DIM}  ${report.projectName} — ${new Date(report.timestamp).toLocaleString('pt-BR')}${RESET}`);
   lines.push(
-    `${DIM}  Stack: eco=${report.stack.ecosystem}, pm=${report.stack.packageManager}, nextjs=${report.stack.frameworks.nextjs ? 'sim' : 'não'}, supabase=${report.stack.services.supabase ? 'sim' : 'não'}${RESET}`,
+    `${DIM}  Stack: eco=${report.stack.ecosystem}, pm=${report.stack.packageManager}, rails=${report.stack.frameworks.rails ? 'sim' : 'não'}, nextjs=${report.stack.frameworks.nextjs ? 'sim' : 'não'}, postgres=${report.stack.services.postgres ? 'sim' : 'não'}, redis=${report.stack.services.redis ? 'sim' : 'não'}, sidekiq=${report.stack.services.sidekiq ? 'sim' : 'não'}, hotwire=${report.stack.frameworks.hotwire ? 'sim' : 'não'}${RESET}`,
   );
+  const executedModules = report.modules.filter((m) => m.status === 'executed').length;
+  const skippedModules = report.modules.filter((m) => m.status === 'skipped').length;
+  lines.push(`${DIM}  Módulos: ${executedModules} executado(s), ${skippedModules} pulado(s)${RESET}`);
   lines.push(`${BOLD}${LINE}${RESET}\n`);
 
   // Categories
@@ -94,7 +102,7 @@ export function formatTerminal(report: AuditReport, lastAudit: AuditHistoryEntry
     const categoryColor = passed === total ? GREEN : passed / total >= 0.7 ? YELLOW : RED;
 
     lines.push(
-      `${BOLD}${category.id}. ${category.name}${RESET} ${formatScopeLabel(category.scope)}  ${categoryColor}${categoryScore}${RESET}`,
+      `${BOLD}${category.id}. ${category.name}${RESET} ${formatLayerLabel(category.layer)} ${formatScopeLabel(category.scope)}  ${categoryColor}${categoryScore}${RESET}`,
     );
     lines.push(DASH);
 
@@ -138,6 +146,14 @@ export function formatTerminal(report: AuditReport, lastAudit: AuditHistoryEntry
   // Trend
   const trendSection = formatTrend(report, lastAudit);
   if (trendSection) lines.push(trendSection);
+
+  const skippedDetails = report.modules.filter((m) => m.status === 'skipped');
+  if (skippedDetails.length > 0) {
+    lines.push(`\n  ${DIM}Módulos pulados por contexto:${RESET}`);
+    for (const module of skippedDetails) {
+      lines.push(`  ${DIM}- ${module.id} (${module.reason || 'não aplicável'})${RESET}`);
+    }
+  }
 
   // Critical failures
   if (report.criticalFailures.length > 0) {

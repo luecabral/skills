@@ -7,11 +7,11 @@ Skill autocontida para auditoria de seguranca em aplicacoes web. Faz analise est
 ## O que mudou para reuso
 
 - Sem caminho fixo de `.agents/skills/...`: a execucao usa o caminho real do script.
-- Checks separados por escopo:
-- `generic`: rodam em qualquer projeto suportado.
-- `stack-specific`: rodam apenas quando a stack correspondente e detectada.
-- Deteccao automatica de stack (ex.: Next.js, Supabase, package manager).
-- Auditoria de dependencias com suporte a `npm`, `pnpm` e `yarn`.
+- Runtime modular por camadas: `core`, `data`, `infra`, `stack`, `frontend`.
+- Cada modulo implementa `supports(context)` e `run(context)`.
+- Modulos `stack-specific` rodam apenas quando a stack correspondente e detectada.
+- Deteccao automatica de stack expandida (Node/Ruby, Rails, Next.js, Supabase, Postgres, Redis, Sidekiq, Hotwire, package manager).
+- Auditoria de dependencias por ecossistema: `npm/pnpm/yarn` e `bundle-audit` para Ruby quando aplicavel.
 
 ---
 
@@ -19,9 +19,10 @@ Skill autocontida para auditoria de seguranca em aplicacoes web. Faz analise est
 
 1. O comando `security-audit` dispara o `scripts/index.ts`.
 2. O script detecta a raiz do projeto e a stack.
-3. Executa checks genericos e checks especificos aplicaveis.
-4. Salva resultado em `memory/{hash-do-projeto}/`.
-5. Exibe relatorio com score, severidade, tendencia e itens criticos.
+3. Resolve os modulos aplicaveis por contexto (`supports(context)`).
+4. Executa modulos aplicaveis (core + stack-specific relevantes).
+5. Salva resultado em `memory/{hash-do-projeto}/`.
+6. Exibe relatorio com score, severidade, tendencia e itens criticos.
 
 O script nao executa a aplicacao auditada. Ele apenas analisa os arquivos do repositorio.
 
@@ -76,6 +77,9 @@ security-audit/
 │   ├── utils.ts
 │   ├── reporter.ts
 │   ├── memory.ts
+│   ├── runtime.ts
+│   ├── modules/
+│   │   └── index.ts
 │   └── checks/
 │       ├── access-control.ts
 │       ├── auth-session.ts
@@ -87,7 +91,12 @@ security-audit/
 │       ├── hardening.ts
 │       ├── dependencies.ts
 │       ├── tests.ts
-│       └── error-handling.ts
+│       ├── error-handling.ts
+│       ├── rails-stack.ts
+│       ├── postgres-rails.ts
+│       ├── redis-infra.ts
+│       ├── sidekiq-infra.ts
+│       └── hotwire-frontend.ts
 └── memory/
     └── {hash-do-projeto}/
         ├── config.json
@@ -100,21 +109,30 @@ security-audit/
 
 O auditor detecta:
 
-- Ecosystem (`node` ou `unknown`)
+- Ecosystem (`node`, `ruby`, `mixed`, `unknown`)
 - Package manager (`npm`, `pnpm`, `yarn`, `unknown`)
-- Frameworks (`nextjs`, `express`)
-- Servicos (`supabase`)
+- Frameworks (`nextjs`, `express`, `rails`, `hotwire`)
+- Servicos (`supabase`, `postgres`, `redis`, `sidekiq`)
+- Tooling (`tailwind`, `esbuild`)
 
 Essas informacoes aparecem no relatorio e controlam checks `stack-specific`.
 
 ---
 
-## Generic vs stack-specific
+## Camadas e escopo
 
-Exemplo atual:
+Camadas de modulo:
 
-- Categoria `A` (Access Control com RLS) e `stack-specific` e so roda quando Supabase/Postgres com esse padrao e detectado.
-- Alguns itens de categorias genericas (ex.: middleware Next.js, separacao de clients Supabase) sao marcados como `stack-specific` e ficam `skip` quando nao aplicavel.
+- `core`: checks universais.
+- `data`: banco e acesso a dados.
+- `infra`: cache, filas e runtime operacional.
+- `stack`: framework backend.
+- `frontend`: framework/layer client.
+
+Escopo:
+
+- `generic`: modulo sempre elegivel.
+- `stack-specific`: modulo so executa quando `supports(context)` for verdadeiro.
 
 Isso reduz falsos positivos em projetos fora do stack de origem.
 
@@ -140,11 +158,11 @@ npx tsx /destino/tools/security-audit/scripts/index.ts
 
 ---
 
-## Estendendo checks
+## Estendendo checks/modulos
 
 1. Crie um novo arquivo em `scripts/checks/`.
 2. Exporte `check(projectRoot, context)`.
-3. Registre no `scripts/index.ts` em `GENERIC_CHECKS` ou `STACK_SPECIFIC_CHECKS`.
+3. Registre o modulo em `scripts/modules/index.ts` definindo `layer`, `scope` e `supports(context)`.
 4. Atualize `SECURITY_CHECKLIST.md` e `REMEDIATION_GUIDE.md`.
 
 ---

@@ -96,6 +96,8 @@ export async function findProjectRoot(startDir: string): Promise<string> {
     'pnpm-lock.yaml',
     'yarn.lock',
     'package-lock.json',
+    'Gemfile',
+    'Gemfile.lock',
     'pyproject.toml',
     'go.mod',
     'Cargo.toml',

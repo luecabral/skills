@@ -13,7 +13,7 @@ Você é um especialista em segurança de aplicações web. Quando o usuário in
 **Passo 1 — Identificar o projeto atual**
 
 O projeto sendo auditado é o diretório de trabalho atual do Codex.
-O script detecta a raiz automaticamente por marcadores como `package.json`, `pnpm-lock.yaml`, `yarn.lock`, `.git`, `pyproject.toml`, `go.mod`.
+O script detecta a raiz automaticamente por marcadores como `package.json`, `Gemfile`, `pnpm-lock.yaml`, `yarn.lock`, `.git`, `pyproject.toml`, `go.mod`.
 
 **Passo 2 — Verificar se é a primeira execução**
 
@@ -40,6 +40,10 @@ npx tsx <caminho-da-skill>/scripts/index.ts --configure
 ```bash
 npx tsx <caminho-da-skill>/scripts/index.ts [caminho-do-projeto]
 ```
+
+O runtime resolve modulos automaticamente por stack/contexto:
+- `generic` roda sempre
+- `stack-specific` roda apenas quando aplicavel
 
 Flags disponíveis:
 - `--json` — saída em JSON para pipelines
@@ -96,9 +100,14 @@ cat <caminho-da-skill>/memory/$(echo -n $(pwd) | sha256sum | cut -c1-12)/history
 | G | Files & Misconfigs | Path traversal, upload validation, .gitignore, source maps |
 | H | Secrets & Crypto | Hardcoded secrets, .env.example, memzero, Argon2id |
 | I | Hardening | CORS, HSTS, X-Powered-By, rate limit global |
-| L | Dependencies | audit de dependências (npm/pnpm/yarn), lockfile, CI workflow, cron audit |
+| L | Dependencies | audit de dependências (npm/pnpm/yarn e Ruby com bundle-audit), lockfile, CI workflow, cron audit |
 | M | Security Tests | Cross-tenant, privilege escalation, password, CSRF, RLS |
 | N | Error Handling | Error catalog, stack traces, log PII, auth enumeration |
+| R | Rails Stack Security | CSRF, strong params, before_action authz, html_safe/raw, redirects |
+| P | PostgreSQL for Rails | adapter, migrations, foreign keys, indexes, transacoes |
+| Q | Redis & Cache Security | auth/TLS, namespace, TTL, dados sensiveis em cache |
+| S | Sidekiq Async Security | retry, idempotencia, payload sensivel, filas |
+| T | Hotwire Frontend Security | csrf_meta_tags, innerHTML, raw/html_safe, acoes mutantes |
 
 ## Categorias de Verificação Manual
 

@@ -201,6 +201,57 @@
 
 ---
 
+## P. PostgreSQL (Rails)
+
+- [ ] 🟠 Adapter PostgreSQL configurado por ambiente
+- [ ] 🟠 Migrations versionadas e revisadas
+- [ ] 🟠 Foreign keys para integridade referencial
+- [ ] 🟡 Indices unicos para constraints de negocio
+- [ ] 🟠 Transacoes em operacoes multi-escrita criticas
+
+---
+
+## Q. Redis & Cache
+
+- [ ] 🟠 Redis com autenticacao/TLS (preferir rediss://)
+- [ ] 🟡 Namespace de chaves por app/ambiente
+- [ ] 🟡 TTL explicito para entradas de cache
+- [ ] 🔴 Sem secrets/tokens sensiveis em cache
+- [ ] 🟡 Politica de expiracao e invalidacao documentada
+
+---
+
+## R. Rails Stack
+
+- [ ] 🔴 CSRF habilitado no ApplicationController
+- [ ] 🔴 Strong parameters em endpoints mutaveis
+- [ ] 🟠 before_action de authn/authz em rotas sensiveis
+- [ ] 🟠 Evitar `html_safe`/`raw` com conteudo dinamico
+- [ ] 🟠 `redirect_to` com destino validado (anti open redirect)
+- [ ] 🟠 Sessao/cookies hardenizados em producao
+
+---
+
+## S. Sidekiq
+
+- [ ] 🟠 Retry configurado por worker
+- [ ] 🟠 Jobs criticos idempotentes/deduplicados
+- [ ] 🔴 Sem dados sensiveis no payload da fila
+- [ ] 🟡 Filas/prioridades definidas em config
+- [ ] 🟡 Tratamento de dead jobs e alertas operacionais
+
+---
+
+## T. Hotwire (Turbo + Stimulus)
+
+- [ ] 🔴 `csrf_meta_tags` presente no layout base
+- [ ] 🟠 Evitar `innerHTML`/`insertAdjacentHTML` sem sanitizacao
+- [ ] 🟠 Evitar `raw`/`html_safe` em views dinamicas
+- [ ] 🟡 Acoes mutantes via Turbo com authz garantida no backend
+- [ ] 🟡 Fluxos Turbo Streams revisados para XSS
+
+---
+
 ## O. Documentação & Processos
 
 - [ ] 🔵 Changelog organizado e atualizado

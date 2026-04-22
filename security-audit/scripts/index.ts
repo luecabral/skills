@@ -6,10 +6,8 @@ import type {
   CategoryResult,
   CheckContext,
   CheckItem,
-  CheckScope,
   SeverityBreakdown,
   Severity,
-  StackProfile,
 } from './types.js';
 import { findProjectRoot } from './utils.js';
 import {
@@ -21,48 +19,8 @@ import {
 } from './memory.js';
 import { formatTerminal, formatJson, formatNAItems } from './reporter.js';
 import { detectStack } from './stack.js';
-
-// Import all checks
-import { check as checkAccessControl } from './checks/access-control.js';
-import { check as checkAuthSession } from './checks/auth-session.js';
-import { check as checkValidation } from './checks/validation.js';
-import { check as checkClientSide } from './checks/client-side.js';
-import { check as checkInjection } from './checks/injection.js';
-import { check as checkFiles } from './checks/files.js';
-import { check as checkSecretsCrypto } from './checks/secrets-crypto.js';
-import { check as checkHardening } from './checks/hardening.js';
-import { check as checkDependencies } from './checks/dependencies.js';
-import { check as checkTests } from './checks/tests.js';
-import { check as checkErrorHandling } from './checks/error-handling.js';
-
-type CheckRunner = (projectRoot: string, context: CheckContext) => Promise<CategoryResult>;
-
-interface CheckRegistration {
-  scope: CheckScope;
-  run: CheckRunner;
-  shouldRun?: (stack: StackProfile) => boolean;
-}
-
-const GENERIC_CHECKS: CheckRegistration[] = [
-  { scope: 'generic', run: (projectRoot, context) => checkAuthSession(projectRoot, context) },
-  { scope: 'generic', run: (projectRoot, context) => checkValidation(projectRoot, context) },
-  { scope: 'generic', run: (projectRoot, context) => checkClientSide(projectRoot, context) },
-  { scope: 'generic', run: (projectRoot, context) => checkInjection(projectRoot, context) },
-  { scope: 'generic', run: (projectRoot, context) => checkFiles(projectRoot, context) },
-  { scope: 'generic', run: (projectRoot, context) => checkSecretsCrypto(projectRoot, context) },
-  { scope: 'generic', run: (projectRoot, context) => checkHardening(projectRoot, context) },
-  { scope: 'generic', run: (projectRoot, context) => checkDependencies(projectRoot, context) },
-  { scope: 'generic', run: (projectRoot, context) => checkTests(projectRoot, context) },
-  { scope: 'generic', run: (projectRoot, context) => checkErrorHandling(projectRoot, context) },
-];
-
-const STACK_SPECIFIC_CHECKS: CheckRegistration[] = [
-  {
-    scope: 'stack-specific',
-    run: (projectRoot, context) => checkAccessControl(projectRoot, context),
-    shouldRun: (stack) => stack.services.supabase,
-  },
-];
+import { runAuditModules } from './runtime.js';
+import { AUDIT_MODULES } from './modules/index.js';
 
 function getSelfCommand(): string {
   const scriptPath = process.argv[1] || fileURLToPath(import.meta.url);
@@ -174,24 +132,17 @@ async function main(): Promise<void> {
   if (!json) {
     console.log(`\nAnalisando: ${projectRoot}`);
     console.log(
-      `Stack detectado: ecosystem=${stack.ecosystem}, pm=${stack.packageManager}, nextjs=${stack.frameworks.nextjs ? 'sim' : 'não'}, supabase=${stack.services.supabase ? 'sim' : 'não'}`,
+      `Stack detectado: eco=${stack.ecosystem}, pm=${stack.packageManager}, rails=${stack.frameworks.rails ? 'sim' : 'não'}, next=${stack.frameworks.nextjs ? 'sim' : 'não'}, postgres=${stack.services.postgres ? 'sim' : 'não'}, redis=${stack.services.redis ? 'sim' : 'não'}, sidekiq=${stack.services.sidekiq ? 'sim' : 'não'}`,
     );
     console.log('Executando checks de segurança...\n');
   }
 
-  // Run generic + stack-specific checks in parallel
-  const checkPlan = [...GENERIC_CHECKS, ...STACK_SPECIFIC_CHECKS].filter((check) =>
-    check.shouldRun ? check.shouldRun(stack) : true,
-  );
-
+  let moduleExecution: AuditReport['modules'] = [];
   let categoryResults: CategoryResult[];
   try {
-    categoryResults = await Promise.all(
-      checkPlan.map(async (check) => {
-        const result = await check.run(projectRoot, context);
-        return { ...result, scope: check.scope };
-      }),
-    );
+    const moduleRun = await runAuditModules(AUDIT_MODULES, context);
+    categoryResults = moduleRun.categories;
+    moduleExecution = moduleRun.modules;
   } catch (err) {
     console.error('Erro ao executar checks:', err);
     process.exit(1);
@@ -243,6 +194,7 @@ async function main(): Promise<void> {
     projectName,
     projectRoot,
     stack,
+    modules: moduleExecution,
     categories: filteredCategories,
     score,
     breakdown,

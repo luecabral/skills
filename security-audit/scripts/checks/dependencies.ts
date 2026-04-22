@@ -141,23 +141,28 @@ function parseAuditFromCommandOutput(output: string): AuditVulnerabilitySummary 
 export async function check(projectRoot: string, context?: CheckContext): Promise<CategoryResult> {
   const items: CheckItem[] = [];
   const packageManager = context?.stack.packageManager ?? 'unknown';
+  const hasRuby = context?.stack.languages.ruby ?? false;
 
   // L1 — lockfile existe
   const lockfilePath = join(projectRoot, 'package-lock.json');
   const yarnLockPath = join(projectRoot, 'yarn.lock');
   const pnpmLockPath = join(projectRoot, 'pnpm-lock.yaml');
+  const gemLockPath = join(projectRoot, 'Gemfile.lock');
   const hasLockfile =
     (await fileExists(lockfilePath)) ||
     (await fileExists(yarnLockPath)) ||
-    (await fileExists(pnpmLockPath));
+    (await fileExists(pnpmLockPath)) ||
+    (await fileExists(gemLockPath));
   const lockfileFile = (await fileExists(lockfilePath))
     ? lockfilePath
     : (await fileExists(yarnLockPath))
       ? yarnLockPath
+      : (await fileExists(gemLockPath))
+        ? gemLockPath
       : pnpmLockPath;
   items.push({
     id: 'L1',
-    description: 'Lockfile commitado (package-lock.json / yarn.lock / pnpm-lock.yaml)',
+    description: 'Lockfile commitado (package-lock.json / yarn.lock / pnpm-lock.yaml / Gemfile.lock)',
     status: hasLockfile ? 'pass' : 'fail',
     severity: 'medium',
     file: hasLockfile ? lockfileFile : undefined,
@@ -261,11 +266,98 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
     remediation: auditRemediation,
   });
 
+  // L5 — Auditoria de gems (Ruby/Bundler)
+  if (hasRuby) {
+    let rubyAuditStatus: 'pass' | 'fail' | 'warn' = 'warn';
+    let rubyAuditDetail = 'bundle-audit nao executado';
+    let rubyAuditRemediation =
+      'Execute `bundle-audit check --update` (ou `bundle exec bundle-audit check --update`) e aplique os upgrades recomendados';
+    let rubyCommandUsed: string | undefined;
+
+    const rubyCommands = [
+      'bundle exec bundle-audit check --update',
+      'bundle-audit check --update',
+    ];
+
+    for (const command of rubyCommands) {
+      try {
+        const output = execSync(command, {
+          cwd: projectRoot,
+          timeout: 45000,
+          stdio: ['pipe', 'pipe', 'pipe'],
+        }).toString();
+        rubyCommandUsed = command;
+        if (/No vulnerabilities found/i.test(output)) {
+          rubyAuditStatus = 'pass';
+          rubyAuditDetail = 'bundle-audit executado sem vulnerabilidades conhecidas';
+        } else if (/Name:\s+\S+|Vulnerabilities found/i.test(output)) {
+          rubyAuditStatus = 'fail';
+          rubyAuditDetail = 'bundle-audit encontrou vulnerabilidades em gems';
+        } else {
+          rubyAuditStatus = 'warn';
+          rubyAuditDetail = 'bundle-audit executado, mas sem parse claro do resultado';
+        }
+        break;
+      } catch (err) {
+        const stderr = (err as { stderr?: Buffer }).stderr?.toString() || '';
+        const stdout = (err as { stdout?: Buffer }).stdout?.toString() || '';
+        const combined = [stdout, stderr].filter(Boolean).join('\n');
+
+        if (/No vulnerabilities found/i.test(combined)) {
+          rubyCommandUsed = command;
+          rubyAuditStatus = 'pass';
+          rubyAuditDetail = 'bundle-audit executado sem vulnerabilidades conhecidas';
+          break;
+        }
+        if (/Name:\s+\S+|Vulnerabilities found|Insecure Source URI/i.test(combined)) {
+          rubyCommandUsed = command;
+          rubyAuditStatus = 'fail';
+          rubyAuditDetail = 'bundle-audit encontrou vulnerabilidades em gems';
+          break;
+        }
+        if (/command not found|not recognized|ENOENT/i.test(combined)) {
+          continue;
+        }
+
+        rubyCommandUsed = command;
+        rubyAuditStatus = 'warn';
+        rubyAuditDetail = `Nao foi possivel executar "${command}"`;
+        break;
+      }
+    }
+
+    if (!rubyCommandUsed && rubyAuditStatus === 'warn') {
+      rubyAuditDetail = 'Nenhum comando bundle-audit compativel foi executado no ambiente atual';
+    }
+
+    items.push({
+      id: 'L5',
+      description: 'Auditoria de gems (Ruby) sem vulnerabilidades conhecidas',
+      status: rubyAuditStatus,
+      severity: 'high',
+      detail: rubyCommandUsed ? `${rubyAuditDetail} (comando: ${rubyCommandUsed})` : rubyAuditDetail,
+      remediation: rubyAuditRemediation,
+      scope: 'stack-specific',
+    });
+  } else {
+    items.push({
+      id: 'L5',
+      description: 'Auditoria de gems (Ruby) sem vulnerabilidades conhecidas',
+      status: 'skip',
+      severity: 'high',
+      detail: 'Check especifico para stack Ruby/Rails',
+      scope: 'stack-specific',
+    });
+  }
+
   // L3 — GitHub workflow de auditoria
   const workflowDir = join(projectRoot, '.github', 'workflows');
   if (await fileExists(workflowDir)) {
     const workflowFiles = await globFiles(workflowDir, ['**/*.yml', '**/*.yaml']);
-    const auditWorkflow = await grepInFiles(workflowFiles, /npm audit|audit.*dependencies|snyk|dependabot/i);
+    const auditWorkflow = await grepInFiles(
+      workflowFiles,
+      /npm audit|pnpm audit|yarn audit|bundle-audit|brakeman|audit.*dependencies|snyk|dependabot/i,
+    );
     items.push({
       id: 'L3',
       description: 'Auditoria automatizada em workflow CI/CD',

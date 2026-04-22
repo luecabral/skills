@@ -3,22 +3,55 @@ export type Severity = 'critical' | 'high' | 'medium' | 'low';
 export type CheckStatus = 'pass' | 'fail' | 'warn' | 'skip';
 export type CheckScope = 'generic' | 'stack-specific';
 export type PackageManager = 'npm' | 'pnpm' | 'yarn' | 'unknown';
+export type ModuleLayer = 'core' | 'data' | 'infra' | 'stack' | 'frontend';
+export type Ecosystem = 'node' | 'ruby' | 'mixed' | 'unknown';
 
 export interface StackProfile {
-  ecosystem: 'node' | 'unknown';
+  ecosystem: Ecosystem;
   packageManager: PackageManager;
   frameworks: {
     nextjs: boolean;
     express: boolean;
+    rails: boolean;
+    hotwire: boolean;
   };
   services: {
     supabase: boolean;
+    postgres: boolean;
+    redis: boolean;
+    sidekiq: boolean;
+  };
+  tooling: {
+    tailwind: boolean;
+    esbuild: boolean;
+  };
+  languages: {
+    ruby: boolean;
+    node: boolean;
   };
 }
 
 export interface CheckContext {
   projectRoot: string;
   stack: StackProfile;
+}
+
+export interface AuditModule {
+  id: string;
+  name: string;
+  layer: ModuleLayer;
+  scope: CheckScope;
+  supports: (context: CheckContext) => boolean | Promise<boolean>;
+  run: (context: CheckContext) => Promise<CategoryResult | CategoryResult[]>;
+}
+
+export interface ModuleExecution {
+  id: string;
+  name: string;
+  layer: ModuleLayer;
+  scope: CheckScope;
+  status: 'executed' | 'skipped';
+  reason?: string;
 }
 
 export interface CheckItem {
@@ -35,7 +68,9 @@ export interface CheckItem {
 export interface CategoryResult {
   id: string;
   name: string;
+  layer?: ModuleLayer;
   scope?: CheckScope;
+  moduleId?: string;
   items: CheckItem[];
 }
 
@@ -51,6 +86,7 @@ export interface AuditReport {
   projectName: string;
   projectRoot: string;
   stack: StackProfile;
+  modules: ModuleExecution[];
   categories: CategoryResult[];
   score: { passed: number; total: number; percentage: number };
   breakdown: SeverityBreakdown;
