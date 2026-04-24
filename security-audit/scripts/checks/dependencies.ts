@@ -157,19 +157,38 @@ function severityRank(severity: Severity): number {
   return 1;
 }
 
+function packageKey(pkg: LockPackage): string {
+  return `${pkg.name}@${pkg.version}`;
+}
+
+function packageNameFromLockPath(path: string): string | null {
+  const marker = 'node_modules/';
+  const index = path.lastIndexOf(marker);
+  if (index === -1) return null;
+  const segments = path.slice(index + marker.length).split('/');
+  if (segments[0]?.startsWith('@') && segments[1]) {
+    return `${segments[0]}/${segments[1]}`;
+  }
+  return segments[0] || null;
+}
+
 async function parsePackageLock(lockfilePath: string): Promise<LockPackage[]> {
   const lock = await readJsonFile<PackageLockLike>(lockfilePath);
   const packages = new Map<string, LockPackage>();
 
   for (const [path, meta] of Object.entries(lock?.packages || {})) {
     if (!path.startsWith('node_modules/') || !meta.version) continue;
-    const name = meta.name || path.replace(/^node_modules\//, '');
-    packages.set(name, { name, version: meta.version });
+    const name = meta.name || packageNameFromLockPath(path);
+    if (!name) continue;
+    const pkg = { name, version: meta.version };
+    packages.set(packageKey(pkg), pkg);
   }
 
   for (const [name, meta] of Object.entries(lock?.dependencies || {})) {
-    if (!meta.version || packages.has(name)) continue;
-    packages.set(name, { name, version: meta.version });
+    if (!meta.version) continue;
+    const pkg = { name, version: meta.version };
+    if (packages.has(packageKey(pkg))) continue;
+    packages.set(packageKey(pkg), pkg);
   }
 
   return [...packages.values()];
@@ -195,7 +214,8 @@ async function parseGemfileLock(gemLockPath: string): Promise<LockPackage[]> {
 
     const match = line.match(/^\s{4}([A-Za-z0-9_.-]+)\s+\(([^)]+)\)/);
     if (!match) continue;
-    packages.set(match[1], { name: match[1], version: match[2].split(',')[0].trim() });
+    const pkg = { name: match[1], version: match[2].split(',')[0].trim() };
+    packages.set(packageKey(pkg), pkg);
   }
 
   return [...packages.values()];
@@ -206,9 +226,13 @@ function summarizeOsvVulns(vulnsByPackage: Map<string, OsvVuln[]>, packages: Loc
   detail: string;
   remediation?: string;
 } {
-  const versions = new Map(packages.map((pkg) => [pkg.name, pkg.version]));
+  const packageByKey = new Map(packages.map((pkg) => [packageKey(pkg), pkg]));
   const findings = [...vulnsByPackage.entries()]
-    .flatMap(([name, vulns]) => vulns.map((vuln) => ({ name, version: versions.get(name), vuln })))
+    .flatMap(([key, vulns]) => {
+      const pkg = packageByKey.get(key);
+      if (!pkg) return [];
+      return vulns.map((vuln) => ({ name: pkg.name, version: pkg.version, vuln }));
+    })
     .sort((a, b) => severityRank(b.vuln.severity) - severityRank(a.vuln.severity));
 
   if (findings.length === 0) {

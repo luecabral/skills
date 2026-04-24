@@ -35,6 +35,10 @@ function cacheKey(ecosystem: OsvEcosystem, pkg: OsvPackage): string {
   return `${ecosystem}:${pkg.name}:${pkg.version}`;
 }
 
+function resultKey(pkg: OsvPackage): string {
+  return `${pkg.name}@${pkg.version}`;
+}
+
 function cachePath(projectRoot: string): string {
   return join(getProjectMemoryDir(projectRoot), 'osv-cache.json');
 }
@@ -121,7 +125,7 @@ export async function queryOsv(
   context?: CheckContext,
 ): Promise<OsvVuln[]> {
   const result = await queryOsvBatch(ecosystem, [{ name: packageName, version }], context);
-  return result.get(packageName) || [];
+  return result.get(resultKey({ name: packageName, version })) || [];
 }
 
 export async function queryOsvBatch(
@@ -142,7 +146,7 @@ export async function queryOsvBatch(
     const key = cacheKey(ecosystem, pkg);
     const cached = cache.entries[key];
     if (cached && now - cached.timestamp < CACHE_TTL_MS) {
-      result.set(pkg.name, cached.vulns);
+      result.set(resultKey(pkg), cached.vulns);
       continue;
     }
     missing.push(pkg);
@@ -155,7 +159,7 @@ export async function queryOsvBatch(
       const key = cacheKey(ecosystem, pkg);
       const vulns = mock[key] || [];
       cache.entries[key] = { timestamp: now, vulns };
-      result.set(pkg.name, vulns);
+      result.set(resultKey(pkg), vulns);
     }
     await saveCache(projectRoot, cache);
     return result;
@@ -166,31 +170,33 @@ export async function queryOsvBatch(
   }
 
   try {
-    const batch = missing.slice(0, OSV_BATCH_SIZE);
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 10_000);
-    const response = await fetch('https://api.osv.dev/v1/querybatch', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        queries: batch.map((pkg) => ({
-          package: { ecosystem, name: pkg.name },
-          version: pkg.version,
-        })),
-      }),
-      signal: controller.signal,
-    });
-    clearTimeout(timeout);
-    if (!response.ok) return result;
+    for (let offset = 0; offset < missing.length; offset += OSV_BATCH_SIZE) {
+      const batch = missing.slice(offset, offset + OSV_BATCH_SIZE);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10_000);
+      const response = await fetch('https://api.osv.dev/v1/querybatch', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          queries: batch.map((pkg) => ({
+            package: { ecosystem, name: pkg.name },
+            version: pkg.version,
+          })),
+        }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeout);
+      if (!response.ok) return result;
 
-    const body = await response.json() as { results?: { vulns?: any[] }[] };
-    for (let i = 0; i < batch.length; i++) {
-      const pkg = batch[i];
-      const vulns = (body.results?.[i]?.vulns || [])
-        .map(normalizeVuln)
-        .sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
-      cache.entries[cacheKey(ecosystem, pkg)] = { timestamp: now, vulns };
-      result.set(pkg.name, vulns);
+      const body = await response.json() as { results?: { vulns?: any[] }[] };
+      for (let i = 0; i < batch.length; i++) {
+        const pkg = batch[i];
+        const vulns = (body.results?.[i]?.vulns || [])
+          .map(normalizeVuln)
+          .sort((a, b) => severityRank(b.severity) - severityRank(a.severity));
+        cache.entries[cacheKey(ecosystem, pkg)] = { timestamp: now, vulns };
+        result.set(resultKey(pkg), vulns);
+      }
     }
     await saveCache(projectRoot, cache);
   } catch {
