@@ -470,6 +470,13 @@
           "detail": "package.json não encontrado — check L2 se aplica apenas a projetos Node.js"
         },
         {
+          "id": "L6",
+          "description": "Dependências sem CVEs conhecidos (OSV.dev)",
+          "status": "skip",
+          "severity": "critical",
+          "detail": "Nenhum package-lock.json ou Gemfile.lock com dependências parseáveis encontrado"
+        },
+        {
           "id": "L5",
           "description": "Auditoria de gems (Ruby) sem vulnerabilidades conhecidas",
           "status": "warn",
@@ -668,9 +675,11 @@
         {
           "id": "R5",
           "description": "Sem open redirect com redirect_to baseado em input",
-          "status": "pass",
+          "status": "warn",
           "severity": "high",
-          "detail": "Nenhum padrao obvio de open redirect detectado",
+          "file": "<PROJECT_ROOT>/app/controllers/users_controller.rb",
+          "line": 4,
+          "detail": "1 possiveis redirect_to com input dinamico detectados",
           "remediation": "Valide destino de redirect com allowlist antes de chamar redirect_to"
         },
         {

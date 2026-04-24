@@ -472,6 +472,13 @@
           "detail": "package.json não encontrado — check L2 se aplica apenas a projetos Node.js"
         },
         {
+          "id": "L6",
+          "description": "Dependências sem CVEs conhecidos (OSV.dev)",
+          "status": "skip",
+          "severity": "critical",
+          "detail": "Nenhum package-lock.json ou Gemfile.lock com dependências parseáveis encontrado"
+        },
+        {
           "id": "L5",
           "description": "Auditoria de gems (Ruby) sem vulnerabilidades conhecidas",
           "status": "warn",

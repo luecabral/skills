@@ -1,7 +1,8 @@
 import { join } from 'node:path';
 import { execSync } from 'node:child_process';
-import type { CategoryResult, CheckContext, CheckItem, PackageManager } from '../types.js';
-import { fileExists, globFiles, grepInFiles } from '../utils.js';
+import type { CategoryResult, CheckContext, CheckItem, CheckStatus, PackageManager, Severity } from '../types.js';
+import { queryOsvBatch, type OsvVuln } from '../osv.js';
+import { fileExists, globFiles, grepInFiles, readFileContent, readJsonFile } from '../utils.js';
 
 interface AuditVulnerabilitySummary {
   critical: number;
@@ -138,6 +139,101 @@ function parseAuditFromCommandOutput(output: string): AuditVulnerabilitySummary 
   return null;
 }
 
+interface LockPackage {
+  name: string;
+  version: string;
+}
+
+interface PackageLockLike {
+  lockfileVersion?: number;
+  dependencies?: Record<string, { version?: string }>;
+  packages?: Record<string, { version?: string; name?: string }>;
+}
+
+function severityRank(severity: Severity): number {
+  if (severity === 'critical') return 4;
+  if (severity === 'high') return 3;
+  if (severity === 'medium') return 2;
+  return 1;
+}
+
+async function parsePackageLock(lockfilePath: string): Promise<LockPackage[]> {
+  const lock = await readJsonFile<PackageLockLike>(lockfilePath);
+  const packages = new Map<string, LockPackage>();
+
+  for (const [path, meta] of Object.entries(lock?.packages || {})) {
+    if (!path.startsWith('node_modules/') || !meta.version) continue;
+    const name = meta.name || path.replace(/^node_modules\//, '');
+    packages.set(name, { name, version: meta.version });
+  }
+
+  for (const [name, meta] of Object.entries(lock?.dependencies || {})) {
+    if (!meta.version || packages.has(name)) continue;
+    packages.set(name, { name, version: meta.version });
+  }
+
+  return [...packages.values()];
+}
+
+async function parseGemfileLock(gemLockPath: string): Promise<LockPackage[]> {
+  const content = await readFileContent(gemLockPath);
+  if (!content) return [];
+
+  const packages = new Map<string, LockPackage>();
+  let inSpecs = false;
+  for (const line of content.split('\n')) {
+    if (/^GEM\s*$/.test(line)) {
+      inSpecs = false;
+      continue;
+    }
+    if (/^\s{2}specs:\s*$/.test(line)) {
+      inSpecs = true;
+      continue;
+    }
+    if (inSpecs && /^[A-Z]/.test(line)) break;
+    if (!inSpecs) continue;
+
+    const match = line.match(/^\s{4}([A-Za-z0-9_.-]+)\s+\(([^)]+)\)/);
+    if (!match) continue;
+    packages.set(match[1], { name: match[1], version: match[2].split(',')[0].trim() });
+  }
+
+  return [...packages.values()];
+}
+
+function summarizeOsvVulns(vulnsByPackage: Map<string, OsvVuln[]>, packages: LockPackage[]): {
+  status: CheckStatus;
+  detail: string;
+  remediation?: string;
+} {
+  const versions = new Map(packages.map((pkg) => [pkg.name, pkg.version]));
+  const findings = [...vulnsByPackage.entries()]
+    .flatMap(([name, vulns]) => vulns.map((vuln) => ({ name, version: versions.get(name), vuln })))
+    .sort((a, b) => severityRank(b.vuln.severity) - severityRank(a.vuln.severity));
+
+  if (findings.length === 0) {
+    return {
+      status: 'pass',
+      detail: 'Nenhum CVE conhecido encontrado via OSV.dev',
+    };
+  }
+
+  const hasHighOrCritical = findings.some(({ vuln }) => vuln.severity === 'critical' || vuln.severity === 'high');
+  const topFindings = findings.slice(0, 3).map(({ name, version, vuln }) => {
+    const fixed = vuln.fixedIn ? ` — fixed in ${vuln.fixedIn}` : '';
+    return `${name}@${version}: ${vuln.id} (${vuln.severity})${fixed}`;
+  });
+  const firstFix = findings.find(({ vuln }) => vuln.fixedIn);
+
+  return {
+    status: hasHighOrCritical ? 'fail' : 'warn',
+    detail: topFindings.join('; '),
+    remediation: firstFix
+      ? `Atualize ${firstFix.name} para >=${firstFix.vuln.fixedIn} ou verifique workaround documentado no advisory`
+      : 'Atualize os pacotes afetados ou verifique workarounds documentados nos advisories',
+  };
+}
+
 export async function check(projectRoot: string, context?: CheckContext): Promise<CategoryResult> {
   const items: CheckItem[] = [];
   const packageManager = context?.stack.packageManager ?? 'unknown';
@@ -264,6 +360,49 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
     severity: 'high',
     detail: usedCommand ? `${auditDetail} (comando: ${usedCommand})` : auditDetail,
     remediation: auditRemediation,
+  });
+
+  // L6 — OSV.dev agrega GitHub Advisory Database, npm, RubySec e outras fontes.
+  const [npmLockPackages, rubyLockPackages] = await Promise.all([
+    (await fileExists(lockfilePath)) ? parsePackageLock(lockfilePath) : Promise.resolve([]),
+    (await fileExists(gemLockPath)) ? parseGemfileLock(gemLockPath) : Promise.resolve([]),
+  ]);
+  const totalLockPackages = npmLockPackages.length + rubyLockPackages.length;
+  let osvStatus: CheckStatus = 'skip';
+  let osvDetail = 'Nenhum package-lock.json ou Gemfile.lock com dependências parseáveis encontrado';
+  let osvRemediation: string | undefined;
+
+  if (totalLockPackages > 0) {
+    const [npmOsv, rubyOsv] = await Promise.all([
+      queryOsvBatch('npm', npmLockPackages, context),
+      queryOsvBatch('RubyGems', rubyLockPackages, context),
+    ]);
+
+    const osvRespondedForAll =
+      npmOsv.size === npmLockPackages.length &&
+      rubyOsv.size === rubyLockPackages.length;
+
+    if (!osvRespondedForAll) {
+      osvStatus = 'skip';
+      osvDetail = 'OSV.dev inacessível ou consulta incompleta — auditoria continuou em modo fail-open';
+    } else {
+      const allVulns = new Map<string, OsvVuln[]>();
+      for (const [name, vulns] of npmOsv) allVulns.set(name, vulns);
+      for (const [name, vulns] of rubyOsv) allVulns.set(name, vulns);
+      const summary = summarizeOsvVulns(allVulns, [...npmLockPackages, ...rubyLockPackages]);
+      osvStatus = summary.status;
+      osvDetail = summary.detail;
+      osvRemediation = summary.remediation;
+    }
+  }
+
+  items.push({
+    id: 'L6',
+    description: 'Dependências sem CVEs conhecidos (OSV.dev)',
+    status: osvStatus,
+    severity: 'critical',
+    detail: osvDetail,
+    remediation: osvRemediation,
   });
 
   // L5 — Auditoria de gems (Ruby/Bundler)

@@ -11,8 +11,8 @@
     "services": {
       "supabase": false,
       "postgres": true,
-      "redis": false,
-      "sidekiq": false
+      "redis": true,
+      "sidekiq": true
     },
     "tooling": {
       "tailwind": false,
@@ -252,9 +252,11 @@
         {
           "id": "E1",
           "description": "Nunca eval() com input do usuário",
-          "status": "pass",
+          "status": "fail",
           "severity": "critical",
-          "detail": "Nenhum uso de eval() detectado",
+          "detail": "2 uso(s) de eval() encontrado(s) — verifique se input do usuário é passado",
+          "file": "<PROJECT_ROOT>/app/controllers/posts_controller.rb",
+          "line": 16,
           "remediation": "Remova eval(). Se necessário, use alternativas seguras como JSON.parse() para dados ou funções nomeadas"
         },
         {
@@ -268,17 +270,21 @@
         {
           "id": "E3",
           "description": "Nunca interpolar input em comandos shell (exec/execSync)",
-          "status": "pass",
+          "status": "fail",
           "severity": "critical",
-          "detail": "Nenhum uso de exec/execSync detectado",
+          "detail": "1 exec/execSync com template literal encontrado(s) — risco de command injection",
+          "file": "<PROJECT_ROOT>/app/controllers/posts_controller.rb",
+          "line": 11,
           "remediation": "Use spawn() com array de argumentos ou bibliotecas que escapam automaticamente os argumentos"
         },
         {
           "id": "E4",
           "description": "Queries SQL sem interpolação de template literals",
-          "status": "pass",
+          "status": "fail",
           "severity": "critical",
-          "detail": "Nenhuma interpolação em queries SQL detectada",
+          "detail": "1 query(ies) SQL com interpolação detectada(s) — risco de SQL injection",
+          "file": "<PROJECT_ROOT>/app/controllers/posts_controller.rb",
+          "line": 6,
           "remediation": "Use queries parametrizadas com placeholders (ex: $1, $2) ou APIs de ORM/query builder seguras"
         },
         {
@@ -470,6 +476,13 @@
           "detail": "package.json não encontrado — check L2 se aplica apenas a projetos Node.js"
         },
         {
+          "id": "L6",
+          "description": "Dependências sem CVEs conhecidos (OSV.dev)",
+          "status": "skip",
+          "severity": "critical",
+          "detail": "Nenhum package-lock.json ou Gemfile.lock com dependências parseáveis encontrado"
+        },
+        {
           "id": "L5",
           "description": "Auditoria de gems (Ruby) sem vulnerabilidades conhecidas",
           "status": "warn",
@@ -611,9 +624,11 @@
         {
           "id": "N5",
           "description": "Auth errors não revelam se usuário existe (anti-enumeração)",
-          "status": "pass",
+          "status": "fail",
           "severity": "high",
-          "detail": "Nenhuma mensagem de erro que revele existência de usuário detectada",
+          "detail": "1 mensagem(ns) que pode(m) revelar existência de usuário",
+          "file": "<PROJECT_ROOT>/app/controllers/sessions_controller.rb",
+          "line": 6,
           "remediation": "Use sempre \"Email ou senha inválidos\" em erros de autenticação, nunca indique se o email existe"
         },
         {
@@ -652,9 +667,9 @@
         {
           "id": "R3",
           "description": "Guardas de autenticacao/autorizacao por before_action",
-          "status": "warn",
+          "status": "pass",
           "severity": "high",
-          "detail": "Nao foram encontrados guardas before_action claros de authz/authn",
+          "detail": "1 guardas before_action encontrados",
           "remediation": "Aplique before_action para autenticar e autorizar antes de acoes sensiveis"
         },
         {
@@ -663,6 +678,7 @@
           "status": "fail",
           "severity": "high",
           "file": "<PROJECT_ROOT>/app/controllers/users_controller.rb",
+          "line": 6,
           "detail": "1 uso(s) de html_safe/raw detectado(s)",
           "remediation": "Evite html_safe/raw; prefira escape padrao e sanitize quando necessario"
         },
@@ -671,8 +687,9 @@
           "description": "Sem open redirect com redirect_to baseado em input",
           "status": "warn",
           "severity": "high",
-          "file": "<PROJECT_ROOT>/app/controllers/users_controller.rb",
-          "detail": "1 possiveis redirect_to com input dinamico detectados",
+          "file": "<PROJECT_ROOT>/app/controllers/sessions_controller.rb",
+          "line": 7,
+          "detail": "4 possiveis redirect_to com input dinamico detectados",
           "remediation": "Valide destino de redirect com allowlist antes de chamar redirect_to"
         },
         {
@@ -737,6 +754,108 @@
       "layer": "data",
       "scope": "stack-specific",
       "moduleId": "data-postgres-rails"
+    },
+    {
+      "id": "Q",
+      "name": "Redis & Cache Security",
+      "items": [
+        {
+          "id": "Q1",
+          "description": "Uso de Redis identificado na aplicacao",
+          "status": "pass",
+          "severity": "high",
+          "detail": "1 referencia(s) a Redis detectada(s)",
+          "remediation": "Centralize configuracao de Redis e audite pontos de acesso ao cache/pubsub"
+        },
+        {
+          "id": "Q2",
+          "description": "Conexao Redis com autenticacao/TLS",
+          "status": "warn",
+          "severity": "high",
+          "detail": "Nao foram encontrados sinais claros de TLS/autenticacao para Redis",
+          "remediation": "Use REDIS_URL com autenticacao e prefira rediss:// em ambientes externos"
+        },
+        {
+          "id": "Q3",
+          "description": "Namespace de chaves Redis para isolamento",
+          "status": "warn",
+          "severity": "medium",
+          "detail": "Namespace nao detectado no inicializador Redis",
+          "remediation": "Defina namespace para evitar colisao de chaves entre ambientes/apps"
+        },
+        {
+          "id": "Q4",
+          "description": "TTL para entradas de cache Redis",
+          "status": "warn",
+          "severity": "medium",
+          "detail": "Nenhum padrao explicito de TTL detectado para chaves de cache",
+          "remediation": "Aplique expires_in/TTL para evitar dados stale e crescimento indefinido"
+        },
+        {
+          "id": "Q5",
+          "description": "Sem armazenamento de segredos sensiveis em cache Redis",
+          "status": "fail",
+          "severity": "critical",
+          "file": "<PROJECT_ROOT>/config/initializers/cache.rb",
+          "line": 3,
+          "detail": "2 escrita(s) de cache com palavra sensivel detectada(s)",
+          "remediation": "Nao armazene secrets/tokens em cache; prefira vaults/cripto e tempo de vida minimo"
+        }
+      ],
+      "layer": "infra",
+      "scope": "stack-specific",
+      "moduleId": "infra-redis"
+    },
+    {
+      "id": "S",
+      "name": "Sidekiq Async Security",
+      "items": [
+        {
+          "id": "S1",
+          "description": "Workers Sidekiq/Jobs versionados",
+          "status": "pass",
+          "severity": "high",
+          "detail": "1 arquivo(s) de worker/job encontrado(s)",
+          "remediation": "Centralize jobs em app/workers ou app/jobs e versione regras de execucao"
+        },
+        {
+          "id": "S2",
+          "description": "Configuracao explicita de retry em workers",
+          "status": "warn",
+          "severity": "medium",
+          "detail": "Nenhuma configuracao explicita de retry detectada",
+          "remediation": "Defina retry por worker e trate falhas permanentes com dead queue/alerta"
+        },
+        {
+          "id": "S3",
+          "description": "Sinais de idempotencia/deduplicacao em jobs",
+          "status": "warn",
+          "severity": "high",
+          "detail": "Nao foram encontrados indicios claros de idempotencia/deduplicacao",
+          "remediation": "Implemente idempotencia por chave de negocio ou deduplicacao de jobs criticos"
+        },
+        {
+          "id": "S4",
+          "description": "Sem argumentos sensiveis em enfileiramento de jobs",
+          "status": "fail",
+          "severity": "critical",
+          "file": "<PROJECT_ROOT>/app/workers/bad_worker.rb",
+          "line": 6,
+          "detail": "1 enfileiramento(s) com argumento potencialmente sensivel",
+          "remediation": "Passe IDs e recupere dados sensiveis no worker, evitando payload secreto na fila"
+        },
+        {
+          "id": "S5",
+          "description": "Filas Sidekiq configuradas explicitamente",
+          "status": "warn",
+          "severity": "medium",
+          "detail": "Filas explicitas nao detectadas em config/sidekiq.yml",
+          "remediation": "Defina filas e prioridades para separar workloads criticos de baixa prioridade"
+        }
+      ],
+      "layer": "infra",
+      "scope": "stack-specific",
+      "moduleId": "infra-sidekiq"
     }
   ]
 }

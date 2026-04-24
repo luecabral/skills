@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import type { CategoryResult, CheckContext, CheckItem } from '../types.js';
 import { fileExists, globFiles, grepInFiles, readFileContent } from '../utils.js';
-import { findRubyCalls, parseRuby } from '../ast.js';
+import { findRubyCalls, parseRuby, rubyCallArgs } from '../ast.js';
 
 interface RubyMatch {
   file: string;
@@ -21,12 +21,12 @@ function nodeText(content: string, node: { location?: { startOffset?: number; le
 }
 
 function isStringNode(node: any): boolean {
-  return Boolean(node && node.type === 'StringNode');
+  return Boolean(node && node.constructor?.name === 'StringNode');
 }
 
 function containsParamsNode(node: any): boolean {
   if (!node || typeof node !== 'object') return false;
-  if (node.type === 'CallNode' && node.name === 'params') return true;
+  if (node.constructor?.name === 'CallNode' && node.name === 'params') return true;
   for (const value of Object.values(node)) {
     if (Array.isArray(value)) {
       for (const child of value) {
@@ -111,7 +111,7 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
         continue;
       }
       if (call.name === 'raw') {
-        const firstArg = call.arguments?.arguments?.[0];
+        const firstArg = rubyCallArgs(call)[0];
         if (isStringNode(firstArg)) {
           continue;
         }
@@ -147,18 +147,18 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
 
     const calls = findRubyCalls(ast, ['redirect_to']);
     for (const call of calls) {
-      const firstArg = call.arguments?.arguments?.[0];
+      const firstArg = rubyCallArgs(call)[0];
       if (!firstArg) continue;
 
       if (isStringNode(firstArg)) {
         continue;
       }
 
-      if (firstArg.type === 'CallNode' && typeof firstArg.name === 'string' && /_url$/i.test(firstArg.name)) {
+      if (firstArg.constructor?.name === 'CallNode' && typeof firstArg.name === 'string' && /_url$/i.test(firstArg.name)) {
         continue;
       }
 
-      if (containsParamsNode(firstArg) || firstArg.type !== 'StringNode') {
+      if (containsParamsNode(firstArg) || firstArg.constructor?.name !== 'StringNode') {
         redirectRisk.push({
           file,
           line: lineFromOffset(content, call.location?.startOffset ?? 0),

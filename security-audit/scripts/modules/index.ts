@@ -11,6 +11,7 @@ import { check as checkHardening } from '../checks/hardening.js';
 import { check as checkDependencies } from '../checks/dependencies.js';
 import { check as checkTests } from '../checks/tests.js';
 import { check as checkErrorHandling } from '../checks/error-handling.js';
+import { check as checkRouteAuthorization } from '../checks/route-authorization.js';
 import { check as checkRailsStack } from '../checks/rails-stack.js';
 import { check as checkPostgresRails } from '../checks/postgres-rails.js';
 import { check as checkRedisInfra } from '../checks/redis-infra.js';
@@ -130,6 +131,14 @@ export const AUDIT_MODULES: AuditModule[] = [
     layer: 'core',
     scope: 'generic',
     runCheck: checkErrorHandling,
+  }),
+  moduleFromCheck({
+    id: 'core-route-authorization',
+    name: 'Core Route Authorization',
+    layer: 'core',
+    scope: 'generic',
+    supports: (context) => context.stack.frameworks.nextjs,
+    runCheck: checkRouteAuthorization,
   }),
   moduleFromCheck({
     id: 'data-postgres-supabase',

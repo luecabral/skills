@@ -4,8 +4,6 @@ import {
   fileExists,
   globFiles,
   grepInFiles,
-  grepInFile,
-  fileContains,
 } from '../utils.js';
 
 export async function check(projectRoot: string, context?: CheckContext): Promise<CategoryResult> {
@@ -110,31 +108,6 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
       ? 'Controle de acesso por coluna ou funções de acesso encontradas'
       : 'Nenhum controle de acesso por coluna detectado — verifique manualmente se colunas sensíveis estão protegidas',
     remediation: 'Use GRANT SELECT (col1, col2) ou SECURITY DEFINER para limitar acesso a colunas sensíveis',
-  });
-
-  // A5 — Autorização por role nos route handlers
-  const routeFiles = await globFiles(projectRoot, [
-    'app/api/**/*.ts',
-    'app/api/**/*.tsx',
-    'pages/api/**/*.ts',
-    'src/app/api/**/*.ts',
-    'src/pages/api/**/*.ts',
-  ], context);
-  const authCheckMatches = await grepInFiles(
-    routeFiles,
-    /getUser|getSession|auth\(\)|verifyToken|checkPermission|requireAuth|withAuth|authenticatedUser/i,
-    context
-  );
-  items.push({
-    id: 'A5',
-    description: 'Autorização por role antes de qualquer operação',
-    status: routeFiles.length === 0 ? 'warn' : authCheckMatches.length > 0 ? 'pass' : 'fail',
-    severity: 'critical',
-    detail:
-      routeFiles.length === 0
-        ? 'Nenhum route handler encontrado'
-        : `${authCheckMatches.length} verificação(ões) de auth encontrada(s) em ${routeFiles.length} route(s)`,
-    remediation: 'Verifique autenticação/autorização no início de cada route handler',
   });
 
   // A6 — Testes de isolamento cross-tenant / cross-workspace

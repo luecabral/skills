@@ -32,9 +32,10 @@
         {
           "id": "CUSTOM-1",
           "description": "Sem console.log em server code",
-          "status": "pass",
+          "status": "fail",
           "severity": "medium",
-          "detail": "Nenhum arquivo encontrado para o padrão app/api/**/*.ts",
+          "file": "<PROJECT_ROOT>/app/api/users/route.ts",
+          "detail": "2 ocorrência(s) encontrada(s)",
           "remediation": "Use logger estruturado"
         },
         {
@@ -97,17 +98,17 @@
         {
           "id": "B1",
           "description": "Rate limiting dual-layer (IP + identifier + por conta)",
-          "status": "warn",
+          "status": "fail",
           "severity": "critical",
-          "detail": "Nenhum endpoint HTTP detectado no padrão analisado",
+          "detail": "Nenhuma implementação de rate limiting encontrada nos route handlers",
           "remediation": "Implemente rate limiting por IP e por identificador de conta em endpoints de auth"
         },
         {
           "id": "B2",
           "description": "Rate limiting por endpoint",
-          "status": "warn",
+          "status": "fail",
           "severity": "high",
-          "detail": "Nenhum endpoint HTTP detectado no padrão analisado",
+          "detail": "Rate limiting ausente nos endpoints",
           "remediation": "Configure rate limiting diferenciado por endpoint (login, signup, API)"
         },
         {
@@ -163,15 +164,15 @@
         {
           "id": "C1",
           "description": "Validação com schemas (Zod) em todos os endpoints",
-          "status": "warn",
+          "status": "fail",
           "severity": "critical",
-          "detail": "Nenhum route handler encontrado",
+          "detail": "Zod encontrado em 0 de 2 arquivo(s) de rota",
           "remediation": "Importe e use Zod para validar todos os inputs de entrada nos route handlers"
         },
         {
           "id": "C2",
           "description": "Validação server-side com .parse() ou .safeParse()",
-          "status": "warn",
+          "status": "fail",
           "severity": "critical",
           "detail": "Nenhuma chamada .parse() ou .safeParse() encontrada nos endpoints",
           "remediation": "Use schema.safeParse(input) para validar e tratar erros de validação adequadamente"
@@ -260,9 +261,9 @@
         {
           "id": "D8",
           "description": "Sanitização de output contra XSS",
-          "status": "fail",
+          "status": "warn",
           "severity": "critical",
-          "detail": "1 uso(s) de dangerouslySetInnerHTML detectado(s) SEM sanitização",
+          "detail": "1 uso(s) de dangerouslySetInnerHTML detectado(s) com sanitização",
           "remediation": "Use DOMPurify.sanitize() antes de qualquer dangerouslySetInnerHTML com conteúdo dinâmico"
         }
       ],
@@ -277,33 +278,41 @@
         {
           "id": "E1",
           "description": "Nunca eval() com input do usuário",
-          "status": "pass",
+          "status": "fail",
           "severity": "critical",
-          "detail": "Nenhum uso de eval() detectado",
+          "detail": "1 uso(s) de eval() encontrado(s) — verifique se input do usuário é passado",
+          "file": "<PROJECT_ROOT>/lib/eval-bad.ts",
+          "line": 3,
           "remediation": "Remova eval(). Se necessário, use alternativas seguras como JSON.parse() para dados ou funções nomeadas"
         },
         {
           "id": "E2",
           "description": "Nunca new Function() com input do usuário",
-          "status": "pass",
+          "status": "fail",
           "severity": "critical",
-          "detail": "Nenhum uso de new Function() detectado",
+          "detail": "1 uso(s) de new Function() encontrado(s)",
+          "file": "<PROJECT_ROOT>/lib/eval-bad.ts",
+          "line": 7,
           "remediation": "Substitua new Function() por lógica explícita. new Function() executa código arbitrário."
         },
         {
           "id": "E3",
           "description": "Nunca interpolar input em comandos shell (exec/execSync)",
-          "status": "pass",
+          "status": "fail",
           "severity": "critical",
-          "detail": "Nenhum uso de exec/execSync detectado",
+          "detail": "1 exec/execSync com template literal encontrado(s) — risco de command injection",
+          "file": "<PROJECT_ROOT>/lib/exec-bad.ts",
+          "line": 5,
           "remediation": "Use spawn() com array de argumentos ou bibliotecas que escapam automaticamente os argumentos"
         },
         {
           "id": "E4",
           "description": "Queries SQL sem interpolação de template literals",
-          "status": "pass",
+          "status": "fail",
           "severity": "critical",
-          "detail": "Nenhuma interpolação em queries SQL detectada",
+          "detail": "1 query(ies) SQL com interpolação detectada(s) — risco de SQL injection",
+          "file": "<PROJECT_ROOT>/lib/db.ts",
+          "line": 7,
           "remediation": "Use queries parametrizadas com placeholders (ex: $1, $2) ou APIs de ORM/query builder seguras"
         },
         {
@@ -311,7 +320,7 @@
           "description": "Queries parametrizadas (ORM/query builder/driver seguro)",
           "status": "warn",
           "severity": "critical",
-          "detail": "Nenhuma query de banco de dados detectada",
+          "detail": "1 query(ies) SQL raw encontrada(s) — verifique parametrização",
           "remediation": "Use ORM/query builder seguro ou queries parametrizadas com placeholders (ex: $1, $2), nunca concatenação direta"
         }
       ],
@@ -385,9 +394,10 @@
         {
           "id": "H1",
           "description": "Sem credenciais hardcoded no código-fonte",
-          "status": "pass",
+          "status": "fail",
           "severity": "critical",
-          "detail": "Nenhum padrão de secret hardcoded detectado",
+          "file": "<PROJECT_ROOT>/lib/secrets-bad.ts",
+          "detail": "Possível secret hardcoded encontrado em <PROJECT_ROOT>/lib/secrets-bad.ts:3",
           "remediation": "Mova todos os secrets para variáveis de ambiente e use process.env.NOME_DA_CHAVE"
         },
         {
@@ -425,9 +435,11 @@
         {
           "id": "H6",
           "description": "Secrets nunca em localStorage/sessionStorage",
-          "status": "pass",
+          "status": "fail",
           "severity": "critical",
-          "detail": "Nenhum armazenamento de secret em localStorage detectado",
+          "detail": "1 armazenamento de dado sensível em localStorage/sessionStorage detectado",
+          "file": "<PROJECT_ROOT>/app/components/Login.tsx",
+          "line": 6,
           "remediation": "Use httpOnly cookies para tokens. localStorage é acessível via XSS."
         }
       ],
@@ -483,9 +495,10 @@
         {
           "id": "L1",
           "description": "Lockfile commitado (package-lock.json / yarn.lock / pnpm-lock.yaml / Gemfile.lock)",
-          "status": "fail",
+          "status": "pass",
           "severity": "medium",
-          "detail": "Nenhum lockfile encontrado — sem garantia de versões reproduzíveis",
+          "file": "<PROJECT_ROOT>/package-lock.json",
+          "detail": "Lockfile encontrado",
           "remediation": "Faça commit do lockfile do gerenciador em uso para garantir builds reproduzíveis"
         },
         {
@@ -495,6 +508,14 @@
           "severity": "high",
           "detail": "Não foi possível executar auditoria com \"npm audit --audit-level=high --json\" (comando: npm audit --audit-level=high --json)",
           "remediation": "Execute `npm audit` e `npm audit fix`, ou atualize manualmente as dependências vulneráveis"
+        },
+        {
+          "id": "L6",
+          "description": "Dependências sem CVEs conhecidos (OSV.dev)",
+          "status": "fail",
+          "severity": "critical",
+          "detail": "lodash@4.17.11: CVE-2019-10744 (high) — fixed in 4.17.12",
+          "remediation": "Atualize lodash para >=4.17.12 ou verifique workaround documentado no advisory"
         },
         {
           "id": "L5",
@@ -629,9 +650,11 @@
         {
           "id": "N4",
           "description": "NUNCA logar secrets/tokens/PII em console",
-          "status": "pass",
+          "status": "fail",
           "severity": "critical",
-          "detail": "Nenhum log com dados sensíveis detectado",
+          "detail": "2 log(s) com possível dado sensível detectado(s)",
+          "file": "<PROJECT_ROOT>/app/api/users/route.ts",
+          "line": 4,
           "remediation": "Nunca logue passwords, tokens, ou chaves. Use IDs de correlação para rastrear sem expor dados."
         },
         {
@@ -645,15 +668,33 @@
         {
           "id": "N6",
           "description": "Console limpo em produção (logs estruturados)",
-          "status": "pass",
+          "status": "warn",
           "severity": "low",
-          "detail": "0 console.log/debug encontrado(s) em arquivos de servidor",
+          "detail": "2 console.log/debug encontrado(s) em arquivos de servidor",
           "remediation": "Use logger estruturado (pino, winston) em vez de console.log. Evite logs verbosos em produção."
         }
       ],
       "layer": "core",
       "scope": "generic",
       "moduleId": "core-error-handling"
+    },
+    {
+      "id": "A",
+      "name": "Route Authorization",
+      "items": [
+        {
+          "id": "A5",
+          "description": "Autorização por role antes de qualquer operação",
+          "status": "fail",
+          "severity": "critical",
+          "detail": "2 route(s) sem chamada real de auth; 0 chamada(s) de auth em 2 route(s)",
+          "file": "<PROJECT_ROOT>/app/api/admin/route.ts",
+          "remediation": "Verifique autenticação/autorização no início de cada route handler"
+        }
+      ],
+      "layer": "core",
+      "scope": "generic",
+      "moduleId": "core-route-authorization"
     }
   ]
 }

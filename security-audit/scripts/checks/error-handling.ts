@@ -4,8 +4,8 @@ import { globFiles, grepInFiles } from '../utils.js';
 export async function check(projectRoot: string, context?: CheckContext): Promise<CategoryResult> {
   const items: CheckItem[] = [];
 
-  // Fase de glob: allTsFiles e serverFiles em paralelo
-  const [allTsFiles, serverFiles] = await Promise.all([
+  // Fase de glob: allTsFiles, serverFiles e railsControllerFiles em paralelo
+  const [allTsFiles, serverFiles, railsControllerFiles] = await Promise.all([
     globFiles(projectRoot, ['**/*.ts', '**/*.tsx'], context),
     globFiles(projectRoot, [
       'app/api/**/*.ts',
@@ -15,7 +15,10 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
       'server/**/*.ts',
       'src/lib/**/*.ts',
     ], context),
+    globFiles(projectRoot, ['app/controllers/**/*.rb'], context),
   ]);
+  // N5 (auth enumeration) precisa olhar tanto handlers TS quanto controllers Rails
+  const authEnumScanFiles = [...serverFiles, ...railsControllerFiles];
 
   // N1 — todos os greps/globs de N1 em paralelo
   const [errorCatalogMatches, errorFileMatches, errorDocFiles] = await Promise.all([
@@ -61,7 +64,7 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
     grepInFiles(serverFiles, /Internal server error|Something went wrong|An error occurred|Erro interno|Algo deu errado/i, context),
     grepInFiles(serverFiles, /json\s*\(\s*\{[^}]*message.*error\.(message|name)|NextResponse.*error\.(message|stack)/i, context),
     grepInFiles(serverFiles, /console\.(log|error|warn|info)\s*\([^)]*(?:password|token|secret|key|auth|credential|private|senha|chave)/i, context),
-    grepInFiles(serverFiles, /user.*not.*found|email.*not.*found|usuário.*não.*existe|email.*não.*cadastrado|account.*not.*found/i, context),
+    grepInFiles(authEnumScanFiles, /user.*not.*found|email.*not.*found|usuário.*não.*existe|email.*não.*cadastrado|account.*not.*found/i, context),
     grepInFiles(serverFiles, /console\.(log|debug)/i, context),
   ]);
 

@@ -1,6 +1,6 @@
 import type { CategoryResult, CheckContext, CheckItem } from '../types.js';
-import { globFiles, grepInFiles } from '../utils.js';
-import { parseTypeScript } from '../ast.js';
+import { globFiles, grepInFiles, readFileContent } from '../utils.js';
+import { findRubyCalls, parseRuby, parseTypeScript, rubyCallArgs } from '../ast.js';
 import { Node, SyntaxKind, type Expression } from 'ts-morph';
 
 interface Match {
@@ -26,10 +26,27 @@ function isLoggingContext(node: Node): boolean {
   return /^(console|logger)\./i.test(callee) || /\blog\(/i.test(callee);
 }
 
+// Ruby AST helpers (mirror pattern from rails-stack.ts)
+function lineFromOffset(content: string, offset: number): number {
+  return content.slice(0, Math.max(0, offset)).split('\n').length;
+}
+
+function nodeText(content: string, node: { location?: { startOffset?: number; length?: number } }): string {
+  const startOffset = node.location?.startOffset;
+  const length = node.location?.length;
+  if (typeof startOffset !== 'number' || typeof length !== 'number') return '';
+  return content.slice(startOffset, startOffset + length).trim();
+}
+
+function isRubyInterpolated(node: any): boolean {
+  const ctor = node?.constructor?.name;
+  return Boolean(ctor === 'InterpolatedStringNode' || ctor === 'InterpolatedSymbolNode');
+}
+
 export async function check(projectRoot: string, context?: CheckContext): Promise<CategoryResult> {
   const items: CheckItem[] = [];
 
-  const [allTsFiles, serverFiles] = await Promise.all([
+  const [allTsFiles, serverFiles, rubyFiles] = await Promise.all([
     globFiles(projectRoot, ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx'], context),
     globFiles(projectRoot, [
       'app/api/**/*.ts',
@@ -46,7 +63,8 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
       'server/**/*.js',
       'src/lib/**/*.ts',
       'src/lib/**/*.js',
-    ], context)
+    ], context),
+    globFiles(projectRoot, ['app/**/*.rb', 'lib/**/*.rb', 'config/**/*.rb'], context)
   ]);
 
   const evalMatches: Match[] = [];
@@ -101,6 +119,57 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
         text,
       });
     });
+  }
+
+  // Ruby: detect eval/exec families and SQL interpolation via Prism AST
+  for (const file of rubyFiles) {
+    const content = await readFileContent(file, context);
+    if (!content) continue;
+    const ast = await parseRuby(file, context);
+    if (!ast) continue;
+
+    // E1 — eval family in Ruby
+    const evalCalls = findRubyCalls(ast, ['eval', 'instance_eval', 'class_eval', 'module_eval']);
+    for (const call of evalCalls) {
+      evalMatches.push({
+        file,
+        line: lineFromOffset(content, call.location?.startOffset ?? 0),
+        text: nodeText(content, call),
+      });
+    }
+
+    // E3 — exec/system family in Ruby
+    const execCalls = findRubyCalls(ast, ['exec', 'system', 'spawn', 'popen', 'popen3', 'syscall']);
+    for (const call of execCalls) {
+      const line = lineFromOffset(content, call.location?.startOffset ?? 0);
+      const text = nodeText(content, call);
+      execMatches.push({ file, line, text });
+      const firstArg = rubyCallArgs(call)[0];
+      if (isRubyInterpolated(firstArg)) {
+        execWithInterpolation.push({ file, line, text });
+      }
+    }
+
+    // E4 — ActiveRecord/raw SQL with string interpolation
+    const sqlCalls = findRubyCalls(ast, [
+      'where',
+      'find_by_sql',
+      'execute',
+      'exec_query',
+      'select_all',
+      'select_one',
+      'select_value',
+      'select_rows',
+    ]);
+    for (const call of sqlCalls) {
+      const firstArg = rubyCallArgs(call)[0];
+      if (!isRubyInterpolated(firstArg)) continue;
+      sqlTemplateMatches.push({
+        file,
+        line: lineFromOffset(content, call.location?.startOffset ?? 0),
+        text: nodeText(content, call),
+      });
+    }
   }
 
   const [parameterizedClientMatches, rawSqlMatches] = await Promise.all([

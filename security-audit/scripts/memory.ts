@@ -1,17 +1,19 @@
 import { createHash } from 'node:crypto';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
-import { join, dirname } from 'node:path';
+import { join, dirname, basename } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import type { ProjectConfig, AuditHistory, AuditHistoryEntry, AuditReport, ExcludedItem } from './types.js';
 import { fileExists } from './utils.js';
 
-const SKILL_DIR = dirname(dirname(new URL(import.meta.url).pathname));
+const MODULE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
+const SKILL_DIR = basename(MODULE_ROOT) === 'dist' ? dirname(MODULE_ROOT) : MODULE_ROOT;
 const MEMORY_DIR = join(SKILL_DIR, 'memory');
 
 export function getProjectHash(projectRoot: string): string {
   return createHash('sha256').update(projectRoot).digest('hex').slice(0, 12);
 }
 
-function getProjectMemoryDir(projectRoot: string): string {
+export function getProjectMemoryDir(projectRoot: string): string {
   return join(MEMORY_DIR, getProjectHash(projectRoot));
 }
 

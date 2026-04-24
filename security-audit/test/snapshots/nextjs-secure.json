@@ -73,17 +73,17 @@
         {
           "id": "B1",
           "description": "Rate limiting dual-layer (IP + identifier + por conta)",
-          "status": "warn",
+          "status": "pass",
           "severity": "critical",
-          "detail": "Nenhum endpoint HTTP detectado no padrão analisado",
+          "detail": "Rate limiting encontrado em 4 arquivo(s)",
           "remediation": "Implemente rate limiting por IP e por identificador de conta em endpoints de auth"
         },
         {
           "id": "B2",
           "description": "Rate limiting por endpoint",
-          "status": "warn",
+          "status": "pass",
           "severity": "high",
-          "detail": "Nenhum endpoint HTTP detectado no padrão analisado",
+          "detail": "Rate limiting encontrado em 4 rota(s)",
           "remediation": "Configure rate limiting diferenciado por endpoint (login, signup, API)"
         },
         {
@@ -139,33 +139,33 @@
         {
           "id": "C1",
           "description": "Validação com schemas (Zod) em todos os endpoints",
-          "status": "warn",
+          "status": "pass",
           "severity": "critical",
-          "detail": "Nenhum route handler encontrado",
+          "detail": "Zod encontrado em 3 de 1 arquivo(s) de rota",
           "remediation": "Importe e use Zod para validar todos os inputs de entrada nos route handlers"
         },
         {
           "id": "C2",
           "description": "Validação server-side com .parse() ou .safeParse()",
-          "status": "warn",
+          "status": "pass",
           "severity": "critical",
-          "detail": "Nenhuma chamada .parse() ou .safeParse() encontrada nos endpoints",
+          "detail": "1 chamada(s) de .parse()/.safeParse() encontrada(s)",
           "remediation": "Use schema.safeParse(input) para validar e tratar erros de validação adequadamente"
         },
         {
           "id": "C3",
           "description": "Validação de UUID/IDs com regex estrito",
-          "status": "warn",
+          "status": "pass",
           "severity": "high",
-          "detail": "Nenhuma validação explícita de UUID detectada — verifique se IDs são validados antes de consultas",
+          "detail": "Validação de UUID encontrada",
           "remediation": "Use z.string().uuid() do Zod ou regex /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/ para validar UUIDs"
         },
         {
           "id": "C4",
           "description": "Nunca confiar em valores do client para lógica de negócio",
-          "status": "warn",
+          "status": "pass",
           "severity": "critical",
-          "detail": "Validação server-side não detectada — certifique-se de validar no servidor, não apenas no cliente",
+          "detail": "Validação server-side presente (4 ocorrência(s))",
           "remediation": "Toda validação de negócio deve ocorrer no servidor. Validação client-side é apenas UX."
         }
       ],
@@ -442,9 +442,9 @@
         {
           "id": "I4",
           "description": "Rate limit global + por endpoint configurado",
-          "status": "fail",
+          "status": "warn",
           "severity": "high",
-          "detail": "Nenhum rate limiting detectado",
+          "detail": "Rate limiting encontrado (4 ocorrência(s)) — verifique se os limites estão configurados",
           "remediation": "Configure rate limiting global no middleware e limites específicos por endpoint sensível"
         }
       ],
@@ -459,9 +459,10 @@
         {
           "id": "L1",
           "description": "Lockfile commitado (package-lock.json / yarn.lock / pnpm-lock.yaml / Gemfile.lock)",
-          "status": "fail",
+          "status": "pass",
           "severity": "medium",
-          "detail": "Nenhum lockfile encontrado — sem garantia de versões reproduzíveis",
+          "file": "<PROJECT_ROOT>/package-lock.json",
+          "detail": "Lockfile encontrado",
           "remediation": "Faça commit do lockfile do gerenciador em uso para garantir builds reproduzíveis"
         },
         {
@@ -471,6 +472,13 @@
           "severity": "high",
           "detail": "Não foi possível executar auditoria com \"npm audit --audit-level=high --json\" (comando: npm audit --audit-level=high --json)",
           "remediation": "Execute `npm audit` e `npm audit fix`, ou atualize manualmente as dependências vulneráveis"
+        },
+        {
+          "id": "L6",
+          "description": "Dependências sem CVEs conhecidos (OSV.dev)",
+          "status": "pass",
+          "severity": "critical",
+          "detail": "Nenhum CVE conhecido encontrado via OSV.dev"
         },
         {
           "id": "L5",
@@ -630,6 +638,23 @@
       "layer": "core",
       "scope": "generic",
       "moduleId": "core-error-handling"
+    },
+    {
+      "id": "A",
+      "name": "Route Authorization",
+      "items": [
+        {
+          "id": "A5",
+          "description": "Autorização por role antes de qualquer operação",
+          "status": "pass",
+          "severity": "critical",
+          "detail": "1/1 route(s) com chamada real de auth",
+          "remediation": "Verifique autenticação/autorização no início de cada route handler"
+        }
+      ],
+      "layer": "core",
+      "scope": "generic",
+      "moduleId": "core-route-authorization"
     }
   ]
 }

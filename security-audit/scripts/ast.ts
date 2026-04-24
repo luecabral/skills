@@ -125,6 +125,15 @@ export function findTsStringLiterals(sourceFile: import('ts-morph').SourceFile) 
   return literals;
 }
 
+// Returns the array of argument nodes from a Prism CallNode, handling both
+// `arguments` (older builds) and `arguments_` (newer @ruby/prism where the
+// trailing underscore avoids the JS reserved word).
+export function rubyCallArgs(call: any): any[] {
+  const argsNode = call?.arguments_ ?? call?.arguments;
+  const inner = argsNode?.arguments_ ?? argsNode?.arguments;
+  return Array.isArray(inner) ? inner : [];
+}
+
 // Helper to find method calls in Ruby
 export function findRubyCalls(ast: any, methodNames: string[]) {
   const calls: any[] = [];
@@ -132,7 +141,7 @@ export function findRubyCalls(ast: any, methodNames: string[]) {
   function walk(node: any) {
     if (!node) return;
     
-    if (node.type === 'CallNode' && methodNames.includes(node.name)) {
+    if (node.constructor?.name === 'CallNode' && methodNames.includes(node.name)) {
       calls.push(node);
     }
     
