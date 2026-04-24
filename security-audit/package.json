@@ -4,7 +4,8 @@
   "description": "Security audit skill for Claude",
   "type": "module",
   "scripts": {
-    "test": "npx tsx test/run-fixtures.ts",
+    "test": "npm run build && node dist/test/run-fixtures.js",
+    "test:update": "npm run build && node dist/test/run-fixtures.js --update",
     "build": "tsc"
   },
   "devDependencies": {

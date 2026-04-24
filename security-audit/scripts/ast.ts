@@ -98,6 +98,19 @@ export function findTsCalls(sourceFile: import('ts-morph').SourceFile, functionN
   return calls;
 }
 
+export function findTsCallExpressions(sourceFile: import('ts-morph').SourceFile) {
+  if (!tsMorph) return [];
+  const calls: import('ts-morph').CallExpression[] = [];
+
+  sourceFile.forEachDescendant((node) => {
+    if (tsMorph!.Node.isCallExpression(node)) {
+      calls.push(node);
+    }
+  });
+
+  return calls;
+}
+
 // Helper to find string literals in TS
 export function findTsStringLiterals(sourceFile: import('ts-morph').SourceFile) {
   if (!tsMorph) return [];

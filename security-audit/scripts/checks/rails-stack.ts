@@ -1,6 +1,43 @@
 import { join } from 'node:path';
 import type { CategoryResult, CheckContext, CheckItem } from '../types.js';
 import { fileExists, globFiles, grepInFiles, readFileContent } from '../utils.js';
+import { findRubyCalls, parseRuby } from '../ast.js';
+
+interface RubyMatch {
+  file: string;
+  line: number;
+  text: string;
+}
+
+function lineFromOffset(content: string, offset: number): number {
+  return content.slice(0, Math.max(0, offset)).split('\n').length;
+}
+
+function nodeText(content: string, node: { location?: { startOffset?: number; length?: number } }): string {
+  const startOffset = node.location?.startOffset;
+  const length = node.location?.length;
+  if (typeof startOffset !== 'number' || typeof length !== 'number') return '';
+  return content.slice(startOffset, startOffset + length).trim();
+}
+
+function isStringNode(node: any): boolean {
+  return Boolean(node && node.type === 'StringNode');
+}
+
+function containsParamsNode(node: any): boolean {
+  if (!node || typeof node !== 'object') return false;
+  if (node.type === 'CallNode' && node.name === 'params') return true;
+  for (const value of Object.values(node)) {
+    if (Array.isArray(value)) {
+      for (const child of value) {
+        if (containsParamsNode(child)) return true;
+      }
+      continue;
+    }
+    if (value && typeof value === 'object' && containsParamsNode(value)) return true;
+  }
+  return false;
+}
 
 export async function check(projectRoot: string, context?: CheckContext): Promise<CategoryResult> {
   const items: CheckItem[] = [];
@@ -28,11 +65,9 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
   const controllerFiles = await globFiles(projectRoot, ['app/controllers/**/*.rb'], context);
   const rbFiles = await globFiles(projectRoot, ['app/**/*.rb', 'lib/**/*.rb'], context);
 
-  const [strongParamsUsage, authGuards, unsafeHtmlRaw, redirectRiskRaw] = await Promise.all([
+  const [strongParamsUsage, authGuards] = await Promise.all([
     grepInFiles(controllerFiles, /\.require\s*\(|\.permit\s*\(/, context),
     grepInFiles(controllerFiles, /before_action\s+:(authenticate_|require_|authorize_|set_current_|verify_)/i, context),
-    grepInFiles(rbFiles, /\b(html_safe|raw\s*\()/, context),
-    grepInFiles(controllerFiles, /redirect_to\s+params\[|redirect_to\s+.*\burl\b/i, context)
   ]);
 
   items.push({
@@ -63,12 +98,32 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
     remediation: 'Aplique before_action para autenticar e autorizar antes de acoes sensiveis',
   });
 
-  // Filter out safe usages of html_safe/raw (e.g. static strings)
-  const unsafeHtml = unsafeHtmlRaw.filter(m => {
-    // If it's a static string like "foo".html_safe, it's safe
-    if (/['"][^'"]*['"]\.html_safe/.test(m.text)) return false;
-    return true;
-  });
+  const unsafeHtml: RubyMatch[] = [];
+  for (const file of rbFiles) {
+    const content = await readFileContent(file, context);
+    if (!content) continue;
+    const ast = await parseRuby(file, context);
+    if (!ast) continue;
+
+    const calls = findRubyCalls(ast, ['html_safe', 'raw']);
+    for (const call of calls) {
+      if (call.name === 'html_safe' && isStringNode(call.receiver)) {
+        continue;
+      }
+      if (call.name === 'raw') {
+        const firstArg = call.arguments?.arguments?.[0];
+        if (isStringNode(firstArg)) {
+          continue;
+        }
+      }
+
+      unsafeHtml.push({
+        file,
+        line: lineFromOffset(content, call.location?.startOffset ?? 0),
+        text: nodeText(content, call),
+      });
+    }
+  }
 
   items.push({
     id: 'R4',
@@ -76,18 +131,42 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
     status: unsafeHtml.length > 0 ? 'fail' : 'pass',
     severity: 'high',
     file: unsafeHtml[0]?.file,
+    line: unsafeHtml[0]?.line,
     detail: unsafeHtml.length > 0
       ? `${unsafeHtml.length} uso(s) de html_safe/raw detectado(s)`
       : 'Nenhum uso de html_safe/raw detectado',
     remediation: 'Evite html_safe/raw; prefira escape padrao e sanitize quando necessario',
   });
 
-  // Filter out safe usages of redirect_to (e.g. *_url helpers)
-  const redirectRisk = redirectRiskRaw.filter(m => {
-    // If it's a *_url helper, it's safe
-    if (/redirect_to\s+[a-z0-9_]+_url\b/i.test(m.text)) return false;
-    return true;
-  });
+  const redirectRisk: RubyMatch[] = [];
+  for (const file of controllerFiles) {
+    const content = await readFileContent(file, context);
+    if (!content) continue;
+    const ast = await parseRuby(file, context);
+    if (!ast) continue;
+
+    const calls = findRubyCalls(ast, ['redirect_to']);
+    for (const call of calls) {
+      const firstArg = call.arguments?.arguments?.[0];
+      if (!firstArg) continue;
+
+      if (isStringNode(firstArg)) {
+        continue;
+      }
+
+      if (firstArg.type === 'CallNode' && typeof firstArg.name === 'string' && /_url$/i.test(firstArg.name)) {
+        continue;
+      }
+
+      if (containsParamsNode(firstArg) || firstArg.type !== 'StringNode') {
+        redirectRisk.push({
+          file,
+          line: lineFromOffset(content, call.location?.startOffset ?? 0),
+          text: nodeText(content, call),
+        });
+      }
+    }
+  }
 
   items.push({
     id: 'R5',
@@ -95,6 +174,7 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
     status: redirectRisk.length > 0 ? 'warn' : 'pass',
     severity: 'high',
     file: redirectRisk[0]?.file,
+    line: redirectRisk[0]?.line,
     detail: redirectRisk.length > 0
       ? `${redirectRisk.length} possiveis redirect_to com input dinamico detectados`
       : 'Nenhum padrao obvio de open redirect detectado',

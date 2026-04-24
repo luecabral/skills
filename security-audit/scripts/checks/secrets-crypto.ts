@@ -1,6 +1,25 @@
 import { join } from 'node:path';
 import type { CategoryResult, CheckContext, CheckItem } from '../types.js';
 import { fileExists, globFiles, grepInFiles, readJsonFile } from '../utils.js';
+import { parseTypeScript } from '../ast.js';
+import { Node, SyntaxKind } from 'ts-morph';
+
+interface Match {
+  file: string;
+  line: number;
+  text: string;
+}
+
+function isImportStringLiteral(node: Node): boolean {
+  const importDecl = node.getFirstAncestorByKind(SyntaxKind.ImportDeclaration);
+  return Boolean(importDecl);
+}
+
+function getLiteralValue(node: Node): string | null {
+  if (Node.isStringLiteral(node)) return node.getLiteralText();
+  if (Node.isNoSubstitutionTemplateLiteral(node)) return node.getLiteralText();
+  return null;
+}
 
 export async function check(projectRoot: string, context?: CheckContext): Promise<CategoryResult> {
   const items: CheckItem[] = [];
@@ -11,44 +30,72 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
     (f) => !f.includes('.test.') && !f.includes('.spec.') && !f.includes('__tests__'),
   );
 
-  // H1 — Secrets hardcoded (regex para API keys, tokens, passwords)
+  // H1 — Secrets hardcoded via AST em literais
   const hardcodedSecretPatterns = [
-    // sk_, pk_, Bearer tokens inline (not process.env references)
-    /['"`](sk|pk|api|token|secret|key)[-_][A-Za-z0-9]{16,}['"`]/i,
+    /(sk|pk|api|token|secret|key)[-_][A-Za-z0-9]{16,}/i,
     // AWS/GCP style
     /AKIA[0-9A-Z]{16}/,
     // GitHub tokens
     /ghp_[A-Za-z0-9]{36}/,
     // Supabase service role (long JWT hardcoded)
-    /eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[A-Za-z0-9_-]{50,}/,
+    /eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}/,
   ];
-
-  // Filter out common false positives
-  const isLikelyFalsePositive = (text: string): boolean => {
-    // process.env references
-    if (/process\.env/.test(text)) return true;
-    // import/require statements
-    if (/import\s|require\(/.test(text)) return true;
-    // DB operations with onConflict/conflict resolution
-    if (/onConflict|upsert|\.from\(/.test(text)) return true;
-    // Type annotations
-    if (/:\s*(string|number|boolean|Record|Partial)/.test(text)) return true;
-    return false;
-  };
 
   let hardcodedFound = false;
   let hardcodedFile: string | undefined;
   let hardcodedDetail = '';
+  const nextPublicSecretsAst: Match[] = [];
+  const localStorageSecretsAst: Match[] = [];
 
-  for (const pattern of hardcodedSecretPatterns) {
-    const matches = await grepInFiles(sourceFiles, pattern, context);
-    const realMatches = matches.filter((m) => !isLikelyFalsePositive(m.text));
-    if (realMatches.length > 0) {
-      hardcodedFound = true;
-      hardcodedFile = realMatches[0].file;
-      hardcodedDetail = `Possível secret hardcoded encontrado em ${realMatches[0].file}:${realMatches[0].line}`;
-      break;
-    }
+  const safeNextPublicPatterns = /NEXT_PUBLIC_SUPABASE_URL|NEXT_PUBLIC_SUPABASE_ANON_KEY|NEXT_PUBLIC_SITE_URL|NEXT_PUBLIC_APP_URL/i;
+
+  for (const file of sourceFiles) {
+    const sourceFile = await parseTypeScript(file, context);
+    if (!sourceFile) continue;
+
+    sourceFile.forEachDescendant((node) => {
+      if (Node.isStringLiteral(node) || Node.isNoSubstitutionTemplateLiteral(node)) {
+        if (isImportStringLiteral(node)) return;
+        const literal = getLiteralValue(node);
+        if (!literal) return;
+
+        for (const pattern of hardcodedSecretPatterns) {
+          if (pattern.test(literal)) {
+            if (!hardcodedFound) {
+              hardcodedFound = true;
+              hardcodedFile = file;
+              hardcodedDetail = `Possível secret hardcoded encontrado em ${file}:${node.getStartLineNumber()}`;
+            }
+            break;
+          }
+        }
+
+        if (/NEXT_PUBLIC_.*(?:SECRET|KEY|TOKEN|PASSWORD|PRIVATE)/i.test(literal) && !safeNextPublicPatterns.test(literal)) {
+          nextPublicSecretsAst.push({
+            file,
+            line: node.getStartLineNumber(),
+            text: literal,
+          });
+        }
+      }
+
+      if (!Node.isCallExpression(node)) return;
+      const expression = node.getExpression();
+      if (!Node.isPropertyAccessExpression(expression)) return;
+      const storageName = expression.getExpression().getText();
+      if (storageName !== 'localStorage' && storageName !== 'sessionStorage') return;
+      const method = expression.getName();
+      if (method !== 'setItem' && method !== 'getItem') return;
+      const keyArg = node.getArguments()[0];
+      if (!keyArg) return;
+      const keyText = keyArg.getText();
+      if (!/(token|key|secret|password|auth)/i.test(keyText)) return;
+      localStorageSecretsAst.push({
+        file,
+        line: node.getStartLineNumber(),
+        text: node.getText(),
+      });
+    });
   }
 
   items.push({
@@ -86,16 +133,14 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
     memzeroMatches,
     argon2InCode,
     hasWeakHash,
-    nextPublicSecretsRaw,
     envFiles,
-    localStorageSecrets
+    nextPublicSecretsRaw
   ] = await Promise.all([
     grepInFiles(allTsFiles, /memzero|sodium\.memzero|fill\(0\)|pagehide.*clear|clearTimeout.*crypto|wipe.*key|zeroMemory/i, context),
     grepInFiles(allTsFiles, /argon2|Argon2id|argon2id/i, context),
     grepInFiles(allTsFiles, /\.createHash\(['"]md5['"]|\.createHash\(['"]sha1['"]\)|bcrypt(?!js)/i, context),
-    grepInFiles(allTsFiles, /NEXT_PUBLIC_.*(?:SECRET|KEY|TOKEN|PASSWORD|PRIVATE)/i, context),
     globFiles(projectRoot, ['.env', '.env.local', '.env.production', '.env.development'], context),
-    grepInFiles(allTsFiles, /localStorage\.(setItem|getItem)\s*\(\s*['"].*(?:token|key|secret|password|auth)/i, context)
+    grepInFiles(allTsFiles, /NEXT_PUBLIC_.*(?:SECRET|KEY|TOKEN|PASSWORD|PRIVATE)/i, context)
   ]);
 
   items.push({
@@ -129,10 +174,12 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
     remediation: 'Use argon2id para derivar chaves de senhas: `await argon2.hash(password, { type: argon2.argon2id })`',
   });
 
-  // Known safe NEXT_PUBLIC_ vars (Supabase anon key and URL are designed to be public)
-  const safeNextPublicPatterns = /NEXT_PUBLIC_SUPABASE_URL|NEXT_PUBLIC_SUPABASE_ANON_KEY|NEXT_PUBLIC_SITE_URL|NEXT_PUBLIC_APP_URL/i;
+  // Keep regex fallback for non-parseable files; prioritize AST results
+  const nextPublicRegexMatches = nextPublicSecretsRaw
+    .filter((m) => !safeNextPublicPatterns.test(m.text))
+    .map((m) => ({ file: m.file, line: m.line, text: m.text }));
+  const nextPublicSecrets = [...nextPublicSecretsAst, ...nextPublicRegexMatches];
 
-  const nextPublicSecrets = nextPublicSecretsRaw.filter((m) => !safeNextPublicPatterns.test(m.text));
   const nextPublicInEnv = (await grepInFiles(envFiles, /^NEXT_PUBLIC_.*(?:SECRET|KEY|TOKEN|PASS)/im, context))
     .filter((m) => !safeNextPublicPatterns.test(m.text));
   items.push({
@@ -150,12 +197,13 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
   items.push({
     id: 'H6',
     description: 'Secrets nunca em localStorage/sessionStorage',
-    status: localStorageSecrets.length > 0 ? 'fail' : 'pass',
+    status: localStorageSecretsAst.length > 0 ? 'fail' : 'pass',
     severity: 'critical',
-    detail: localStorageSecrets.length > 0
-      ? `${localStorageSecrets.length} armazenamento de dado sensível em localStorage detectado`
+    detail: localStorageSecretsAst.length > 0
+      ? `${localStorageSecretsAst.length} armazenamento de dado sensível em localStorage/sessionStorage detectado`
       : 'Nenhum armazenamento de secret em localStorage detectado',
-    file: localStorageSecrets[0]?.file,
+    file: localStorageSecretsAst[0]?.file,
+    line: localStorageSecretsAst[0]?.line,
     remediation: 'Use httpOnly cookies para tokens. localStorage é acessível via XSS.',
   });
 

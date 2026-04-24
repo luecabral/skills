@@ -51,6 +51,9 @@ node "$SEC_AUDIT_SCRIPT" --json
 # Saida SARIF
 node "$SEC_AUDIT_SCRIPT" --sarif
 
+# Falhar o processo a partir de severidade escolhida (padrao: critical)
+node "$SEC_AUDIT_SCRIPT" --fail-on=high
+
 # Marcar item como N/A
 node "$SEC_AUDIT_SCRIPT" --na K1 "Sem funcionalidades de IA" "nome"
 
@@ -160,8 +163,9 @@ rules:
 
 ## Exit code
 
-- `0`: sem falhas `critical`/`high`
-- `1`: ha falhas `critical`/`high`
+- `--json` e `--sarif` sao mutuamente exclusivos
+- `0`: sem falhas na severidade definida por `--fail-on`
+- `1`: ha falhas na severidade definida por `--fail-on`
 
 ---
 

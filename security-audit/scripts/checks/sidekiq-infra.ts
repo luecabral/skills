@@ -66,6 +66,7 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
     status: riskyArgs.length > 0 ? 'fail' : 'pass',
     severity: 'critical',
     file: riskyArgs[0]?.file,
+    line: riskyArgs[0]?.line,
     detail: riskyArgs.length > 0
       ? `${riskyArgs.length} enfileiramento(s) com argumento potencialmente sensivel`
       : 'Nenhum argumento sensivel obvio detectado no enfileiramento',

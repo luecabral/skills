@@ -66,6 +66,7 @@ export interface CheckItem {
   severity: Severity;
   scope?: CheckScope;
   file?: string;
+  line?: number;
   detail?: string;
   remediation?: string;
 }
@@ -98,6 +99,7 @@ export interface AuditReport {
   score: { passed: number; total: number; percentage: number };
   breakdown: SeverityBreakdown;
   criticalFailures: CheckItem[];
+  highFailures?: CheckItem[];
 }
 
 export interface ExcludedItem {

@@ -36,6 +36,7 @@ function parseArgs(argv: string[]): {
   failOn: Severity;
   configure: boolean;
   answerManual: boolean;
+  error?: string;
   projectRoot?: string;
   na?: { itemId: string; reason: string; author: string };
 } {
@@ -88,6 +89,19 @@ function parseArgs(argv: string[]): {
     }
   }
 
+  if (json && sarif) {
+    return {
+      json,
+      sarif,
+      failOn,
+      configure,
+      answerManual,
+      projectRoot,
+      na,
+      error: 'As flags --json e --sarif são mutuamente exclusivas. Use apenas uma por execução.',
+    };
+  }
+
   return { json, sarif, failOn, configure, answerManual, projectRoot, na };
 }
 
@@ -123,7 +137,12 @@ async function configureScan(projectRoot: string): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  const { json, sarif, failOn, configure, answerManual, projectRoot: rootArg, na } = parseArgs(process.argv);
+  const { json, sarif, failOn, configure, answerManual, projectRoot: rootArg, na, error } = parseArgs(process.argv);
+
+  if (error) {
+    console.error(error);
+    process.exit(1);
+  }
 
   const cwd = process.cwd();
   const projectRoot = rootArg
@@ -297,10 +316,8 @@ async function main(): Promise<void> {
 
   const breakdown = calculateBreakdown(scorableItems);
 
-  // Critical failures: fail items with critical or high severity
-  const criticalFailures = scorableItems.filter(
-    (i) => i.status === 'fail' && (i.severity === 'critical' || i.severity === 'high'),
-  );
+  const criticalFailures = scorableItems.filter((i) => i.status === 'fail' && i.severity === 'critical');
+  const highFailures = scorableItems.filter((i) => i.status === 'fail' && i.severity === 'high');
   
   const gate = scorableItems.some(i => i.status === 'fail' && i.severity === 'critical') ? 'fail' : 'pass';
 
@@ -318,6 +335,7 @@ async function main(): Promise<void> {
     score,
     breakdown,
     criticalFailures,
+    highFailures,
   };
 
   // Save result to history

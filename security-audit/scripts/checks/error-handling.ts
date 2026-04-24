@@ -105,6 +105,7 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
       ? `${consoleSensitiveMatches.length} log(s) com possível dado sensível detectado(s)`
       : 'Nenhum log com dados sensíveis detectado',
     file: consoleSensitiveMatches[0]?.file,
+    line: consoleSensitiveMatches[0]?.line,
     remediation: 'Nunca logue passwords, tokens, ou chaves. Use IDs de correlação para rastrear sem expor dados.',
   });
 
@@ -118,6 +119,7 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
       ? `${authErrorEnumeration.length} mensagem(ns) que pode(m) revelar existência de usuário`
       : 'Nenhuma mensagem de erro que revele existência de usuário detectada',
     file: authErrorEnumeration[0]?.file,
+    line: authErrorEnumeration[0]?.line,
     remediation: 'Use sempre "Email ou senha inválidos" em erros de autenticação, nunca indique se o email existe',
   });
 

@@ -81,13 +81,31 @@ export async function detectStack(projectRoot: string): Promise<StackProfile> {
   const hasSupabase = hasSupabaseConfig || hasSupabaseMigrations || hasSupabaseDeps;
 
   const hasPostgresGem = hasGem(gemfile, 'pg');
-  const hasPostgresAdapter = Boolean(databaseYml && /adapter:\s*postgresql/i.test(databaseYml));
-  const hasPostgres = hasSupabase || hasPostgresGem || hasPostgresAdapter;
+  const hasPostgresAdapter = Boolean(databaseYml && /adapter:\s*['"]?postgres(ql)?['"]?/i.test(databaseYml));
+  // Detecção no ecossistema Node: drivers nativos, ORMs, query builders
+  const hasNodePostgresClient =
+    hasDependency(packageJson, 'pg') ||
+    hasDependency(packageJson, 'postgres') ||
+    hasDependency(packageJson, 'postgres.js') ||
+    hasDependency(packageJson, '@neondatabase/serverless') ||
+    hasDependency(packageJson, 'pg-promise');
+  const hasNodePostgresOrm =
+    hasDependency(packageJson, 'prisma') ||
+    hasDependency(packageJson, '@prisma/client') ||
+    hasDependency(packageJson, 'drizzle-orm') ||
+    hasDependency(packageJson, 'kysely') ||
+    hasDependency(packageJson, 'typeorm') ||
+    hasDependency(packageJson, 'sequelize');
+  const hasPostgres = hasSupabase || hasPostgresGem || hasPostgresAdapter || hasNodePostgresClient || hasNodePostgresOrm;
 
   const hasRedisGem = hasGem(gemfile, 'redis') || hasGem(gemfile, 'redis-rails');
   const hasRedisConfig = await fileExists(join(projectRoot, 'config', 'redis.yml'));
   const hasRedisInitializer = await fileExists(join(projectRoot, 'config', 'initializers', 'redis.rb'));
-  const hasRedis = hasRedisGem || hasRedisConfig || hasRedisInitializer;
+  const hasNodeRedis =
+    hasDependency(packageJson, 'redis') ||
+    hasDependency(packageJson, 'ioredis') ||
+    hasDependency(packageJson, '@upstash/redis');
+  const hasRedis = hasRedisGem || hasRedisConfig || hasRedisInitializer || hasNodeRedis;
 
   const hasSidekiqGem = hasGem(gemfile, 'sidekiq');
   const hasSidekiqConfig = await fileExists(join(projectRoot, 'config', 'sidekiq.yml'));

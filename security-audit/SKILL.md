@@ -17,10 +17,15 @@ O script detecta a raiz automaticamente por marcadores como `package.json`, `Gem
 
 **Passo 2 — Verificar se é a primeira execução**
 
-Execute:
+Se a skill nunca foi usada neste ambiente, rode primeiro:
 ```bash
-node <caminho-da-skill>/dist/scripts/index.js
-# ou fallback em dev: npx tsx <caminho-da-skill>/scripts/index.ts
+cd <caminho-da-skill> && npm install
+```
+
+Execute a auditoria:
+```bash
+npx tsx <caminho-da-skill>/scripts/index.ts
+# alternativa com build: npm run build && node <caminho-da-skill>/dist/scripts/index.js
 ```
 
 Se for a primeira vez no projeto (sem `memory/` para ele), pergunte ao usuário:
@@ -33,13 +38,13 @@ Salve as respostas com:
 ```bash
 # O script cria config padrão automaticamente na primeira execução
 # Para reconfigurar:
-node <caminho-da-skill>/dist/scripts/index.js --configure
+npx tsx <caminho-da-skill>/scripts/index.ts --configure
 ```
 
 **Passo 3 — Executar a auditoria**
 
 ```bash
-node <caminho-da-skill>/dist/scripts/index.js [caminho-do-projeto]
+npx tsx <caminho-da-skill>/scripts/index.ts [caminho-do-projeto]
 ```
 
 O runtime resolve modulos automaticamente por stack/contexto:
@@ -49,6 +54,7 @@ O runtime resolve modulos automaticamente por stack/contexto:
 Flags disponíveis:
 - `--json` — saída em JSON para pipelines
 - `--sarif` — saída em formato SARIF 2.1.0
+- `--json` e `--sarif` são mutuamente exclusivos
 - `--fail-on=<critical|high|medium|low>` — controla o exit code (padrão: critical)
 - `--configure` — mostra e edita configuração do projeto
 - `--na <ID> "<motivo>" "<autor>"` — marca item como N/A
@@ -73,25 +79,25 @@ Ofereça ajuda imediata:
 
 ```bash
 # Auditoria padrão
-node <caminho-da-skill>/dist/index.js
+npx tsx <caminho-da-skill>/scripts/index.ts
 
 # Auditoria de projeto específico
-node <caminho-da-skill>/dist/index.js /caminho/do/projeto
+npx tsx <caminho-da-skill>/scripts/index.ts /caminho/do/projeto
 
 # Saída JSON
-node <caminho-da-skill>/dist/index.js --json
+npx tsx <caminho-da-skill>/scripts/index.ts --json
 
 # Saída SARIF
-node <caminho-da-skill>/dist/index.js --sarif
+npx tsx <caminho-da-skill>/scripts/index.ts --sarif
 
 # Marcar LLM como N/A (sem IA no projeto)
-node <caminho-da-skill>/dist/index.js --na K1 "Sem IA no projeto" "eriko"
+npx tsx <caminho-da-skill>/scripts/index.ts --na K1 "Sem IA no projeto" "eriko"
 
 # Ver configuração atual
-node <caminho-da-skill>/dist/index.js --configure
+npx tsx <caminho-da-skill>/scripts/index.ts --configure
 
 # Responder verificações manuais (F/J/K/O)
-node <caminho-da-skill>/dist/index.js --answer-manual
+npx tsx <caminho-da-skill>/scripts/index.ts --answer-manual
 
 # Ver histórico (via arquivo diretamente)
 cat <caminho-da-skill>/memory/$(echo -n $(pwd) | sha256sum | cut -c1-12)/history.json
@@ -127,7 +133,13 @@ cat <caminho-da-skill>/memory/$(echo -n $(pwd) | sha256sum | cut -c1-12)/history
 | K | LLM & Prompt Injection |
 | O | Documentação & Processos |
 
-Mencione estas categorias ao usuário e peça que verifiquem manualmente.
+Essas categorias aparecem automaticamente no relatório como `warn` até o usuário responder. Para responder em modo interativo:
+
+```bash
+npx tsx <caminho-da-skill>/scripts/index.ts --answer-manual
+```
+
+As respostas são salvas em `memory/{hash}/manual-answers.json` e expiram após 90 dias.
 
 ## Memória e Histórico
 

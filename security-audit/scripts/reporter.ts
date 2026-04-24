@@ -171,6 +171,18 @@ export function formatTerminal(report: AuditReport, lastAudit: AuditHistoryEntry
       }
     });
   }
+  if ((report.highFailures || []).length > 0) {
+    lines.push(`\n  ${YELLOW}${BOLD}⚠️  ITENS ALTOS FALTANTES:${RESET}`);
+    report.highFailures!.forEach((item, i) => {
+      lines.push(`  ${i + 1}. [${item.id}] ${SEVERITY_EMOJI[item.severity]} ${YELLOW}${item.description}${RESET}`);
+      if (item.detail) {
+        lines.push(`     ${DIM}${item.detail}${RESET}`);
+      }
+      if (item.remediation) {
+        lines.push(`     ${YELLOW}💡 ${item.remediation}${RESET}`);
+      }
+    });
+  }
 
   lines.push(`\n${BOLD}${LINE}${RESET}\n`);
 
@@ -218,17 +230,21 @@ export function formatSarif(report: AuditReport): string {
           level = 'note';
         }
 
+        const physicalLocation: {
+          artifactLocation: { uri: string };
+          region?: { startLine: number };
+        } | null = item.file
+          ? {
+              artifactLocation: { uri: item.file },
+              ...(item.line ? { region: { startLine: item.line } } : {}),
+            }
+          : null;
+
         results.push({
           ruleId: item.id,
           level,
           message: { text: item.detail || item.description },
-          locations: item.file ? [
-            {
-              physicalLocation: {
-                artifactLocation: { uri: item.file }
-              }
-            }
-          ] : []
+          locations: physicalLocation ? [{ physicalLocation }] : []
         });
       }
     }

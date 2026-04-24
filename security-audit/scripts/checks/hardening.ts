@@ -60,6 +60,7 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
     status: corsWildcard.length > 0 ? 'fail' : corsSpecific.length > 0 ? 'pass' : 'warn',
     severity: 'high',
     file: corsWildcard[0]?.file,
+    line: corsWildcard[0]?.line,
     detail: corsWildcard.length > 0
       ? `CORS com wildcard (*) detectado em ${corsWildcard.length} lugar(es)`
       : corsSpecific.length > 0

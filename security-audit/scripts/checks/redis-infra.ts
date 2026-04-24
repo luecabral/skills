@@ -73,6 +73,7 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
     status: sensitiveKeywords.length > 0 ? 'fail' : 'pass',
     severity: 'critical',
     file: sensitiveKeywords[0]?.file,
+    line: sensitiveKeywords[0]?.line,
     detail: sensitiveKeywords.length > 0
       ? `${sensitiveKeywords.length} escrita(s) de cache com palavra sensivel detectada(s)`
       : 'Nenhum padrao obvio de cache de segredos detectado',

@@ -53,6 +53,7 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
     status: innerHtmlWrites.length > 0 ? 'warn' : 'pass',
     severity: 'high',
     file: innerHtmlWrites[0]?.file,
+    line: innerHtmlWrites[0]?.line,
     detail: innerHtmlWrites.length > 0
       ? `${innerHtmlWrites.length} escrita(s) de HTML dinamico detectada(s)`
       : 'Nenhum padrao arriscado de escrita HTML dinamica detectado',
@@ -67,6 +68,7 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
     status: unsafeViewHelpers.length > 0 ? 'fail' : 'pass',
     severity: 'high',
     file: unsafeViewHelpers[0]?.file,
+    line: unsafeViewHelpers[0]?.line,
     detail: unsafeViewHelpers.length > 0
       ? `${unsafeViewHelpers.length} uso(s) de raw/html_safe em views detectado(s)`
       : 'Nenhum uso de raw/html_safe detectado em views',
