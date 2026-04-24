@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { fileExists, globFiles, grepInFiles } from '../utils.js';
-export async function check(projectRoot, _context) {
+export async function check(projectRoot, context) {
     const items = [];
     // Candidate files for security headers and config
     const middlewarePath = join(projectRoot, 'middleware.ts');
@@ -11,7 +11,7 @@ export async function check(projectRoot, _context) {
         'next.config.ts',
         'next.config.js',
         'next.config.mjs',
-    ]);
+    ], context);
     const headerConfigFiles = [];
     for (const f of [middlewarePath, middlewareSrcPath, proxyPath, proxySrcPath, ...nextConfigFiles]) {
         if (await fileExists(f))
@@ -28,10 +28,18 @@ export async function check(projectRoot, _context) {
         'proxy.ts',
         'src/proxy.ts',
         ...nextConfigFiles,
+    ], context);
+    // I1–I4: todos os greps em paralelo (file lists já estão prontas)
+    const [corsWildcard, corsSpecific, hstsMatches, xPoweredByRemoval, xPoweredByInNextConfig, rateLimitGlobal, rateLimitConfig,] = await Promise.all([
+        grepInFiles(allServerFiles, /Access-Control-Allow-Origin.*\*|cors\s*\(\s*\)|origin\s*:\s*['"]\*['"]/i, context),
+        grepInFiles(allServerFiles, /Access-Control-Allow-Origin|cors\s*\(\s*\{|allowedOrigins|corsOptions/i, context),
+        grepInFiles(headerConfigFiles, /Strict-Transport-Security|strictTransportSecurity|HSTS/i, context),
+        grepInFiles([...headerConfigFiles, ...allServerFiles], /x-powered-by.*false|poweredByHeader.*false|removeHeader.*x-powered-by|headers.*x-powered-by/i, context),
+        grepInFiles(nextConfigFiles, /poweredByHeader\s*:\s*false/i, context),
+        grepInFiles(allServerFiles, /rate.?limit|rateLimit|rateLimiter|upstash.*redis/i, context),
+        grepInFiles(allServerFiles, /max\s*:\s*\d+|limit\s*:\s*\d+|windowMs|window\s*:\s*\d+/i, context),
     ]);
     // I1 — CORS não usa wildcard (*)
-    const corsWildcard = await grepInFiles(allServerFiles, /Access-Control-Allow-Origin.*\*|cors\s*\(\s*\)|origin\s*:\s*['"]\*['"]/i);
-    const corsSpecific = await grepInFiles(allServerFiles, /Access-Control-Allow-Origin|cors\s*\(\s*\{|allowedOrigins|corsOptions/i);
     items.push({
         id: 'I1',
         description: 'CORS configurado com origins específicas (nunca *)',
@@ -46,7 +54,6 @@ export async function check(projectRoot, _context) {
         remediation: 'Configure CORS com lista explícita de origens: Access-Control-Allow-Origin: https://seu-dominio.com',
     });
     // I2 — HSTS (Strict-Transport-Security)
-    const hstsMatches = await grepInFiles(headerConfigFiles, /Strict-Transport-Security|strictTransportSecurity|HSTS/i);
     items.push({
         id: 'I2',
         description: 'TLS/HTTPS obrigatório (HSTS configurado)',
@@ -58,8 +65,6 @@ export async function check(projectRoot, _context) {
         remediation: 'Adicione: Strict-Transport-Security: max-age=31536000; includeSubDomains; preload',
     });
     // I3 — X-Powered-By removido
-    const xPoweredByRemoval = await grepInFiles([...headerConfigFiles, ...allServerFiles], /x-powered-by.*false|poweredByHeader.*false|removeHeader.*x-powered-by|headers.*x-powered-by/i);
-    const xPoweredByInNextConfig = await grepInFiles(nextConfigFiles, /poweredByHeader\s*:\s*false/i);
     items.push({
         id: 'I3',
         description: 'X-Powered-By removido da resposta',
@@ -71,8 +76,6 @@ export async function check(projectRoot, _context) {
         remediation: 'Desative/remova o header X-Powered-By na configuração do servidor/framework',
     });
     // I4 — Rate limit global + por endpoint
-    const rateLimitGlobal = await grepInFiles(allServerFiles, /rate.?limit|rateLimit|rateLimiter|upstash.*redis/i);
-    const rateLimitConfig = await grepInFiles(allServerFiles, /max\s*:\s*\d+|limit\s*:\s*\d+|windowMs|window\s*:\s*\d+/i);
     items.push({
         id: 'I4',
         description: 'Rate limit global + por endpoint configurado',

@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import type { CategoryResult, CheckContext, CheckItem } from '../types.js';
 import { fileExists, globFiles, grepInFiles } from '../utils.js';
 
-export async function check(projectRoot: string, _context?: CheckContext): Promise<CategoryResult> {
+export async function check(projectRoot: string, context?: CheckContext): Promise<CategoryResult> {
   const items: CheckItem[] = [];
 
   // Candidate files for security headers and config
@@ -14,7 +14,7 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
     'next.config.ts',
     'next.config.js',
     'next.config.mjs',
-  ]);
+  ], context);
 
   const headerConfigFiles: string[] = [];
   for (const f of [middlewarePath, middlewareSrcPath, proxyPath, proxySrcPath, ...nextConfigFiles]) {
@@ -32,17 +32,28 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
     'proxy.ts',
     'src/proxy.ts',
     ...nextConfigFiles,
+  ], context);
+
+  // I1–I4: todos os greps em paralelo (file lists já estão prontas)
+  const [
+    corsWildcard,
+    corsSpecific,
+    hstsMatches,
+    xPoweredByRemoval,
+    xPoweredByInNextConfig,
+    rateLimitGlobal,
+    rateLimitConfig,
+  ] = await Promise.all([
+    grepInFiles(allServerFiles, /Access-Control-Allow-Origin.*\*|cors\s*\(\s*\)|origin\s*:\s*['"]\*['"]/i, context),
+    grepInFiles(allServerFiles, /Access-Control-Allow-Origin|cors\s*\(\s*\{|allowedOrigins|corsOptions/i, context),
+    grepInFiles(headerConfigFiles, /Strict-Transport-Security|strictTransportSecurity|HSTS/i, context),
+    grepInFiles([...headerConfigFiles, ...allServerFiles], /x-powered-by.*false|poweredByHeader.*false|removeHeader.*x-powered-by|headers.*x-powered-by/i, context),
+    grepInFiles(nextConfigFiles, /poweredByHeader\s*:\s*false/i, context),
+    grepInFiles(allServerFiles, /rate.?limit|rateLimit|rateLimiter|upstash.*redis/i, context),
+    grepInFiles(allServerFiles, /max\s*:\s*\d+|limit\s*:\s*\d+|windowMs|window\s*:\s*\d+/i, context),
   ]);
 
   // I1 — CORS não usa wildcard (*)
-  const corsWildcard = await grepInFiles(
-    allServerFiles,
-    /Access-Control-Allow-Origin.*\*|cors\s*\(\s*\)|origin\s*:\s*['"]\*['"]/i,
-  );
-  const corsSpecific = await grepInFiles(
-    allServerFiles,
-    /Access-Control-Allow-Origin|cors\s*\(\s*\{|allowedOrigins|corsOptions/i,
-  );
   items.push({
     id: 'I1',
     description: 'CORS configurado com origins específicas (nunca *)',
@@ -58,10 +69,6 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
   });
 
   // I2 — HSTS (Strict-Transport-Security)
-  const hstsMatches = await grepInFiles(
-    headerConfigFiles,
-    /Strict-Transport-Security|strictTransportSecurity|HSTS/i,
-  );
   items.push({
     id: 'I2',
     description: 'TLS/HTTPS obrigatório (HSTS configurado)',
@@ -74,11 +81,6 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
   });
 
   // I3 — X-Powered-By removido
-  const xPoweredByRemoval = await grepInFiles(
-    [...headerConfigFiles, ...allServerFiles],
-    /x-powered-by.*false|poweredByHeader.*false|removeHeader.*x-powered-by|headers.*x-powered-by/i,
-  );
-  const xPoweredByInNextConfig = await grepInFiles(nextConfigFiles, /poweredByHeader\s*:\s*false/i);
   items.push({
     id: 'I3',
     description: 'X-Powered-By removido da resposta',
@@ -92,14 +94,6 @@ export async function check(projectRoot: string, _context?: CheckContext): Promi
   });
 
   // I4 — Rate limit global + por endpoint
-  const rateLimitGlobal = await grepInFiles(
-    allServerFiles,
-    /rate.?limit|rateLimit|rateLimiter|upstash.*redis/i,
-  );
-  const rateLimitConfig = await grepInFiles(
-    allServerFiles,
-    /max\s*:\s*\d+|limit\s*:\s*\d+|windowMs|window\s*:\s*\d+/i,
-  );
   items.push({
     id: 'I4',
     description: 'Rate limit global + por endpoint configurado',

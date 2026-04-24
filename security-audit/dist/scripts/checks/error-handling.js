@@ -1,30 +1,34 @@
 import { globFiles, grepInFiles } from '../utils.js';
-export async function check(projectRoot, _context) {
+export async function check(projectRoot, context) {
     const items = [];
-    const allTsFiles = await globFiles(projectRoot, ['**/*.ts', '**/*.tsx']);
-    const serverFiles = await globFiles(projectRoot, [
-        'app/api/**/*.ts',
-        'pages/api/**/*.ts',
-        'src/app/api/**/*.ts',
-        'lib/**/*.ts',
-        'server/**/*.ts',
-        'src/lib/**/*.ts',
+    // Fase de glob: allTsFiles e serverFiles em paralelo
+    const [allTsFiles, serverFiles] = await Promise.all([
+        globFiles(projectRoot, ['**/*.ts', '**/*.tsx'], context),
+        globFiles(projectRoot, [
+            'app/api/**/*.ts',
+            'pages/api/**/*.ts',
+            'src/app/api/**/*.ts',
+            'lib/**/*.ts',
+            'server/**/*.ts',
+            'src/lib/**/*.ts',
+        ], context),
     ]);
-    // N1 — Catálogo centralizado de erros
-    const errorCatalogMatches = await grepInFiles(allTsFiles, /ERROR_MESSAGES|ERROR_CODES|errorCatalog|AppError|ApiError|createError|errorMessages\s*=/i);
-    const errorFileMatches = await globFiles(projectRoot, [
-        '**/errors.ts',
-        '**/error.ts',
-        '**/errors/index.ts',
-        '**/constants/errors.ts',
-        '**/lib/errors.ts',
-    ]);
-    // Also check docs for error message documentation
-    const errorDocFiles = await globFiles(projectRoot, [
-        '**/ERROR_MESSAGES.md',
-        '**/error-messages.md',
-        '**/errors.md',
-        'docs/**/error*.md',
+    // N1 — todos os greps/globs de N1 em paralelo
+    const [errorCatalogMatches, errorFileMatches, errorDocFiles] = await Promise.all([
+        grepInFiles(allTsFiles, /ERROR_MESSAGES|ERROR_CODES|errorCatalog|AppError|ApiError|createError|errorMessages\s*=/i, context),
+        globFiles(projectRoot, [
+            '**/errors.ts',
+            '**/error.ts',
+            '**/errors/index.ts',
+            '**/constants/errors.ts',
+            '**/lib/errors.ts',
+        ], context),
+        globFiles(projectRoot, [
+            '**/ERROR_MESSAGES.md',
+            '**/error-messages.md',
+            '**/errors.md',
+            'docs/**/error*.md',
+        ], context),
     ]);
     const hasErrorCatalog = errorCatalogMatches.length > 0 || errorFileMatches.length > 0 || errorDocFiles.length > 0;
     items.push({
@@ -37,9 +41,17 @@ export async function check(projectRoot, _context) {
             : 'Nenhum catálogo centralizado de erros detectado',
         remediation: 'Crie um arquivo errors.ts com ERROR_MESSAGES centralizado para garantir mensagens genéricas e consistentes',
     });
+    // N2–N6: todos os greps em paralelo (dependem apenas de serverFiles já pronto)
+    const [stackTraceMatches, stackInResponse, genericErrorResponses, specificErrorInResponse, consoleSensitiveMatches, authErrorEnumeration, consoleLogCount,] = await Promise.all([
+        grepInFiles(serverFiles, /\.stack|error\.stack|err\.stack|stack.*trace/i, context),
+        grepInFiles(serverFiles, /json\s*\(\s*\{[^}]*stack|Response.*stack|NextResponse.*stack/i, context),
+        grepInFiles(serverFiles, /Internal server error|Something went wrong|An error occurred|Erro interno|Algo deu errado/i, context),
+        grepInFiles(serverFiles, /json\s*\(\s*\{[^}]*message.*error\.(message|name)|NextResponse.*error\.(message|stack)/i, context),
+        grepInFiles(serverFiles, /console\.(log|error|warn|info)\s*\([^)]*(?:password|token|secret|key|auth|credential|private|senha|chave)/i, context),
+        grepInFiles(serverFiles, /user.*not.*found|email.*not.*found|usuário.*não.*existe|email.*não.*cadastrado|account.*not.*found/i, context),
+        grepInFiles(serverFiles, /console\.(log|debug)/i, context),
+    ]);
     // N2 — Stack traces expostos em route handlers
-    const stackTraceMatches = await grepInFiles(serverFiles, /\.stack|error\.stack|err\.stack|stack.*trace/i);
-    const stackInResponse = await grepInFiles(serverFiles, /json\s*\(\s*\{[^}]*stack|Response.*stack|NextResponse.*stack/i);
     items.push({
         id: 'N2',
         description: 'Sem stack traces em produção (não expostos na resposta)',
@@ -54,8 +66,6 @@ export async function check(projectRoot, _context) {
         remediation: 'Em produção, log o erro internamente e retorne apenas mensagem genérica ao cliente',
     });
     // N3 — Respostas genéricas de erro (não expõem detalhes internos)
-    const genericErrorResponses = await grepInFiles(serverFiles, /Internal server error|Something went wrong|An error occurred|Erro interno|Algo deu errado/i);
-    const specificErrorInResponse = await grepInFiles(serverFiles, /json\s*\(\s*\{[^}]*message.*error\.(message|name)|NextResponse.*error\.(message|stack)/i);
     items.push({
         id: 'N3',
         description: 'Respostas genéricas de erro para o usuário',
@@ -70,7 +80,6 @@ export async function check(projectRoot, _context) {
         remediation: 'Retorne sempre mensagens genéricas ao cliente. Log o erro real internamente com ID de correlação.',
     });
     // N4 — console.log com dados sensíveis
-    const consoleSensitiveMatches = await grepInFiles(serverFiles, /console\.(log|error|warn|info)\s*\([^)]*(?:password|token|secret|key|auth|credential|private|senha|chave)/i);
     items.push({
         id: 'N4',
         description: 'NUNCA logar secrets/tokens/PII em console',
@@ -83,7 +92,6 @@ export async function check(projectRoot, _context) {
         remediation: 'Nunca logue passwords, tokens, ou chaves. Use IDs de correlação para rastrear sem expor dados.',
     });
     // N5 — Auth errors sem enumeração de usuários
-    const authErrorEnumeration = await grepInFiles(serverFiles, /user.*not.*found|email.*not.*found|usuário.*não.*existe|email.*não.*cadastrado|account.*not.*found/i);
     items.push({
         id: 'N5',
         description: 'Auth errors não revelam se usuário existe (anti-enumeração)',
@@ -96,7 +104,6 @@ export async function check(projectRoot, _context) {
         remediation: 'Use sempre "Email ou senha inválidos" em erros de autenticação, nunca indique se o email existe',
     });
     // N6 — Console limpo em produção (sem console.log excessivo)
-    const consoleLogCount = await grepInFiles(serverFiles, /console\.(log|debug)/i);
     items.push({
         id: 'N6',
         description: 'Console limpo em produção (logs estruturados)',

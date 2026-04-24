@@ -1,0 +1,632 @@
+{
+  "stack": {
+    "ecosystem": "unknown",
+    "packageManager": "unknown",
+    "frameworks": {
+      "nextjs": false,
+      "express": false,
+      "rails": false,
+      "hotwire": false
+    },
+    "services": {
+      "supabase": false,
+      "postgres": false,
+      "redis": false,
+      "sidekiq": false
+    },
+    "tooling": {
+      "tailwind": false,
+      "esbuild": false
+    },
+    "languages": {
+      "ruby": false,
+      "node": false
+    },
+    "warnings": []
+  },
+  "categories": [
+    {
+      "id": "MANUAL",
+      "name": "Verificações Manuais (SSRF, Deserialization, LLM, Processos)",
+      "items": [
+        {
+          "id": "F1",
+          "description": "SSRF: Validação de URLs fornecidas pelo usuário",
+          "status": "warn",
+          "severity": "critical",
+          "detail": "Pendente: O sistema faz requisições HTTP para URLs fornecidas pelo usuário? Se sim, elas são validadas contra IPs internos/locais? (Use --answer-manual para responder)",
+          "remediation": "Use uma allowlist de domínios ou bloqueie resolução para IPs privados (10.0.0.0/8, 127.0.0.0/8, etc)"
+        },
+        {
+          "id": "J1",
+          "description": "Insecure Deserialization: Dados não confiáveis",
+          "status": "warn",
+          "severity": "critical",
+          "detail": "Pendente: O sistema desserializa dados complexos (YAML, Pickle, Marshal, objetos Java) vindos do usuário? (Use --answer-manual para responder)",
+          "remediation": "Use formatos seguros como JSON. Se precisar desserializar formatos complexos, use safe_load ou valide a assinatura antes."
+        },
+        {
+          "id": "K1",
+          "description": "LLM: Proteção contra Prompt Injection",
+          "status": "warn",
+          "severity": "high",
+          "detail": "Pendente: O sistema envia input do usuário diretamente para modelos de IA (LLMs)? (Use --answer-manual para responder)",
+          "remediation": "Separe instruções de dados (system vs user messages), use delimitadores claros e valide a saída do modelo."
+        },
+        {
+          "id": "O1",
+          "description": "Processos: Plano de Resposta a Incidentes",
+          "status": "warn",
+          "severity": "medium",
+          "detail": "Pendente: Existe um plano documentado de como agir em caso de vazamento de dados ou invasão? (Use --answer-manual para responder)",
+          "remediation": "Crie um documento simples com contatos de emergência, passos para isolamento e comunicação."
+        }
+      ],
+      "layer": "core",
+      "scope": "generic",
+      "moduleId": "manual-checklist"
+    },
+    {
+      "id": "B",
+      "name": "Authentication & Session Management",
+      "items": [
+        {
+          "id": "B1",
+          "description": "Rate limiting dual-layer (IP + identifier + por conta)",
+          "status": "warn",
+          "severity": "critical",
+          "detail": "Nenhum endpoint HTTP detectado no padrão analisado",
+          "remediation": "Implemente rate limiting por IP e por identificador de conta em endpoints de auth"
+        },
+        {
+          "id": "B2",
+          "description": "Rate limiting por endpoint",
+          "status": "warn",
+          "severity": "high",
+          "detail": "Nenhum endpoint HTTP detectado no padrão analisado",
+          "remediation": "Configure rate limiting diferenciado por endpoint (login, signup, API)"
+        },
+        {
+          "id": "B3",
+          "description": "Política de senha forte (comprimento, complexidade, zxcvbn)",
+          "status": "warn",
+          "severity": "high",
+          "detail": "Nenhuma verificação de força de senha detectada",
+          "remediation": "Use zxcvbn para avaliar força de senha e bloqueie senhas fracas (score < 3)"
+        },
+        {
+          "id": "B4",
+          "description": "Proteção de rotas autenticadas no middleware (Next.js)",
+          "scope": "stack-specific",
+          "status": "skip",
+          "severity": "critical",
+          "detail": "Check específico para Next.js — não aplicável neste stack"
+        },
+        {
+          "id": "B5",
+          "description": "Separação de clientes Supabase (anon key vs service role)",
+          "scope": "stack-specific",
+          "status": "skip",
+          "severity": "high",
+          "detail": "Check específico para Supabase — não aplicável neste stack"
+        },
+        {
+          "id": "B6",
+          "description": "Cookies com flags seguros (HttpOnly, Secure, SameSite)",
+          "status": "fail",
+          "severity": "high",
+          "detail": "HttpOnly: AUSENTE, Secure: AUSENTE, SameSite: AUSENTE",
+          "remediation": "Configure cookies com httpOnly: true, secure: true, sameSite: \"strict\""
+        },
+        {
+          "id": "B7",
+          "description": "Prevenção de enumeração de usuários",
+          "status": "warn",
+          "severity": "medium",
+          "detail": "Não foi possível verificar mensagens de erro de autenticação",
+          "remediation": "Use sempre \"Email ou senha inválidos\" — nunca indique se o email existe ou não"
+        }
+      ],
+      "layer": "core",
+      "scope": "generic",
+      "moduleId": "core-auth-session"
+    },
+    {
+      "id": "C",
+      "name": "Business Logic & Validation",
+      "items": [
+        {
+          "id": "C1",
+          "description": "Validação com schemas (Zod) em todos os endpoints",
+          "status": "warn",
+          "severity": "critical",
+          "detail": "Nenhum route handler encontrado",
+          "remediation": "Importe e use Zod para validar todos os inputs de entrada nos route handlers"
+        },
+        {
+          "id": "C2",
+          "description": "Validação server-side com .parse() ou .safeParse()",
+          "status": "warn",
+          "severity": "critical",
+          "detail": "Nenhuma chamada .parse() ou .safeParse() encontrada nos endpoints",
+          "remediation": "Use schema.safeParse(input) para validar e tratar erros de validação adequadamente"
+        },
+        {
+          "id": "C3",
+          "description": "Validação de UUID/IDs com regex estrito",
+          "status": "warn",
+          "severity": "high",
+          "detail": "Nenhuma validação explícita de UUID detectada — verifique se IDs são validados antes de consultas",
+          "remediation": "Use z.string().uuid() do Zod ou regex /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/ para validar UUIDs"
+        },
+        {
+          "id": "C4",
+          "description": "Nunca confiar em valores do client para lógica de negócio",
+          "status": "warn",
+          "severity": "critical",
+          "detail": "Validação server-side não detectada — certifique-se de validar no servidor, não apenas no cliente",
+          "remediation": "Toda validação de negócio deve ocorrer no servidor. Validação client-side é apenas UX."
+        }
+      ],
+      "layer": "core",
+      "scope": "generic",
+      "moduleId": "core-validation"
+    },
+    {
+      "id": "D",
+      "name": "Client-Side Attacks (XSS, CSRF, Open Redirect)",
+      "items": [
+        {
+          "id": "D1",
+          "description": "CSP com diretivas restritivas configurada",
+          "status": "fail",
+          "severity": "high",
+          "detail": "Content-Security-Policy não encontrado nos pontos de configuração analisados",
+          "remediation": "Configure CSP na camada de entrega de headers (middleware/gateway/framework) com diretivas restritivas"
+        },
+        {
+          "id": "D2",
+          "description": "Evitar unsafe-inline no CSP (preferir nonces/hashes)",
+          "status": "warn",
+          "severity": "medium",
+          "detail": "CSP não encontrado — não é possível verificar unsafe-inline",
+          "remediation": "Substitua unsafe-inline por nonces (gerados por request) ou hashes de scripts/estilos específicos"
+        },
+        {
+          "id": "D3",
+          "description": "X-Frame-Options: DENY configurado",
+          "status": "fail",
+          "severity": "high",
+          "detail": "X-Frame-Options não configurado",
+          "remediation": "Adicione o header X-Frame-Options: DENY para prevenir clickjacking"
+        },
+        {
+          "id": "D4",
+          "description": "X-Content-Type-Options: nosniff configurado",
+          "status": "fail",
+          "severity": "medium",
+          "detail": "X-Content-Type-Options não configurado",
+          "remediation": "Adicione X-Content-Type-Options: nosniff para prevenir MIME sniffing"
+        },
+        {
+          "id": "D5",
+          "description": "Referrer-Policy: strict-origin-when-cross-origin",
+          "status": "warn",
+          "severity": "medium",
+          "detail": "Referrer-Policy não configurado",
+          "remediation": "Configure Referrer-Policy: strict-origin-when-cross-origin para limitar informações de referrer"
+        },
+        {
+          "id": "D6",
+          "description": "Permissions-Policy (camera, mic, geolocation desabilitados)",
+          "status": "warn",
+          "severity": "medium",
+          "detail": "Permissions-Policy não configurado",
+          "remediation": "Configure Permissions-Policy: camera=(), microphone=(), geolocation=() para desabilitar features não usadas"
+        },
+        {
+          "id": "D7",
+          "description": "Proteção CSRF (validação de origin)",
+          "status": "fail",
+          "severity": "critical",
+          "detail": "Nenhuma verificação de origin para CSRF detectada",
+          "remediation": "Verifique o header Origin nas requisições mutantes (POST, PUT, DELETE, PATCH)"
+        },
+        {
+          "id": "D8",
+          "description": "Sanitização de output contra XSS",
+          "status": "pass",
+          "severity": "critical",
+          "detail": "Nenhum dangerouslySetInnerHTML detectado",
+          "remediation": "Use DOMPurify.sanitize() antes de qualquer dangerouslySetInnerHTML com conteúdo dinâmico"
+        }
+      ],
+      "layer": "core",
+      "scope": "generic",
+      "moduleId": "core-client"
+    },
+    {
+      "id": "E",
+      "name": "Injection (SQL, Command, SSTI)",
+      "items": [
+        {
+          "id": "E1",
+          "description": "Nunca eval() com input do usuário",
+          "status": "pass",
+          "severity": "critical",
+          "detail": "Nenhum uso de eval() detectado",
+          "remediation": "Remova eval(). Se necessário, use alternativas seguras como JSON.parse() para dados ou funções nomeadas"
+        },
+        {
+          "id": "E2",
+          "description": "Nunca new Function() com input do usuário",
+          "status": "pass",
+          "severity": "critical",
+          "detail": "Nenhum uso de new Function() detectado",
+          "remediation": "Substitua new Function() por lógica explícita. new Function() executa código arbitrário."
+        },
+        {
+          "id": "E3",
+          "description": "Nunca interpolar input em comandos shell (exec/execSync)",
+          "status": "pass",
+          "severity": "critical",
+          "detail": "Nenhum uso de exec/execSync detectado",
+          "remediation": "Use spawn() com array de argumentos ou bibliotecas que escapam automaticamente os argumentos"
+        },
+        {
+          "id": "E4",
+          "description": "Queries SQL sem interpolação de template literals",
+          "status": "pass",
+          "severity": "critical",
+          "detail": "Nenhuma interpolação em queries SQL detectada",
+          "remediation": "Use queries parametrizadas com placeholders (ex: $1, $2) ou APIs de ORM/query builder seguras"
+        },
+        {
+          "id": "E5",
+          "description": "Queries parametrizadas (ORM/query builder/driver seguro)",
+          "status": "warn",
+          "severity": "critical",
+          "detail": "Nenhuma query de banco de dados detectada",
+          "remediation": "Use ORM/query builder seguro ou queries parametrizadas com placeholders (ex: $1, $2), nunca concatenação direta"
+        }
+      ],
+      "layer": "core",
+      "scope": "generic",
+      "moduleId": "core-injection"
+    },
+    {
+      "id": "G",
+      "name": "Files & Misconfigurations",
+      "items": [
+        {
+          "id": "G1",
+          "description": "Validação de path/UUID antes de operações de storage",
+          "status": "warn",
+          "severity": "high",
+          "detail": "Nenhuma operação de storage encontrada",
+          "remediation": "Valide UUIDs e caminhos antes de qualquer operação de storage para prevenir path traversal"
+        },
+        {
+          "id": "G2",
+          "description": "Prevenção de path traversal",
+          "status": "pass",
+          "severity": "critical",
+          "detail": "Nenhum padrão de path traversal detectado",
+          "remediation": "Use path.resolve() e valide que o resultado está dentro do diretório permitido"
+        },
+        {
+          "id": "G3",
+          "description": "Whitelist de extensões/tipos para upload",
+          "status": "warn",
+          "severity": "high",
+          "detail": "Nenhum handler de upload encontrado",
+          "remediation": "Use uma whitelist explícita de MIME types e extensões permitidas. Rejeite todo o resto."
+        },
+        {
+          "id": "G4",
+          "description": "Limite de tamanho de arquivo em uploads",
+          "status": "warn",
+          "severity": "medium",
+          "detail": "Nenhum handler de upload encontrado",
+          "remediation": "Configure um limite de tamanho máximo para uploads (ex: 10MB) e rejeite arquivos maiores"
+        },
+        {
+          "id": "G5",
+          "description": ".gitignore inclui .env e .env.local",
+          "status": "fail",
+          "severity": "critical",
+          "file": "<PROJECT_ROOT>/.gitignore",
+          "detail": ".gitignore não encontrado",
+          "remediation": "Adicione .env, .env.local, .env.*.local ao .gitignore imediatamente"
+        },
+        {
+          "id": "G6",
+          "description": "Source maps desabilitados em produção (Next.js)",
+          "scope": "stack-specific",
+          "status": "skip",
+          "severity": "medium",
+          "detail": "Check específico para Next.js — não aplicável neste stack"
+        }
+      ],
+      "layer": "core",
+      "scope": "generic",
+      "moduleId": "core-files"
+    },
+    {
+      "id": "H",
+      "name": "Secrets & Cryptography",
+      "items": [
+        {
+          "id": "H1",
+          "description": "Sem credenciais hardcoded no código-fonte",
+          "status": "pass",
+          "severity": "critical",
+          "detail": "Nenhum padrão de secret hardcoded detectado",
+          "remediation": "Mova todos os secrets para variáveis de ambiente e use process.env.NOME_DA_CHAVE"
+        },
+        {
+          "id": "H2",
+          "description": ".env.example como template para variáveis de ambiente",
+          "status": "warn",
+          "severity": "high",
+          "detail": ".env.example não encontrado — outros devs podem não saber quais variáveis são necessárias",
+          "remediation": "Crie .env.example com todas as variáveis necessárias (sem valores reais)"
+        },
+        {
+          "id": "H3",
+          "description": "Limpeza de memória após uso de dados sensíveis (memzero)",
+          "status": "warn",
+          "severity": "high",
+          "detail": "Nenhuma limpeza de memória explícita detectada — verifique se chaves criptográficas são limpas após uso",
+          "remediation": "Zere buffers com chaves após uso: key.fill(0) ou use sodium.memzero() da libsodium"
+        },
+        {
+          "id": "H4",
+          "description": "KDF robusto (Argon2id) para derivação de chaves/senhas",
+          "status": "warn",
+          "severity": "high",
+          "detail": "Argon2id não detectado — verifique se está usando KDF robusto para senhas",
+          "remediation": "Use argon2id para derivar chaves de senhas: `await argon2.hash(password, { type: argon2.argon2id })`"
+        },
+        {
+          "id": "H5",
+          "description": "API keys nunca em variáveis NEXT_PUBLIC_",
+          "status": "pass",
+          "severity": "critical",
+          "detail": "Nenhuma variável NEXT_PUBLIC_ com padrão de secret detectada",
+          "remediation": "Variáveis NEXT_PUBLIC_ são expostas ao browser. Use variáveis sem NEXT_PUBLIC_ para secrets."
+        },
+        {
+          "id": "H6",
+          "description": "Secrets nunca em localStorage/sessionStorage",
+          "status": "pass",
+          "severity": "critical",
+          "detail": "Nenhum armazenamento de secret em localStorage detectado",
+          "remediation": "Use httpOnly cookies para tokens. localStorage é acessível via XSS."
+        }
+      ],
+      "layer": "core",
+      "scope": "generic",
+      "moduleId": "core-secrets"
+    },
+    {
+      "id": "I",
+      "name": "Hardening & API Governance",
+      "items": [
+        {
+          "id": "I1",
+          "description": "CORS configurado com origins específicas (nunca *)",
+          "status": "warn",
+          "severity": "high",
+          "detail": "Configuração CORS não detectada — verifique manualmente",
+          "remediation": "Configure CORS com lista explícita de origens: Access-Control-Allow-Origin: https://seu-dominio.com"
+        },
+        {
+          "id": "I2",
+          "description": "TLS/HTTPS obrigatório (HSTS configurado)",
+          "status": "fail",
+          "severity": "high",
+          "detail": "HSTS (Strict-Transport-Security) não configurado",
+          "remediation": "Adicione: Strict-Transport-Security: max-age=31536000; includeSubDomains; preload"
+        },
+        {
+          "id": "I3",
+          "description": "X-Powered-By removido da resposta",
+          "status": "warn",
+          "severity": "low",
+          "detail": "X-Powered-By pode estar exposto — verifique a resposta do servidor",
+          "remediation": "Desative/remova o header X-Powered-By na configuração do servidor/framework"
+        },
+        {
+          "id": "I4",
+          "description": "Rate limit global + por endpoint configurado",
+          "status": "fail",
+          "severity": "high",
+          "detail": "Nenhum rate limiting detectado",
+          "remediation": "Configure rate limiting global no middleware e limites específicos por endpoint sensível"
+        }
+      ],
+      "layer": "core",
+      "scope": "generic",
+      "moduleId": "core-hardening"
+    },
+    {
+      "id": "L",
+      "name": "CI/CD & Dependencies",
+      "items": [
+        {
+          "id": "L1",
+          "description": "Lockfile commitado (package-lock.json / yarn.lock / pnpm-lock.yaml / Gemfile.lock)",
+          "status": "fail",
+          "severity": "medium",
+          "detail": "Nenhum lockfile encontrado — sem garantia de versões reproduzíveis",
+          "remediation": "Faça commit do lockfile do gerenciador em uso para garantir builds reproduzíveis"
+        },
+        {
+          "id": "L2",
+          "description": "Auditoria de dependências sem vulnerabilidades high/critical",
+          "status": "warn",
+          "severity": "high",
+          "detail": "package.json não encontrado — check L2 se aplica apenas a projetos Node.js"
+        },
+        {
+          "id": "L5",
+          "description": "Auditoria de gems (Ruby) sem vulnerabilidades conhecidas",
+          "status": "skip",
+          "severity": "high",
+          "detail": "Check especifico para stack Ruby/Rails",
+          "scope": "stack-specific"
+        },
+        {
+          "id": "L3",
+          "description": "Auditoria automatizada em workflow CI/CD",
+          "status": "warn",
+          "severity": "high",
+          "detail": "Diretório .github/workflows não encontrado",
+          "remediation": "Crie um workflow de CI com auditoria de dependências (npm/pnpm/yarn audit)"
+        },
+        {
+          "id": "L4",
+          "description": "Auditoria semanal agendada (cron no workflow)",
+          "status": "warn",
+          "severity": "medium",
+          "detail": "Diretório .github/workflows não encontrado",
+          "remediation": "Configure workflow agendado para auditoria semanal de dependências"
+        }
+      ],
+      "layer": "core",
+      "scope": "generic",
+      "moduleId": "core-dependencies"
+    },
+    {
+      "id": "M",
+      "name": "Security Tests",
+      "items": [
+        {
+          "id": "M1",
+          "description": "Testes de isolamento cross-tenant",
+          "status": "fail",
+          "severity": "high",
+          "detail": "Nenhum teste de isolamento cross-tenant encontrado",
+          "remediation": "Adicione testes que tentam acessar recursos de outro tenant e esperam 403/404"
+        },
+        {
+          "id": "M2",
+          "description": "Testes de escalada de privilégio",
+          "status": "fail",
+          "severity": "high",
+          "detail": "Nenhum teste de escalada de privilégio encontrado",
+          "remediation": "Adicione testes que tentam ações não autorizadas e verificam que retornam 403"
+        },
+        {
+          "id": "M3",
+          "description": "Testes de validação de senha",
+          "status": "warn",
+          "severity": "medium",
+          "detail": "Nenhum teste de política de senha encontrado",
+          "remediation": "Adicione testes para senhas fracas, comuns e com comprimento insuficiente"
+        },
+        {
+          "id": "M4",
+          "description": "Testes de rate limiting",
+          "status": "warn",
+          "severity": "medium",
+          "detail": "Nenhum teste de rate limiting encontrado",
+          "remediation": "Adicione testes que simulam excesso de requisições e verificam resposta 429"
+        },
+        {
+          "id": "M5",
+          "description": "Testes de criptografia/decriptografia",
+          "status": "warn",
+          "severity": "medium",
+          "detail": "Nenhum teste de criptografia encontrado",
+          "remediation": "Adicione testes para encrypt/decrypt, derivação de chave e integridade criptográfica"
+        },
+        {
+          "id": "M6",
+          "description": "Testes de proteção CSRF",
+          "status": "warn",
+          "severity": "medium",
+          "detail": "Nenhum teste de CSRF encontrado",
+          "remediation": "Adicione testes que enviam requisições sem origin válida e verificam rejeição"
+        },
+        {
+          "id": "M7",
+          "description": "Testes de RLS (Row Level Security)",
+          "status": "warn",
+          "severity": "high",
+          "detail": "Nenhum teste específico de RLS encontrado",
+          "remediation": "Adicione testes que verificam que RLS impede acesso a dados de outros usuários"
+        },
+        {
+          "id": "M8",
+          "description": "Suíte de testes de segurança existente",
+          "status": "fail",
+          "severity": "medium",
+          "detail": "0 arquivo(s) de teste encontrado(s)",
+          "remediation": "Mantenha cobertura de testes para os controles de segurança críticos"
+        }
+      ],
+      "layer": "core",
+      "scope": "generic",
+      "moduleId": "core-tests"
+    },
+    {
+      "id": "N",
+      "name": "Error Handling & Logging",
+      "items": [
+        {
+          "id": "N1",
+          "description": "Catálogo centralizado de erros",
+          "status": "warn",
+          "severity": "medium",
+          "detail": "Nenhum catálogo centralizado de erros detectado",
+          "remediation": "Crie um arquivo errors.ts com ERROR_MESSAGES centralizado para garantir mensagens genéricas e consistentes"
+        },
+        {
+          "id": "N2",
+          "description": "Sem stack traces em produção (não expostos na resposta)",
+          "status": "pass",
+          "severity": "critical",
+          "detail": "Nenhum stack trace exposto na resposta detectado",
+          "remediation": "Em produção, log o erro internamente e retorne apenas mensagem genérica ao cliente"
+        },
+        {
+          "id": "N3",
+          "description": "Respostas genéricas de erro para o usuário",
+          "status": "warn",
+          "severity": "high",
+          "detail": "Não foi possível verificar padrão de respostas de erro",
+          "remediation": "Retorne sempre mensagens genéricas ao cliente. Log o erro real internamente com ID de correlação."
+        },
+        {
+          "id": "N4",
+          "description": "NUNCA logar secrets/tokens/PII em console",
+          "status": "pass",
+          "severity": "critical",
+          "detail": "Nenhum log com dados sensíveis detectado",
+          "remediation": "Nunca logue passwords, tokens, ou chaves. Use IDs de correlação para rastrear sem expor dados."
+        },
+        {
+          "id": "N5",
+          "description": "Auth errors não revelam se usuário existe (anti-enumeração)",
+          "status": "pass",
+          "severity": "high",
+          "detail": "Nenhuma mensagem de erro que revele existência de usuário detectada",
+          "remediation": "Use sempre \"Email ou senha inválidos\" em erros de autenticação, nunca indique se o email existe"
+        },
+        {
+          "id": "N6",
+          "description": "Console limpo em produção (logs estruturados)",
+          "status": "pass",
+          "severity": "low",
+          "detail": "0 console.log/debug encontrado(s) em arquivos de servidor",
+          "remediation": "Use logger estruturado (pino, winston) em vez de console.log. Evite logs verbosos em produção."
+        }
+      ],
+      "layer": "core",
+      "scope": "generic",
+      "moduleId": "core-error-handling"
+    }
+  ]
+}

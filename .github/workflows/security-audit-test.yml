@@ -16,6 +16,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Install dependencies
+        working-directory: ./security-audit
+        run: npm install
       - name: Run tests
         working-directory: ./security-audit
         run: npm test
