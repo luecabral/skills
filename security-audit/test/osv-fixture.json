@@ -1,0 +1,10 @@
+{
+  "npm:lodash:4.17.11": [
+    {
+      "id": "CVE-2019-10744",
+      "severity": "high",
+      "summary": "Prototype pollution in lodash",
+      "fixedIn": "4.17.12"
+    }
+  ]
+}

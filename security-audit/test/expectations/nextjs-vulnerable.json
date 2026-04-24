@@ -1,0 +1,17 @@
+{
+  "fixture": "nextjs-vulnerable",
+  "mustFail": [
+    "E1",
+    "E2",
+    "E3",
+    "E4",
+    "H1",
+    "H5",
+    "H6",
+    "N4",
+    "A5",
+    "L6"
+  ],
+  "mustPass": [],
+  "mustWarn": []
+}

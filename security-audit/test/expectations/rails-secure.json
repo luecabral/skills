@@ -1,0 +1,11 @@
+{
+  "fixture": "rails-secure",
+  "mustFail": [],
+  "mustPass": [
+    "E1",
+    "E3",
+    "E4",
+    "R4"
+  ],
+  "mustWarn": []
+}

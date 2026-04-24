@@ -1,0 +1,15 @@
+{
+  "fixture": "rails-vulnerable",
+  "mustFail": [
+    "E1",
+    "E4",
+    "R4",
+    "S4",
+    "Q5",
+    "N5"
+  ],
+  "mustPass": [],
+  "mustWarn": [
+    "R5"
+  ]
+}
