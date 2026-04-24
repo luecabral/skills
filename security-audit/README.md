@@ -33,7 +33,7 @@ O script nao executa a aplicacao auditada. Ele apenas analisa os arquivos do rep
 Defina uma variavel com o caminho da skill (em qualquer repositorio):
 
 ```bash
-SEC_AUDIT_SCRIPT="/caminho/para/security-audit/dist/index.js"
+SEC_AUDIT_SCRIPT="/caminho/para/security-audit/dist/scripts/index.js"
 ```
 
 Comandos:
@@ -67,6 +67,8 @@ node "$SEC_AUDIT_SCRIPT" --configure
 Requisitos:
 
 - Node.js 18+
+- Rode `npm run build` antes de usar `node dist/scripts/index.js`; em desenvolvimento, use `npx tsx scripts/index.ts`.
+- `memory/`, `dist/` e `node_modules/` são artefatos locais e não devem ser commitados.
 
 ---
 
@@ -125,6 +127,8 @@ Opcional no `.gitignore` do destino:
 
 ```bash
 echo "tools/security-audit/memory/" >> /destino/.gitignore
+echo "tools/security-audit/dist/" >> /destino/.gitignore
+echo "tools/security-audit/node_modules/" >> /destino/.gitignore
 ```
 
 Depois, execute com o caminho real do script:

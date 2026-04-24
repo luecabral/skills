@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { join, relative } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type {
   AuditReport,
@@ -125,6 +125,12 @@ function calculateBreakdown(items: CheckItem[]): SeverityBreakdown {
   return breakdown;
 }
 
+const severityLevels: Record<Severity, number> = { critical: 4, high: 3, medium: 2, low: 1 };
+
+function failsAtOrAbove(item: CheckItem, failOn: Severity): boolean {
+  return item.status === 'fail' && severityLevels[item.severity] >= severityLevels[failOn];
+}
+
 async function configureScan(projectRoot: string): Promise<void> {
   const selfCommand = getSelfCommand();
   const config = (await loadConfig(projectRoot)) || createDefaultConfig(projectRoot);
@@ -238,11 +244,11 @@ async function main(): Promise<void> {
     projectRoot, 
     stack,
     io: {
-      cachedGlob: async (patterns: string[]) => {
-        const key = patterns.slice().sort().join('|');
+      cachedGlob: async (rootDir: string, patterns: string[]) => {
+        const key = `${resolve(rootDir)}::${patterns.slice().sort().join('|')}`;
         if (globCache.has(key)) return globCache.get(key)!;
         const { globFiles } = await import('./utils.js');
-        const result = await globFiles(projectRoot, patterns);
+        const result = await globFiles(rootDir, patterns);
         globCache.set(key, result);
         return result;
       },
@@ -318,8 +324,8 @@ async function main(): Promise<void> {
 
   const criticalFailures = scorableItems.filter((i) => i.status === 'fail' && i.severity === 'critical');
   const highFailures = scorableItems.filter((i) => i.status === 'fail' && i.severity === 'high');
-  
-  const gate = scorableItems.some(i => i.status === 'fail' && i.severity === 'critical') ? 'fail' : 'pass';
+  const hasFailures = scorableItems.some((i) => failsAtOrAbove(i, failOn));
+  const gate = hasFailures ? 'fail' : 'pass';
 
   const projectName = config.name || projectRoot.split('/').pop() || 'unknown';
 
@@ -331,6 +337,7 @@ async function main(): Promise<void> {
     modules: moduleExecution,
     categories: filteredCategories,
     gate,
+    failOn,
     coverage,
     score,
     breakdown,
@@ -354,13 +361,6 @@ async function main(): Promise<void> {
   }
 
   // Exit with error code if failures exist based on --fail-on
-  const severityLevels = { critical: 4, high: 3, medium: 2, low: 1 };
-  const failOnLevel = severityLevels[failOn];
-  
-  const hasFailures = scorableItems.some(
-    (i) => i.status === 'fail' && severityLevels[i.severity] >= failOnLevel
-  );
-
   process.exit(hasFailures ? 1 : 0);
 }
 

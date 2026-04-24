@@ -112,6 +112,7 @@ export async function saveAuditResult(projectRoot: string, report: AuditReport):
   const entry: AuditHistoryEntry = {
     timestamp: report.timestamp,
     gate: report.gate,
+    failOn: report.failOn,
     coverage: report.coverage,
     score: report.score,
     breakdown: report.breakdown,

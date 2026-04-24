@@ -41,25 +41,63 @@ const RulesFileSchema = z.object({
 
 export type CustomRule = z.infer<typeof RuleSchema>;
 
-export async function loadCustomRules(projectRoot: string): Promise<CustomRule[]> {
+export interface CustomRulesLoadResult {
+  rules: CustomRule[];
+  error?: {
+    file: string;
+    message: string;
+  };
+}
+
+function formatRulesError(err: unknown): string {
+  if (err instanceof z.ZodError) {
+    return err.issues.map((issue) => `${issue.path.join('.') || 'rules'}: ${issue.message}`).join('; ');
+  }
+  return err instanceof Error ? err.message : String(err);
+}
+
+export async function loadCustomRules(projectRoot: string): Promise<CustomRulesLoadResult> {
   const rulesPath = join(projectRoot, '.security-audit.rules.yaml');
-  if (!(await fileExists(rulesPath))) return [];
+  if (!(await fileExists(rulesPath))) return { rules: [] };
 
   try {
     const content = await readFileContent(rulesPath);
-    if (!content) return [];
+    if (!content) return { rules: [] };
 
     const parsed = parse(content);
     const validated = RulesFileSchema.parse(parsed);
-    return validated.rules;
+    return { rules: validated.rules };
   } catch (err) {
-    console.error(`Erro ao carregar regras customizadas em ${rulesPath}:`, err);
-    return [];
+    return {
+      rules: [],
+      error: {
+        file: rulesPath,
+        message: formatRulesError(err),
+      },
+    };
   }
 }
 
 export async function runCustomRules(projectRoot: string, context?: CheckContext): Promise<CategoryResult | null> {
-  const rules = await loadCustomRules(projectRoot);
+  const loadResult = await loadCustomRules(projectRoot);
+  const rules = loadResult.rules;
+  if (loadResult.error) {
+    return {
+      id: 'CUSTOM',
+      name: 'Regras Customizadas',
+      items: [
+        {
+          id: 'CUSTOM-RULES-INVALID',
+          description: 'Arquivo de regras customizadas inválido',
+          status: 'fail',
+          severity: 'high',
+          file: loadResult.error.file,
+          detail: loadResult.error.message,
+          remediation: 'Corrija .security-audit.rules.yaml para que as regras customizadas sejam executadas',
+        },
+      ],
+    };
+  }
   if (rules.length === 0) return null;
 
   const items: CheckItem[] = [];

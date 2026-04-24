@@ -28,13 +28,7 @@ npx tsx <caminho-da-skill>/scripts/index.ts
 # alternativa com build: npm run build && node <caminho-da-skill>/dist/scripts/index.js
 ```
 
-Se for a primeira vez no projeto (sem `memory/` para ele), pergunte ao usuário:
-- Qual o nome do projeto?
-- Qual o tipo? (web-app, api, biblioteca, etc.)
-- Lida com dados sensíveis? (PII, financeiro, saúde)
-- É público ou interno?
-
-Salve as respostas com:
+Se precisar revisar ou compartilhar a configuração do projeto, use:
 ```bash
 # O script cria config padrão automaticamente na primeira execução
 # Para reconfigurar:

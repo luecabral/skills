@@ -50,9 +50,9 @@ export async function grepInFiles(
   return results;
 }
 
-export async function globFiles(rootDir: string, patterns: string[], context?: { io?: { cachedGlob: (patterns: string[]) => Promise<string[]> } }): Promise<string[]> {
+export async function globFiles(rootDir: string, patterns: string[], context?: { io?: { cachedGlob: (rootDir: string, patterns: string[]) => Promise<string[]> } }): Promise<string[]> {
   if (context?.io?.cachedGlob) {
-    return context.io.cachedGlob(patterns);
+    return context.io.cachedGlob(rootDir, patterns);
   }
   const results: string[] = [];
 

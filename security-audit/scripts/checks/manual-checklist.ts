@@ -2,7 +2,7 @@ import { join } from 'node:path';
 import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import type { CategoryResult, CheckContext, CheckItem } from '../types.js';
-import { getProjectHash } from '../memory.js';
+import { getProjectMemoryDir } from '../memory.js';
 import { fileExists } from '../utils.js';
 
 export interface ManualAnswer {
@@ -43,15 +43,12 @@ const MANUAL_CHECKS = [
   }
 ];
 
-async function getAnswersPath(projectRoot: string): Promise<string> {
-  const hash = getProjectHash(projectRoot);
-  const url = new URL(import.meta.url);
-  const skillDir = dirname(dirname(dirname(url.pathname)));
-  return join(skillDir, 'memory', hash, 'manual-answers.json');
+export function getManualAnswersPath(projectRoot: string): string {
+  return join(getProjectMemoryDir(projectRoot), 'manual-answers.json');
 }
 
 export async function loadManualAnswers(projectRoot: string): Promise<ManualAnswer[]> {
-  const path = await getAnswersPath(projectRoot);
+  const path = getManualAnswersPath(projectRoot);
   if (!(await fileExists(path))) return [];
   try {
     const content = await readFile(path, 'utf-8');
@@ -62,7 +59,7 @@ export async function loadManualAnswers(projectRoot: string): Promise<ManualAnsw
 }
 
 export async function saveManualAnswers(projectRoot: string, answers: ManualAnswer[]): Promise<void> {
-  const path = await getAnswersPath(projectRoot);
+  const path = getManualAnswersPath(projectRoot);
   await mkdir(dirname(path), { recursive: true });
   await writeFile(path, JSON.stringify(answers, null, 2), 'utf-8');
 }

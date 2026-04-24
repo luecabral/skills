@@ -136,7 +136,7 @@ export function formatTerminal(report: AuditReport, lastAudit: AuditHistoryEntry
   const gateColor = gate === 'pass' ? GREEN : RED;
 
   lines.push(`${BOLD}${LINE}${RESET}`);
-  lines.push(`${BOLD}  GATE DE SEGURANÇA: ${gateColor}${gateIcon} ${gate.toUpperCase()}${RESET}`);
+  lines.push(`${BOLD}  GATE DE SEGURANÇA (--fail-on=${report.failOn}): ${gateColor}${gateIcon} ${gate.toUpperCase()}${RESET}`);
   lines.push(`${BOLD}  COBERTURA:         ${scoreCol}${passed}/${total} itens (${percentage.toFixed(1)}%)${RESET}`);
   lines.push('');
 

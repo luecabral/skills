@@ -36,7 +36,7 @@ export interface CheckContext {
   projectRoot: string;
   stack: StackProfile;
   io?: {
-    cachedGlob: (patterns: string[]) => Promise<string[]>;
+    cachedGlob: (rootDir: string, patterns: string[]) => Promise<string[]>;
     cachedRead: (path: string) => Promise<string | null>;
   };
 }
@@ -95,6 +95,7 @@ export interface AuditReport {
   modules: ModuleExecution[];
   categories: CategoryResult[];
   gate: 'pass' | 'fail';
+  failOn: Severity;
   coverage: { passed: number; total: number; percentage: number };
   score: { passed: number; total: number; percentage: number };
   breakdown: SeverityBreakdown;
@@ -133,6 +134,7 @@ export interface ProjectConfig {
 export interface AuditHistoryEntry {
   timestamp: string;
   gate?: 'pass' | 'fail';
+  failOn?: Severity;
   coverage?: { passed: number; total: number; percentage: number };
   score: { passed: number; total: number; percentage: number };
   breakdown: SeverityBreakdown;
