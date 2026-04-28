@@ -25,6 +25,7 @@ const EXPECTATIONS_DIR = join(SECURITY_AUDIT_ROOT, 'test', 'expectations');
 const DIST_CLI = join(SECURITY_AUDIT_ROOT, 'dist', 'scripts', 'index.js');
 
 process.env.SECURITY_AUDIT_OSV_MOCK_FILE ||= join(SECURITY_AUDIT_ROOT, 'test', 'osv-fixture.json');
+process.env.SECURITY_AUDIT_SKIP_EXTERNAL_AUDITS ||= '1';
 
 const FIXTURES = [
   'rails-vulnerable',

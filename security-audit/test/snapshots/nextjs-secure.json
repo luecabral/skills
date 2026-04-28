@@ -468,10 +468,9 @@
         {
           "id": "L2",
           "description": "Auditoria de dependências sem vulnerabilidades high/critical",
-          "status": "warn",
+          "status": "skip",
           "severity": "high",
-          "detail": "Não foi possível executar auditoria com \"npm audit --audit-level=high --json\" (comando: npm audit --audit-level=high --json)",
-          "remediation": "Execute `npm audit` e `npm audit fix`, ou atualize manualmente as dependências vulneráveis"
+          "detail": "Auditoria externa de dependências desabilitada pelo ambiente"
         },
         {
           "id": "L6",

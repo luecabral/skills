@@ -139,6 +139,10 @@ function parseAuditFromCommandOutput(output: string): AuditVulnerabilitySummary 
   return null;
 }
 
+function shouldSkipExternalAudits(): boolean {
+  return process.env.SECURITY_AUDIT_SKIP_EXTERNAL_AUDITS === '1';
+}
+
 interface LockPackage {
   name: string;
   version: string;
@@ -295,12 +299,15 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
   const hasPackageJson = await fileExists(join(projectRoot, 'package.json'));
 
   // L2 — auditoria de dependências (npm/pnpm/yarn)
-  let auditStatus: 'pass' | 'fail' | 'warn' = 'warn';
+  let auditStatus: CheckStatus = 'warn';
   let auditDetail = 'Auditoria de dependências não executada';
   let auditRemediation: string | undefined;
   let usedCommand: string | undefined;
 
-  if (!hasPackageJson) {
+  if (shouldSkipExternalAudits()) {
+    auditStatus = 'skip';
+    auditDetail = 'Auditoria externa de dependências desabilitada pelo ambiente';
+  } else if (!hasPackageJson) {
     auditStatus = 'warn';
     auditDetail = 'package.json não encontrado — check L2 se aplica apenas a projetos Node.js';
   } else {
@@ -431,9 +438,9 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
 
   // L5 — Auditoria de gems (Ruby/Bundler)
   if (hasRuby) {
-    let rubyAuditStatus: 'pass' | 'fail' | 'warn' = 'warn';
+    let rubyAuditStatus: CheckStatus = 'warn';
     let rubyAuditDetail = 'bundle-audit nao executado';
-    let rubyAuditRemediation =
+    let rubyAuditRemediation: string | undefined =
       'Execute `bundle-audit check --update` (ou `bundle exec bundle-audit check --update`) e aplique os upgrades recomendados';
     let rubyCommandUsed: string | undefined;
 
@@ -442,7 +449,13 @@ export async function check(projectRoot: string, context?: CheckContext): Promis
       'bundle-audit check --update',
     ];
 
-    for (const command of rubyCommands) {
+    if (shouldSkipExternalAudits()) {
+      rubyAuditStatus = 'skip';
+      rubyAuditDetail = 'Auditoria externa de gems desabilitada pelo ambiente';
+      rubyAuditRemediation = undefined;
+    }
+
+    for (const command of shouldSkipExternalAudits() ? [] : rubyCommands) {
       try {
         const output = execSync(command, {
           cwd: projectRoot,

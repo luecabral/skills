@@ -465,9 +465,9 @@
         {
           "id": "L2",
           "description": "Auditoria de dependências sem vulnerabilidades high/critical",
-          "status": "warn",
+          "status": "skip",
           "severity": "high",
-          "detail": "package.json não encontrado — check L2 se aplica apenas a projetos Node.js"
+          "detail": "Auditoria externa de dependências desabilitada pelo ambiente"
         },
         {
           "id": "L6",
@@ -479,10 +479,9 @@
         {
           "id": "L5",
           "description": "Auditoria de gems (Ruby) sem vulnerabilidades conhecidas",
-          "status": "warn",
+          "status": "skip",
           "severity": "high",
-          "detail": "Nenhum comando bundle-audit compativel foi executado no ambiente atual",
-          "remediation": "Execute `bundle-audit check --update` (ou `bundle exec bundle-audit check --update`) e aplique os upgrades recomendados",
+          "detail": "Auditoria externa de gems desabilitada pelo ambiente",
           "scope": "stack-specific"
         },
         {
