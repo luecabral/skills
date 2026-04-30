@@ -136,13 +136,19 @@ Identifique o tipo predominante de mudança e gere o título:
 
 ### Passo 4 — Gerar o corpo do PR
 
-Preencha o template abaixo. As três primeiras seções são para a IA revisora; as duas últimas são para o humano que vai testar.
+Preencha o template abaixo. Ele contém o contexto para a revisão, um checklist confirmando as boas práticas e o roteiro de testes. Assuma que os itens de validação foram cumpridos de acordo com o fluxo anterior.
 
 ```markdown
 ### O que esse PR faz
 [2-3 frases descrevendo a intenção — o que o usuário consegue fazer agora
 que não conseguia antes, ou o que foi corrigido. Foque no "o quê" e no
 "para quê", não no "como".]
+
+### Validações
+- [x] **Documentação:** Changelog, AGENTS.md e/ou docs da feature atualizados.
+- [x] **Testes:** Criados/atualizados e rodando verde.
+- [x] **Git:** Rebase com a `main` realizado.
+- [x] **Código limpo:** Sem logs, debuggers ou comentários mortos.
 
 ### Decisões técnicas relevantes
 [Por que foi implementado dessa forma e não de outra. Inclua:
@@ -158,11 +164,8 @@ complexa. Oriente a IA sobre onde focar a revisão. Exemplos:
 - "A query em models/user.js foi reescrita e pode ter impacto de performance"
 Escreva "Nenhum risco identificado" se for uma mudança simples e isolada.]
 
-### Staging
-URL: [URL do ambiente de staging com esta branch]
-
 ### O que testar
-[Liste os fluxos que o revisor humano deve validar no staging.
+[Liste os fluxos que o revisor humano deve validar localmente.
 Use linguagem simples, sem jargão técnico.
 Inclua o que deve acontecer E o que deve aparecer em caso de erro.]
 
@@ -261,7 +264,7 @@ Exiba a URL do PR e informe que foi criado como draft com o changelog postado co
 ## Regras
 
 - Nunca crie o PR sem confirmação do usuário
-- O corpo deve sempre ter as 5 seções — não omita nenhuma mesmo que seja curta
+- O corpo deve sempre ter todas as seções do template — não omita nenhuma mesmo que seja curta
 - "O que tem mais risco" nunca deve ser deixado em branco sem justificativa
 - O changelog deve ser legível por alguém fora da equipe de desenvolvimento
 - Se o `gh` CLI não estiver configurado, oriente o usuário a configurar antes de continuar
