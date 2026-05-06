@@ -94,6 +94,16 @@ Versão do design system específica para o projeto Inkrivel. Mesma função do 
 
 ---
 
+### 🧪 tdd
+
+Metodologia de desenvolvimento guiada por testes: o teste vem antes do código. Segue o ciclo **Red-Green-Refactor** vertical slice por vertical slice — um comportamento por vez, do teste à implementação completa.
+
+Diferente do `test-gate` (que escreve testes depois da implementação como gate de qualidade), o TDD usa o teste para guiar o **design da interface** antes de qualquer código existir. Testes escritos assim cobrem apenas a interface pública e sobrevivem a refatorações.
+
+**Quando usar:** "faz com TDD", "quero usar TDD aqui", "desenvolve orientado a testes"
+
+---
+
 ### 🧪 test-gate
 
 Gate de qualidade antes do commit: infere o que foi implementado via Git, identifica os cenários relevantes e escreve os testes (happy path, sad path, edge cases, regressão e segurança quando necessário). Usa apenas interfaces públicas — testes escritos assim sobrevivem a refatorações.
