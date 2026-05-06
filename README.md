@@ -19,7 +19,7 @@ Skills são instruções que ensinam a IA a se comportar de um jeito específico
     │  implementa o código                     │
     │       ↓                                  │
     │  Skills ativam conforme necessário:      │
-    │  • /design-system ou /inkrivel_design_system (UI Rails) │
+    │  • /inkrivel_design_system (UI Rails)    │
     │  • /ux-validation (telas e componentes)  │
     │  • /vibesec (auth, dados, uploads)       │
     └──────────────────────────────────────────┘
@@ -78,19 +78,11 @@ Checklist cobre: IDOR, SQL/XSS injection, autenticação e sessão, exposição 
 
 ---
 
-### 🎨 design-system
-
-Padrões visuais do admin para projetos Rails + Tailwind CDN + Hotwire. Cobre container de página, escala tipográfica, grids responsivos, cards, botões, tabelas, tabs, badges, breadcrumb e estados vazios. Aplica diretamente ao criar ou modificar HTML.
-
-**Quando usar:** ao criar ou modificar telas na área admin de projetos Rails
-
----
-
 ### 🎨 inkrivel_design_system
 
-Versão do design system específica para o projeto Inkrivel. Mesma função do `design-system`, com tokens e padrões próprios do projeto.
+Padrões visuais do admin para a stack Rails + Tailwind CDN + Hotwire + InkDashboard Engine. Cobre container de página, escala tipográfica, grids responsivos, cards, botões, selects, breadcrumb, badges, checkboxes, tabelas e estados vazios. Os dois padrões de índice (com/sem busca) e o padrão de formulário com breadcrumb estão prontos em `COMPONENTS.md` para copiar e adaptar.
 
-**Quando usar:** ao criar ou modificar telas em projetos da stack Inkrivel
+**Quando usar:** ao criar ou modificar telas na área admin
 
 ---
 
