@@ -7,120 +7,57 @@ description: Use ao encontrar qualquer bug, teste falhando, comportamento inespe
 
 Processo de 4 fases para encontrar a causa raiz — nunca tratar sintoma.
 
-## Princípio
+## Passo 0 — Construir sinal de feedback
 
-A primeira hipótese raramente é a causa real. Debugar sem processo leva a correções que mascaram o problema ou introduzem novos bugs. Esta skill força a investigação antes da correção.
-
-## O processo
-
-### Passo 0 — Construir sinal de feedback
-
-Antes de qualquer investigação, construa uma forma rápida e determinística de reproduzir o problema. Sem isso, cada experimento custa tempo demais.
-
-Escolha o sinal mais simples que reproduz o bug:
+Antes de qualquer investigação, construa uma forma rápida e determinística de reproduzir o problema:
 - Teste automatizado que falha
-- Comando curl / script CLI que reproduz o comportamento
+- Comando curl / script CLI
 - Script throwaway no console do Rails/browser
-- Trace de requisição para replay
 
-O sinal precisa ser:
-- Rápido (segundos, não minutos)
-- Determinístico (falha sempre, não às vezes)
-- Isolado (sem dependências desnecessárias)
+O sinal precisa ser rápido (segundos), determinístico (falha sempre) e isolado. Se o bug acontece "às vezes", minimize variáveis até conseguir reprodução consistente.
 
-Se o bug acontece "às vezes" ou "só em produção", esse passo é ainda mais importante — minimize variáveis até conseguir reprodução consistente.
+## Fase 1 — OBSERVAR
 
-### Fase 1 — OBSERVAR
-
-Colete tudo sobre o problema antes de teorizar:
-
-- Qual é o comportamento atual? (exato, não "não funciona")
-- Qual é o comportamento esperado?
-- Qual é a mensagem de erro completa? (stack trace inteiro)
-- Em que contexto acontece? (sempre, às vezes, só com certos dados?)
-- Quando começou? (após qual mudança, se souber)
+- Comportamento atual (exato, não "não funciona") e esperado
+- Mensagem de erro completa (stack trace inteiro)
+- Em que contexto acontece? Quando começou?
 - O que foi alterado recentemente nos arquivos relacionados?
 
 Leia os arquivos relevantes — não apenas o diff, mas o contexto completo.
 
-### Fase 2 — HIPÓTESES
+## Fase 2 — HIPÓTESES
 
-Liste as causas possíveis em ordem de probabilidade. Para cada uma:
-- Por que poderia ser esta causa?
-- O que precisaria ser verdade para confirmar?
+Liste pelo menos 3 causas possíveis em ordem de probabilidade. Para cada uma: por que poderia ser esta causa? o que precisaria ser verdade para confirmar?
 
-**Não pule para a mais óbvia.** Considere pelo menos 3 hipóteses antes de escolher onde investigar.
+Categorias comuns: dado inválido, estado inconsistente, race condition, dependência externa falhando silenciosamente, erro de lógica, problema de ambiente.
 
-Exemplos de categorias:
-- Dado inválido chegando de onde não se espera
-- Estado inconsistente de variável ou objeto
-- Condição de corrida ou problema de timing
-- Dependência externa falhando silenciosamente
-- Erro de lógica em condicionais
-- Problema de ambiente (versão, configuração, variável de ambiente)
+## Fase 3 — TESTAR HIPÓTESES
 
-### Fase 3 — TESTAR HIPÓTESES
+Uma mudança por vez. Use o sinal do Passo 0 para validar cada experimento.
 
-Teste cada hipótese com o menor experimento possível:
-
-- Adicione logs estratégicos (não aleatórios) para verificar valores em pontos-chave
-- Isole o componente problemático
-- Reproduza o problema com o caso mais simples possível
-- Verifique os dados de entrada e saída em cada etapa
-
-**Nunca faça múltiplas mudanças ao mesmo tempo.** Uma mudança por vez — assim você sabe o que resolveu.
-
-**Minimização:** reduza o caso de reprodução ao menor possível — remova dados, dependências e contexto que não são necessários para o bug aparecer. Quanto menor o caso, mais clara fica a causa.
+**Minimização:** reduza ao caso mais simples possível — remova dados e contexto desnecessários.
 
 **Bisection (quando "quando começou?" é desconhecido):**
 ```bash
 git bisect start
 git bisect bad                  # commit atual tem o bug
 git bisect good <commit-antigo> # commit que funcionava
-# git bisect aponta commits — teste cada um com o sinal do Passo 0
+# teste cada commit apontado pelo bisect com o sinal do Passo 0
 ```
 
-Documente o que cada experimento revelou antes de passar para o próximo.
+Documente o que cada experimento revelou antes de avançar.
 
-### Fase 4 — CORRIGIR
+## Fase 4 — CORRIGIR
 
-Somente após confirmar a causa raiz:
-
-1. Implemente a correção no local correto (causa, não sintoma)
-2. Explique por que a correção resolve a causa raiz
-3. Verifique se a correção não quebra outros comportamentos relacionados
-4. Escreva um teste de regressão que usa o sinal do Passo 0 como base — deve falhar sem a correção e passar com ela. Só então acione `test-gate` para o restante da cobertura
-5. Acione `verification-before-completion` para confirmar que está resolvido
-
-## Formato de investigação
-
-Apresente o progresso assim:
-
-```
-🔍 INVESTIGANDO
-
-Comportamento atual: [exato]
-Comportamento esperado: [exato]
-Erro: [mensagem completa]
-
-Hipóteses (ordem de probabilidade):
-1. [hipótese] — [razão]
-2. [hipótese] — [razão]
-3. [hipótese] — [razão]
-
-Testando hipótese 1...
-→ [resultado do experimento]
-
-Testando hipótese 2...
-→ [resultado do experimento]
-
-✅ Causa raiz identificada: [descrição clara]
-Correção: [o que será mudado e por quê]
-```
+1. Implemente no local correto (causa, não sintoma)
+2. Explique por que resolve a causa raiz
+3. Verifique que não quebra comportamentos adjacentes
+4. Escreva teste de regressão usando o sinal do Passo 0 — deve falhar sem a correção e passar com ela
+5. Acione `verification-before-completion`
 
 ## Regras
 
-- **Nunca corrija sem identificar a causa raiz** — correções cegas criam débito técnico
-- Logs de debug adicionados durante a investigação devem ser removidos antes do commit
-- Se após 3 hipóteses testadas a causa ainda não for clara, pare e descreva o que foi descartado — às vezes o usuário tem contexto que o agente não tem
+- Nunca corrija sem identificar a causa raiz
+- Remova logs de debug antes do commit
+- Após 3 hipóteses sem resultado, pare e descreva o que foi descartado — o usuário pode ter contexto que você não tem
 - Bugs recorrentes indicam ausência de teste — sempre acione `test-gate` após a correção

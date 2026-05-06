@@ -1,141 +1,61 @@
 ---
 name: brainstorming
-description: Use quando o usuário quer explorar possibilidades ou entender como fazer algo. Ativa quando diz "como eu poderia fazer X", "quero explorar ideias de Y", "qual a melhor abordagem para Z", "não sei bem como resolver isso" ou expressa curiosidade sobre soluções. Ajuda a refinar o problema e explorar alternativas através de perguntas antes de qualquer implementação. Apresenta o design na conversa, não cria arquivos.
+description: Use quando o usuário quer explorar possibilidades ou entender como fazer algo. Ativa quando diz "como eu poderia fazer X", "quero explorar ideias de Y", "qual a melhor abordagem para Z", "não sei bem como resolver isso". Apresenta o design na conversa, não cria arquivos.
 ---
 
 # Brainstorming
 
 Refinamento de ideia antes de qualquer linha de código.
 
-## Princípio
-
-Nunca comece a implementar sem antes entender o problema real. Uma ideia vaga gera código errado. Perguntas certas agora evitam retrabalho depois.
-
 ## Quando NÃO usar
 
-- O usuário já tem um plano claro e detalhado → use `prd-to-issues`
+- O usuário já tem um plano claro → use `prd-to-issues`
 - O usuário está debugando algo existente → use `systematic-debugging`
-- O usuário quer apenas uma mudança pontual e simples (ex: "muda a cor desse botão")
+- Mudança pontual e simples (ex: "muda a cor desse botão")
 
 ## Processo
 
 ### Passo 1 — Entender o problema real
 
-Antes de perguntar: mapeie suposições ocultas e pontos cegos da ideia — casos de borda não mencionados, dependências de estado, impacto em módulos existentes.
+Antes de perguntar, mapeie suposições ocultas e pontos cegos da ideia.
 
-Para cada questão relevante:
-- Pergunte **uma por vez**, em ordem de dependência (não pergunte sobre deploy antes de entender o que será construído)
-- Junto com cada pergunta, **ofereça uma resposta recomendada** para o usuário confirmar ou redirecionar
+Pergunte **uma por vez**, em ordem de dependência. Junto com cada pergunta, **ofereça uma resposta recomendada**:
 
-  > "Isso vai persistir no banco ou só viver em sessão?
-  > Minha sugestão: banco, porque você vai querer histórico por usuário."
+> "Isso vai persistir no banco ou só viver em sessão?
+> Minha sugestão: banco, porque você vai querer histórico por usuário."
 
-Foco das perguntas:
-- **O quê:** o que exatamente deve acontecer? qual é o comportamento esperado?
-- **Para quem:** quem vai usar isso? qual é o contexto de uso?
-- **Critério de sucesso:** como sabemos que está pronto e funcionando?
-- **Restrições:** há algo que não pode mudar? integrações existentes? limitações técnicas?
-- **Casos de borda:** o que acontece se a entrada for inválida, vazia ou inesperada?
-- **Integrações afetadas:** como isso impacta módulos ou fluxos que já existem?
+Foco: o quê, para quem, critério de sucesso, restrições, casos de borda, integrações afetadas.
 
-### Passo 1.5 — Threat Modeling (obrigatório para features com dados, auth ou integrações externas)
+### Passo 1.5 — Threat Modeling (quando tocar em auth, dados ou integrações externas)
 
-Se a feature tocar em autenticação, dados do usuário, pagamentos, uploads, APIs externas ou controle de acesso, faça threat modeling antes de propor abordagens.
+Documente:
+- **Ativos** — quais dados são sensíveis? há dinheiro envolvido?
+- **Atacantes** — usuário malicioso autenticado, externo sem auth, bot, insider
+- **Vetores** — marque os relevantes: IDOR, SQL injection, XSS, CSRF, race condition, upload malicioso, brute force (ver REFERENCE.md para checklist completo)
 
-**Pergunte e documente:**
-
-**Ativos** — o que precisa ser protegido?
-- Quais dados trafegam ou são armazenados? São sensíveis (pessoais, financeiros)?
-- Há dinheiro, créditos ou recursos escassos envolvidos?
-
-**Atacantes** — quem pode tentar explorar isso?
-- Usuário malicioso autenticado (cliente do próprio sistema)
-- Atacante externo sem autenticação
-- Insider com acesso legítimo (funcionário, contratado)
-- Bot ou scraper automatizado
-- Dependência comprometida (supply chain)
-
-**Vetores** — como poderiam atacar? (marque os relevantes para a feature)
-- [ ] Acesso a dados de outro usuário (IDOR)
-- [ ] Injeção em queries (SQL/NoSQL Injection)
-- [ ] Execução de script no browser (XSS)
-- [ ] Falsificação de requisição (CSRF)
-- [ ] Enumeração de usuários ou recursos
-- [ ] Race condition (especialmente em pagamentos e contadores)
-- [ ] Upload de arquivo malicioso
-- [ ] Prompt injection (se houver IA)
-- [ ] Abuso de rate (brute force, scraping)
-
-**Classifique cada vetor identificado:**
-
-| Vetor | Probabilidade | Impacto | Prioridade |
-|---|---|---|---|
-| [vetor] | Alta/Média/Baixa | Alto/Médio/Baixo | 🔴/🟡/🟢 |
-
-Documente os vetores de alta prioridade em `docs/design.md` na seção "Riscos de segurança". Eles virarão tasks explícitas no `prd-to-issues`.
+Classifique cada vetor por probabilidade × impacto (🔴 Alta / 🟡 Média / 🟢 Baixa). Vetores 🔴 viram tasks explícitas no `prd-to-issues`.
 
 ### Passo 2 — Explorar alternativas
 
-Com base nas respostas, apresente 2–3 abordagens possíveis. Para cada uma:
-- O que faz
-- Vantagem principal
-- Desvantagem ou risco
+Apresente 2–3 abordagens com: o que faz, vantagem principal, desvantagem ou risco. Recomende uma com justificativa. Aguarde o usuário escolher.
 
-Recomende uma abordagem com justificativa clara. Aguarde o usuário escolher ou ajustar.
+### Passo 3 — Apresentar o design
 
-### Passo 3 — Apresentar o design em blocos
-
-Com a abordagem escolhida, descreva o design proposto em seções curtas:
+Com a abordagem escolhida, descreva em seções curtas (uma por vez, aguardando confirmação):
 - O que será criado ou modificado
 - Como as partes se conectam
-- O que fica fora do escopo (importante para evitar scope creep)
+- O que fica fora do escopo
 
-Apresente uma seção por vez e aguarde confirmação antes de continuar.
+### Passo 4 — Resumo final e próximo passo
 
-### Passo 4 — Apresentar o resumo final do design
+Apresente o resumo do design (problema, solução, escopo, fora do escopo, critério de sucesso, riscos de segurança se houver).
 
-Após aprovação do design, apresente o resumo na conversa (não crie arquivo):
-
-```
-# Design: [nome da feature]
-Data: [data]
-
-## Problema
-[descrição do problema]
-
-## Solução escolhida
-[descrição da abordagem]
-
-## O que será feito
-[lista do escopo]
-
-## Fora do escopo
-[lista do que não será feito]
-
-## Critério de sucesso
-[como saber que está pronto]
-
-## Riscos de segurança
-[vetores identificados no threat modeling com prioridade — deixe vazio se não aplicável]
-```
-
-### Passo 5 — Perguntar sobre o plano de desenvolvimento (OBRIGATÓRIO)
-
-Após apresentar o resumo, **sempre** pergunte:
-
-> "Quer que eu crie o plano de desenvolvimento para isso? Posso quebrar em tasks pequenas e já definir a ordem de implementação."
-
-- Se o usuário confirmar (sim, pode, vai em frente, etc.) → execute imediatamente a skill `prd-to-issues`
-- Se o usuário recusar → encerre o brainstorming sem implementar nada
-
-**Nunca inicie a implementação diretamente a partir do brainstorming, mesmo que o usuário peça.**
-Se isso acontecer, redirecione: "Deixa eu primeiro criar o plano via `prd-to-issues` para organizarmos as tasks antes de codar."
+**Sempre** pergunte ao final: "Quer que eu crie o plano de desenvolvimento via `prd-to-issues`?"
+- Sim → execute `prd-to-issues` imediatamente
+- Não → encerre sem implementar nada
 
 ## Regras
 
 - Nunca proponha código durante o brainstorming
-- Nunca inicie implementação ao final do brainstorming — sempre passe por `prd-to-issues`
-- A pergunta do Passo 5 é obrigatória, sem exceções
-- Se o usuário tentar pular direto para implementação, redirecione gentilmente: "Antes de codar, deixa eu entender melhor o que você precisa"
-- Mantenha o foco no problema, não na solução técnica
-- Se o usuário já souber exatamente o que quer, valide rapidamente e passe para `prd-to-issues`
+- Nunca inicie implementação ao final — sempre passe por `prd-to-issues`
+- A pergunta sobre o plano (Passo 4) é obrigatória, sem exceções

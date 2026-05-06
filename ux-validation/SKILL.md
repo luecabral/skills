@@ -1,218 +1,84 @@
 ---
 name: ux-validation
-description: Use ao implementar ou revisar qualquer tela, componente ou fluxo de interface. Ativa quando há mudanças visuais no código, quando o usuário diz "revisa a interface", "tá bom visualmente?", "valida o UX disso" ou quando está construindo um componente novo. Valida componentização, estados de carregamento, mensagens de erro, heurísticas de Nielsen e acessibilidade antes de considerar a UI pronta.
+description: Use ao implementar ou revisar qualquer tela, componente ou fluxo de interface. Ativa quando há mudanças visuais no código, quando o usuário diz "revisa a interface", "tá bom visualmente?", "valida o UX disso" ou ao construir um componente novo.
 ---
 
 # UX Validation
 
 Validação de interface antes de qualquer PR.
 
-## Princípio
-
-Uma interface incompleta é aquela que funciona no happy path mas deixa o usuário perdido quando algo dá errado, quando está carregando ou quando o estado é vazio. Esta skill garante que todos os estados foram considerados, que componentes existentes foram reaproveitados e que a experiência segue padrões estabelecidos de usabilidade.
-
 ## Dois modos
 
-### Modo `guide` — ao construir uma tela nova
-Use quando o usuário está implementando um componente ou tela pela primeira vez.
+- **`guide`** — ao construir uma tela nova
+- **`review`** — ao revisar código existente
 
-### Modo `review` — ao revisar código existente
-Use quando o usuário quer revisar uma interface já implementada.
+## Checklist
 
----
+### 1. Componentização
+- [ ] Esse elemento já existe como componente no projeto?
+- [ ] Se recriou: há razão justificável ou é duplicação desnecessária?
+- [ ] Novo componente vai para a pasta de componentes compartilhados?
 
-## Checklist completo
+**Regra:** nunca recrie algo que já existe — verifique antes de escrever.
 
-### 1. Componentização e reaproveitamento
+### 2. Estados obrigatórios
 
-Antes de implementar qualquer elemento visual:
-
-- [ ] Esse elemento (botão, input, card, modal, lista) já existe como componente no projeto?
-- [ ] Se existe: está sendo importado e reutilizado, ou foi recriado do zero?
-- [ ] Se foi recriado: há uma razão justificável (variação necessária) ou é duplicação desnecessária?
-- [ ] Novos componentes criados nesta task são genéricos o suficiente para reaproveitamento futuro?
-- [ ] O componente novo foi adicionado ao local correto do projeto (pasta de componentes compartilhados)?
-
-**Regra:** nunca recrie algo que já existe. Antes de escrever qualquer componente, verifique o que o projeto já tem.
-
----
-
-### 2. Estados obrigatórios de cada elemento interativo
-
-**Botões e ações**
-- [ ] Estado padrão (default)
-- [ ] Estado hover
-- [ ] Estado ativo / pressionado
-- [ ] Estado desabilitado — visual claramente diferente do default
-- [ ] Estado de carregamento (loading) — enquanto a ação está sendo processada
-
-**Formulários e inputs**
-- [ ] Estado vazio (placeholder claro)
-- [ ] Estado com foco (focus ring visível)
-- [ ] Estado com erro — com mensagem específica (ver seção 4)
-- [ ] Estado de sucesso (quando aplicável)
-- [ ] Estado desabilitado
-
-**Listas e coleções**
-- [ ] Estado vazio (empty state) — mensagem amigável, não tela em branco
-- [ ] Estado de carregamento (skeleton ou spinner)
-- [ ] Estado de erro — com mensagem e opção de tentar novamente
-- [ ] Estado com dados (o caso normal)
-
----
+Para botões, inputs e listas, todos os estados precisam estar implementados: default, hover, ativo, desabilitado, carregamento, erro, vazio, sucesso. Ver REFERENCE.md para checklist detalhado por tipo de elemento.
 
 ### 3. Feedback de ações assíncronas
-
-Para qualquer ação que chama uma API ou processa dados:
-
-- [ ] Há indicação visual de que algo está acontecendo?
-- [ ] O usuário recebe confirmação quando a ação é concluída?
-- [ ] O usuário recebe feedback claro quando algo dá errado?
-- [ ] A interface volta ao estado correto após erro? (não fica presa em loading)
-
----
+- [ ] Indicação visual de que algo está processando?
+- [ ] Confirmação quando a ação é concluída?
+- [ ] Feedback claro quando algo dá errado?
+- [ ] Interface volta ao estado correto após erro? (não fica presa em loading)
 
 ### 4. Mensagens de erro específicas
 
-Mensagens genéricas ("Algo deu errado", "Erro", "Falha") são inaceitáveis. Toda mensagem de erro deve dizer exatamente o que aconteceu e, quando possível, o que o usuário pode fazer.
-
-- [ ] Cada erro tem uma mensagem própria — não uma mensagem genérica para todos os casos
-- [ ] A mensagem identifica o problema de forma que o usuário entenda sem ser desenvolvedor
-- [ ] A mensagem indica a ação a tomar quando há solução possível
-- [ ] Erros de validação aparecem próximos ao campo problemático
-- [ ] Erros de ação aparecem de forma visível e contextualizada
-- [ ] Nenhum stack trace ou mensagem técnica é exibida ao usuário
-
-**Exemplos:**
-
-| ❌ Genérico | ✅ Específico |
-|---|---|
-| "Erro ao salvar" | "Não foi possível salvar. Verifique sua conexão e tente novamente." |
-| "Dados inválidos" | "O email informado não é válido. Use o formato nome@dominio.com" |
-| "Algo deu errado" | "Não conseguimos processar o pagamento. Tente novamente ou use outro cartão." |
-| "Error 422" | "O campo 'nome' é obrigatório." |
-| "Falha na operação" | "Você não tem permissão para editar este item." |
-
----
+"Algo deu errado" e "Erro" são sempre bloqueantes. Toda mensagem deve dizer o que aconteceu e, quando possível, o que fazer. Ver REFERENCE.md para exemplos de bom e mau uso.
 
 ### 5. Heurísticas de Nielsen
 
-Avalie as 10 heurísticas. As marcadas com 🔍 são verificáveis diretamente pelo código; as com 👁 requerem análise contextual.
+Pontos críticos verificáveis no código (ver REFERENCE.md para lista completa):
+- **H1:** feedback visual para ações com processamento
+- **H3:** confirmação em ações destrutivas; como fechar modais
+- **H4:** componentes reutilizados; nomenclatura consistente
+- **H5:** validação antes do envio; confirmação em ações irreversíveis
+- **H9:** mensagens de erro identificam problema e sugerem solução
 
-**🔍 H1 — Visibilidade do status do sistema**
-O usuário sempre sabe o que está acontecendo.
-- [ ] Ações com processamento têm feedback visual (loading, progress, spinner)
-- [ ] O estado atual é visível (item selecionado, aba ativa, passo do fluxo)
-- [ ] Confirmações de ação aparecem em tempo hábil
-
-**👁 H2 — Correspondência com o mundo real**
-A interface usa linguagem e conceitos familiares ao usuário.
-- [ ] Textos usam linguagem do usuário, não jargão técnico
-- [ ] Ícones são reconhecíveis e coerentes com seu significado
-
-**🔍 H3 — Controle e liberdade do usuário**
-O usuário pode desfazer ações e sair de estados indesejados.
-- [ ] Ações destrutivas têm confirmação (deletar, cancelar, sair)
-- [ ] Há como cancelar ou voltar em processos multi-etapa
-- [ ] Modais e drawers têm forma clara de fechar (X, ESC, clique fora)
-
-**🔍 H4 — Consistência e padrões**
-Elementos iguais se comportam e parecem iguais em todo o sistema.
-- [ ] Componentes reutilizáveis são usados em vez de recriados (ver seção 1)
-- [ ] Nomenclatura de ações é consistente ("Salvar" não vira "Confirmar" em outra tela)
-- [ ] Cores e estilos seguem o padrão do projeto
-
-**🔍 H5 — Prevenção de erros**
-Melhor prevenir que remediar.
-- [ ] Validação acontece antes do envio, não só após
-- [ ] Ações irreversíveis têm confirmação explícita
-- [ ] Inputs com formato específico têm máscara ou exemplo visível
-
-**🔍 H6 — Reconhecimento em vez de memorização**
-O usuário não precisa lembrar informações entre telas.
-- [ ] Campos têm labels visíveis (não apenas placeholder)
-- [ ] O contexto da ação é visível na tela (ex: "Editando: Produto X")
-- [ ] Ações disponíveis estão visíveis, não escondidas
-
-**👁 H7 — Flexibilidade e eficiência**
-O sistema serve tanto novatos quanto usuários avançados.
-- [ ] Fluxos principais são simples para quem usa pela primeira vez
-- [ ] Atalhos existem para tarefas frequentes (quando relevante)
-
-**👁 H8 — Design estético e minimalista**
-Nada além do necessário.
-- [ ] Não há elemento visual que não serve ao usuário neste momento
-- [ ] Hierarquia visual está clara — o que é mais importante está em destaque
-
-**🔍 H9 — Ajuda a reconhecer, diagnosticar e recuperar de erros**
-(coberta pela seção 4 — Mensagens de erro específicas)
-- [ ] Mensagens de erro identificam o problema claramente
-- [ ] Mensagens de erro sugerem solução quando possível
-
-**🔍 H10 — Ajuda e documentação**
-Quando necessário, o suporte está disponível.
-- [ ] Campos complexos têm tooltip ou texto de ajuda
-- [ ] Fluxos não-óbvios têm instrução inline
-
----
-
-### 6. Acessibilidade básica
-
-- [ ] Imagens têm `alt` descritivo (ou `alt=""` se decorativas)
-- [ ] Botões com apenas ícone têm `aria-label`
-- [ ] Formulários têm `label` associado a cada input (não apenas placeholder)
-- [ ] Navegação por teclado segue ordem lógica (Tab)
-- [ ] Contraste atende WCAG AA mínimo (4.5:1 texto normal, 3:1 texto grande)
-
----
+### 6. Acessibilidade
+- [ ] Imagens têm `alt` descritivo
+- [ ] Botões com ícone têm `aria-label`
+- [ ] Inputs têm `label` (não só placeholder)
+- [ ] Navegação por Tab em ordem lógica
+- [ ] Contraste WCAG AA (4.5:1 texto normal)
 
 ## Modo review — análise de código
 
-### Passo 1 — Identificar arquivos de interface
+### Passo 1 — Identificar arquivos de interface alterados
 
-Liste todos os arquivos de componente, view ou template alterados.
+### Passo 2 — Analisar na ordem
 
-### Passo 2 — Analisar contra o checklist
-
-Verifique cada seção. Priorize nesta ordem:
-1. Componentização — está duplicando algo que já existe?
-2. Mensagens de erro — são específicas?
-3. Estados obrigatórios — algum faltando?
-4. Heurísticas de Nielsen — alguma violação clara?
-5. Acessibilidade — algum item ausente?
+Componentização → erros → estados → heurísticas → acessibilidade
 
 ### Passo 3 — Apresentar relatório
 
 ```
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🎨 REVISÃO DE UX
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-N achado(s): X bloqueante(s) · Y sugestão(ões) · Z nitpicks
+🎨 REVISÃO DE UX — N achados
 
 [1] 🚨 BLOQUEANTE | arquivo.ext — Linha X
-Princípio violado: [seção ou heurística]
-Problema: [descrição clara]
-Correção: [o que adicionar ou mudar]
-
-[2] ⚠️ SUGESTÃO | arquivo.ext — Linha X
 Princípio: [seção ou heurística]
-Problema: [descrição]
-Correção: [o que melhorar]
+Problema: [descrição] | Correção: [o que mudar]
 ```
 
-Classifique:
-- **🚨 BLOQUEANTE** — mensagem de erro genérica, componente duplicado sem justificativa, estado obrigatório ausente, heurística crítica violada (H1, H3, H5, H9)
-- **⚠️ SUGESTÃO** — heurística violada mas não crítica, melhoria de consistência
-- **💡 NITPICK** — detalhe de polish ou preferência estética
+- **🚨 BLOQUEANTE** — erro genérico, componente duplicado sem justificativa, estado obrigatório ausente, H1/H3/H5/H9 violados
+- **⚠️ SUGESTÃO** — heurística menos crítica, consistência
+- **💡 NITPICK** — polish ou preferência estética
 
 ### Passo 4 — Aplicar correções
 
-Apresente o relatório e pergunte quais itens aplicar. Aplique com confirmação, um por vez.
+Pergunte quais aplicar. Execute com confirmação, um por vez.
 
 ## Regras
 
-- Mensagens de erro genéricas são sempre bloqueantes — sem exceção
+- Mensagens de erro genéricas são sempre bloqueantes
 - Componente recriado sem justificativa é sempre bloqueante
-- Não invente padrões — valide contra o que já existe no projeto
-- Se não encontrar o design system do projeto, pergunte antes de assumir
-- Heurísticas 👁 requerem julgamento contextual — sinalize como sugestão, não bloqueante, quando houver dúvida
+- Heurísticas contextuais (👁) → sinalize como sugestão quando houver dúvida

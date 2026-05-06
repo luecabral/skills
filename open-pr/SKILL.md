@@ -1,277 +1,108 @@
 ---
 name: open-pr
-description: Use ao abrir um Pull Request. Ativa quando o usuário diz "abre o PR", "sobe o PR", "cria o PR". Executa automaticamente o ready-check (revisão de código + roteiro de teste), faz push se necessário, gera título, corpo com contexto para IA e roteiro para humano, gera o changelog e cria o PR como draft.
+description: Use ao abrir um Pull Request. Ativa quando o usuário diz "abre o PR", "sobe o PR", "cria o PR". Executa o ready-check, faz push se necessário, gera título + corpo com contexto para IA e roteiro para humano, gera changelog e cria o PR como draft.
 ---
 
 # Open PR
 
 Fluxo completo: validações → push → ready-check → criação do PR.
 
-## Princípio
-
-O corpo do PR serve duas audiências diferentes: a IA que vai revisar o código precisa de contexto de intenção e risco; o humano que vai testar no staging precisa de roteiro claro e simples. Esta skill faz a revisão final automaticamente e publica o PR.
-
 ## Processo
 
-### Passo 0 — Detectar se a branch já foi publicada
+### Passo 1 — Verificar estado da branch
 
 ```bash
 git branch --show-current
 git log origin/$(git branch --show-current)..HEAD --oneline 2>/dev/null
-```
-
-**Se a branch não existir no remoto (erro no git log):**
-→ Branch ainda não foi publicada
-→ Executar validações técnicas (testes + código limpo)
-
-**Se a branch existir e não houver commits diferentes:**
-→ Branch already synchronized
-→ Pular validações técnicas (foram feitas no push)
-
-**Se a branch existir mas houver commits novos locais:**
-→ Push foi feito antes, mas há commits novos
-→ Executar validações técnicas apenas nos novos commits
-
-### Passo 0.1 — Validações técnicas (apenas se necessário)
-
-Execute este passo APENAS se a branch não foi publicada ou há commits novos.
-
-**1. Verificar código de debug:**
-Procure por: `console.log`, `debugger`, `print(`, `puts `, `p `, `pp `
-
-Se encontrar, pergunte ao usuário se quer remover antes de continuar.
-
-**2. Rodar todos os testes:**
-```bash
-npm test / npx vitest run / pytest / bundle exec rspec
-```
-
-Se algum teste falhar, acione `systematic-debugging` e não prossiga até que todos estejam verdes.
-
-**Se a branch já foi publicada e está sincronizada:**
-→ Pular este passo completamente (validações já foram feitas)
-
-### Passo 0 — Verificar documentação da branch (context-docs)
-
-Se o projeto usar a metodologia `context-docs` (presença de `AGENTS.md` ou pasta `docs/` na raiz), rode a verificação completa sobre **todos os commits da branch** antes de abrir o PR.
-
-```bash
-git diff main...HEAD --stat
-git diff main...HEAD
-```
-
-Percorra o checklist consolidado da branch inteira:
-
-```
-[ ] AGENTS.md — reflete todas as mudanças feitas na branch?
-[ ] AGENTS.md > Estrutura de Pastas — arquivos/pastas criados, movidos ou removidos na branch?
-[ ] AGENTS.md > Regras e Restrições — novas restrições que surgiram durante o desenvolvimento?
-[ ] AGENTS.md > Status Atual — algo mudou de status ao longo da branch?
-[ ] docs/features/ — todas as features novas ou modificadas têm doc atualizada?
-[ ] docs/flows/ — algum fluxo foi impactado pelo conjunto de mudanças da branch?
-[ ] docs/changelog.md — há uma entrada consolidada descrevendo o que esta branch entrega?
-```
-
-Para cada item pendente, faça a atualização e apresente o diff ao usuário para confirmação antes de seguir.
-
-Se o usuário não quiser atualizar algum item agora, registre explicitamente no corpo do PR (seção "Decisões técnicas relevantes") que a documentação está desatualizada e o que falta.
-
-### Passo 0 — Executar ready-check automaticamente
-
-Antes de abrir o PR, **acione `ready-check` automaticamente** para:
-1. Revisar o código e identificar problemas
-2. Gerar roteiro de teste manual
-
-**Se ready-check identificar bloqueantes:**
-- Apresente os problemas ao usuário
-- Pergunte se quer corrigir antes de abrir o PR ou seguir assim mesmo
-- Se optar por corrigir, aplique as correções e rode ready-check novamente
-
-**Se não houver bloqueantes:**
-→ Siga para o Passo 1
-
-Use o roteiro de teste gerado pelo ready-check na seção "O que testar" do PR (Passo 4).
-
-### Passo 1 — Coletar dados da branch
-
-Execute em paralelo:
-
-```bash
-git branch --show-current
-git log main..HEAD --oneline
-git diff main...HEAD --stat
-git diff main...HEAD
-```
-
-Se a branch atual for `main`, informe o usuário e encerre.
-
-### Passo 2 — Verificar se PR já existe
-
-```bash
 gh pr view --json url,state 2>/dev/null
 ```
 
-Se já existir um PR aberto para esta branch, exiba a URL e encerre.
+Se for `main`, encerre. Se já existir PR aberto, mostre a URL e encerre.
 
-### Passo 3 — Gerar o título
+### Passo 2 — Validações técnicas (se houver commits novos não publicados)
 
-Identifique o tipo predominante de mudança e gere o título:
+1. Verificar debug esquecido: `console.log`, `debugger`, `print(`, `puts `
+2. Rodar todos os testes — se falhar, acione `systematic-debugging` antes de continuar
 
-**Formato:** `tipo: Mensagem em português, presente do indicativo, sem ponto final`
+### Passo 3 — Verificar documentação (se o projeto usar context-docs)
 
-**Tipos:**
-- `feat` — nova funcionalidade
-- `fix` — correção de bug
-- `refactor` — reorganização sem mudança de comportamento
-- `perf` — melhoria de performance
-- `docs` — apenas documentação
-- `config` — configurações, dependências
+```bash
+git diff main...HEAD
+```
 
-**Regras:**
-- Verbo no presente do indicativo, terceira pessoa: "Adiciona", "Corrige", "Remove"
-- Específico: evite "Atualiza código" ou "Melhora sistema"
-- Sem emojis, sem escopo entre parênteses, sem ponto final
+Checklist consolidado da branch: AGENTS.md, Estrutura de Pastas, docs/features/, docs/changelog.md. Para cada item pendente, atualize e confirme com o usuário. Se não quiser agora, registre em "Decisões técnicas relevantes" do PR.
 
-**Exemplo:** `feat: Adiciona formulário de cadastro com validação de email`
+### Passo 4 — Executar ready-check automaticamente
 
-### Passo 4 — Gerar o corpo do PR
+Acione `ready-check` para revisar o código e gerar roteiro de teste. Se houver bloqueantes, pergunte se quer corrigir antes de abrir. Use o roteiro gerado na seção "O que testar".
 
-Preencha o template abaixo. Ele contém o contexto para a revisão, um checklist confirmando as boas práticas e o roteiro de testes. Assuma que os itens de validação foram cumpridos de acordo com o fluxo anterior.
+### Passo 5 — Coletar dados da branch
+
+```bash
+git log main..HEAD --oneline && git diff main...HEAD --stat && git diff main...HEAD
+```
+
+### Passo 6 — Gerar título
+
+**Formato:** `tipo: Mensagem no presente do indicativo, sem ponto final`
+**Tipos:** `feat` | `fix` | `refactor` | `perf` | `docs` | `config`
+
+### Passo 7 — Gerar corpo do PR
 
 ```markdown
 ### O que esse PR faz
-[2-3 frases descrevendo a intenção — o que o usuário consegue fazer agora
-que não conseguia antes, ou o que foi corrigido. Foque no "o quê" e no
-"para quê", não no "como".]
+[2-3 frases sobre o que o usuário consegue fazer agora — foco no "o quê" e "para quê"]
 
 ### Fora do escopo
-[O que este PR deliberadamente NÃO faz — evita que o revisor pergunte
-"por que não fez X também?". Exemplos:
-- "Não cobre o fluxo de edição, apenas criação"
-- "Não migra dados existentes, só afeta registros novos"
-Escreva "Sem exclusões relevantes" se o escopo for completo.]
+[O que este PR deliberadamente NÃO faz. "Sem exclusões relevantes" se o escopo for completo.]
 
 ### Validações
-- [x] **Documentação:** Changelog, AGENTS.md e/ou docs da feature atualizados.
-- [x] **Testes:** Criados/atualizados e rodando verde.
-- [x] **Git:** Rebase com a `main` realizado.
-- [x] **Código limpo:** Sem logs, debuggers ou comentários mortos.
+- [x] Documentação: Changelog, AGENTS.md e/ou docs da feature atualizados.
+- [x] Testes: Criados/atualizados e rodando verde.
+- [x] Git: Rebase com a `main` realizado.
+- [x] Código limpo: Sem logs, debuggers ou comentários mortos.
 
 ### Decisões técnicas relevantes
-[Por que foi implementado dessa forma e não de outra. Inclua:
-- Abordagens consideradas e descartadas (e por quê)
-- Dependências ou integrações que afetam a implementação
-- Limitações conhecidas ou trade-offs deliberados
-Deixe em branco se não houver decisões não-óbvias.]
+[Por que foi implementado dessa forma. Abordagens descartadas e por quê. Em branco se não há decisões não-óbvias.]
 
 ### O que tem mais risco
-[Arquivos ou fluxos onde um erro seria mais grave ou onde a lógica é mais
-complexa. Oriente a IA sobre onde focar a revisão. Exemplos:
-- "A lógica de cálculo em services/pricing.js merece atenção especial"
-- "A query em models/user.js foi reescrita e pode ter impacto de performance"
-Escreva "Nenhum risco identificado" se for uma mudança simples e isolada.]
+[Onde um erro seria mais grave ou a lógica mais complexa. "Nenhum risco identificado" se for mudança simples.]
 
 ### O que testar
-[Liste os fluxos que o revisor humano deve validar localmente.
-Use linguagem simples, sem jargão técnico.
-Inclua o que deve acontecer E o que deve aparecer em caso de erro.]
-
 - [ ] [Fluxo 1]: [passos simples e resultado esperado]
-- [ ] [Fluxo 2]: [passos simples e resultado esperado]
 - [ ] Regressão: [fluxos adjacentes que podem ter sido afetados]
 ```
 
-### Passo 5 — Gerar o changelog
+### Passo 8 — Gerar changelog
 
-Com base no corpo gerado + commits da branch, crie o changelog em linguagem não-técnica:
+Em linguagem não-técnica, para quem não é desenvolvedor:
+- ✨ **Novidades** | 🐛 **Correções** | ⚡ **Melhorias**
 
-**Regras:**
-- Reescreva para quem não é desenvolvedor
-- Foque no impacto para o usuário, não na implementação
-- Agrupe por tipo:
-  - ✨ **Novidades** — o que o usuário pode fazer agora
-  - 🐛 **Correções** — problemas que foram resolvidos
-  - ⚡ **Melhorias** — coisas que ficaram mais rápidas ou estáveis
+### Passo 9 — Confirmar
 
-**Exemplo:**
-```
-❌ feat: Adiciona índice na coluna user_id da tabela sessions
-✅ ⚡ Login ficou mais rápido
+Exiba título, corpo e changelog. Aguarde aprovação do usuário.
 
-❌ fix: Corrige validação de email no formulário de cadastro
-✅ 🐛 Corrigido erro que impedia cadastro com emails válidos
-```
-
-### Passo 6 — Apresentar e confirmar
-
-Exiba título, corpo e changelog. Aguarde confirmação ou ajustes antes de criar o PR.
-
-O usuário pode ajustar qualquer seção antes de confirmar.
-
-### Passo 7 — Sincronizar com a main antes de publicar
-
-Atualize a branch com as últimas mudanças da main para garantir histórico linear e evitar conflitos no PR:
+### Passo 10 — Sincronizar e publicar
 
 ```bash
-git fetch origin
-git rebase origin/main
+git fetch origin && git rebase origin/main
+git push -u origin HEAD   # ou --force-with-lease se houver histórico divergente
 ```
 
-**Se houver conflitos:**
-- Liste os arquivos em conflito e explique o conflito ao usuário
-- Não resolva automaticamente — aguarde resolução manual
-- Após resolução, instrua: `git rebase --continue`
-- Só avance após rebase concluído sem conflitos
+Se houver conflitos no rebase, liste os arquivos e aguarde resolução manual antes de continuar.
 
-**Por que rebase e não merge:** o rebase mantém histórico linear — os commits da feature aparecem em sequência após os da main, sem commit de merge extra. Facilita a revisão do PR e o `git log`.
-
-### Passo 8 — Publicar a branch
+### Passo 11 — Criar PR e postar changelog
 
 ```bash
-git push -u origin HEAD
+gh pr create --draft --title "<título>" --body "<corpo>"
+gh pr comment <número> --body "## 📋 Changelog\n\n<changelog>"
 ```
 
-Se o push falhar por histórico divergente (branch já publicada antes do rebase), oriente:
-
-```bash
-git push --force-with-lease origin HEAD
-```
-
-`--force-with-lease` é mais seguro que `--force`: falha se outra pessoa tiver feito push na branch desde o último fetch.
-
-Se o push falhar por outro motivo, informe o erro e encerre sem criar o PR.
-
-### Passo 9 — Criar o PR
-
-```bash
-gh pr create \
-  --draft \
-  --title "<título aprovado>" \
-  --body "$(cat <<'EOF'
-<corpo aprovado>
-EOF
-)"
-```
-
-### Passo 10 — Postar o changelog como comentário
-
-```bash
-gh pr comment <número do PR> --body "$(cat <<'EOF'
-## 📋 Changelog
-
-<changelog gerado>
-EOF
-)"
-```
-
-### Passo 11 — Confirmar
-
-Exiba a URL do PR e informe que foi criado como draft com o changelog postado como comentário.
+Exiba a URL do PR ao final.
 
 ## Regras
 
 - Nunca crie o PR sem confirmação do usuário
-- O corpo deve sempre ter todas as seções do template — não omita nenhuma mesmo que seja curta
-- "O que tem mais risco" nunca deve ser deixado em branco sem justificativa
-- O changelog deve ser legível por alguém fora da equipe de desenvolvimento
-- Se o `gh` CLI não estiver configurado, oriente o usuário a configurar antes de continuar
+- Todas as seções do template são obrigatórias
+- "O que tem mais risco" nunca em branco sem justificativa
+- Changelog deve ser legível por alguém fora da equipe
