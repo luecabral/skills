@@ -70,6 +70,12 @@ Branch: [nome] | Data: [data]
        ✓ Pronto quando: [critério]
 ```
 
+### Passo 6 — Salvar plano em `.plans/plan.md`
+
+Salve o plano final em `.plans/plan.md` na raiz do projeto.
+Se o arquivo já existir, sobrescreva.
+Se `.plans/` não estiver no `.gitignore`, adicione.
+
 ## Regras
 
 - Nunca crie a branch sem confirmação do nome

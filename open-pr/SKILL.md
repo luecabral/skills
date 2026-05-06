@@ -82,6 +82,15 @@ Em linguagem não-técnica, para quem não é desenvolvedor:
 
 Exiba título, corpo e changelog. Aguarde aprovação do usuário.
 
+### Passo 9.5 — Remover plano de sessão (apenas se chamado pelo ralph-loop)
+
+Se `.plans/plan.md` existir e este PR faz parte de um ralph-loop em andamento,
+remova o arquivo do staging antes do push:
+```bash
+rm -f .plans/plan.md
+```
+O arquivo não deve entrar em nenhum PR.
+
 ### Passo 10 — Sincronizar e publicar
 
 ```bash
