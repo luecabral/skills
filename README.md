@@ -1,4 +1,4 @@
-# Skills da Lue
+# INKriveis Skills
 
 Skills são instruções que ensinam a IA a se comportar de um jeito específico em cada etapa do desenvolvimento. Em vez de dar o mesmo contexto repetido toda vez, você invoca a skill certa e ela já sabe o que fazer, o que checar e o que entregar.
 
