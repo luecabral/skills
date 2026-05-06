@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: Use ao encontrar qualquer bug, teste falhando, comportamento inesperado ou erro em console. Ativa quando o usuário mostra um erro, diz "não tá funcionando", "tá quebrando aqui", "por que isso acontece" ou quando o write-tests reporta testes falhando. Segue um processo de 4 fases para encontrar a causa raiz real antes de propor qualquer correção.
+description: Use ao encontrar qualquer bug, teste falhando, comportamento inesperado ou erro em console. Ativa quando o usuário mostra um erro, diz "não tá funcionando", "tá quebrando aqui", "por que isso acontece" ou quando o test-gate reporta testes falhando. Segue um processo de 4 fases para encontrar a causa raiz real antes de propor qualquer correção.
 ---
 
 # Systematic Debugging
@@ -11,7 +11,24 @@ Processo de 4 fases para encontrar a causa raiz — nunca tratar sintoma.
 
 A primeira hipótese raramente é a causa real. Debugar sem processo leva a correções que mascaram o problema ou introduzem novos bugs. Esta skill força a investigação antes da correção.
 
-## As 4 fases
+## O processo
+
+### Passo 0 — Construir sinal de feedback
+
+Antes de qualquer investigação, construa uma forma rápida e determinística de reproduzir o problema. Sem isso, cada experimento custa tempo demais.
+
+Escolha o sinal mais simples que reproduz o bug:
+- Teste automatizado que falha
+- Comando curl / script CLI que reproduz o comportamento
+- Script throwaway no console do Rails/browser
+- Trace de requisição para replay
+
+O sinal precisa ser:
+- Rápido (segundos, não minutos)
+- Determinístico (falha sempre, não às vezes)
+- Isolado (sem dependências desnecessárias)
+
+Se o bug acontece "às vezes" ou "só em produção", esse passo é ainda mais importante — minimize variáveis até conseguir reprodução consistente.
 
 ### Fase 1 — OBSERVAR
 
@@ -53,6 +70,16 @@ Teste cada hipótese com o menor experimento possível:
 
 **Nunca faça múltiplas mudanças ao mesmo tempo.** Uma mudança por vez — assim você sabe o que resolveu.
 
+**Minimização:** reduza o caso de reprodução ao menor possível — remova dados, dependências e contexto que não são necessários para o bug aparecer. Quanto menor o caso, mais clara fica a causa.
+
+**Bisection (quando "quando começou?" é desconhecido):**
+```bash
+git bisect start
+git bisect bad                  # commit atual tem o bug
+git bisect good <commit-antigo> # commit que funcionava
+# git bisect aponta commits — teste cada um com o sinal do Passo 0
+```
+
 Documente o que cada experimento revelou antes de passar para o próximo.
 
 ### Fase 4 — CORRIGIR
@@ -62,7 +89,7 @@ Somente após confirmar a causa raiz:
 1. Implemente a correção no local correto (causa, não sintoma)
 2. Explique por que a correção resolve a causa raiz
 3. Verifique se a correção não quebra outros comportamentos relacionados
-4. Acione `write-tests` para escrever um teste que teria capturado este bug
+4. Escreva um teste de regressão que usa o sinal do Passo 0 como base — deve falhar sem a correção e passar com ela. Só então acione `test-gate` para o restante da cobertura
 5. Acione `verification-before-completion` para confirmar que está resolvido
 
 ## Formato de investigação
@@ -96,4 +123,4 @@ Correção: [o que será mudado e por quê]
 - **Nunca corrija sem identificar a causa raiz** — correções cegas criam débito técnico
 - Logs de debug adicionados durante a investigação devem ser removidos antes do commit
 - Se após 3 hipóteses testadas a causa ainda não for clara, pare e descreva o que foi descartado — às vezes o usuário tem contexto que o agente não tem
-- Bugs recorrentes indicam ausência de teste — sempre acione `write-tests` após a correção
+- Bugs recorrentes indicam ausência de teste — sempre acione `test-gate` após a correção

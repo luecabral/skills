@@ -1,9 +1,9 @@
 ---
-name: write-tests
+name: test-gate
 description: Use após implementar uma task e antes de commitar, ou quando o usuário diz "escreve os testes", "testa isso". Infere o que foi implementado via Git (diff + commits), gera testes para o comportamento, roda e só libera o commit quando estiver verde.
 ---
 
-# Write Tests
+# Test Gate
 
 Testes escritos depois da implementação, antes do commit.
 
@@ -86,6 +86,7 @@ Escreva os testes seguindo as convenções do projeto. Se não houver framework 
 - Nomes de teste descrevem o que deve acontecer: "retorna erro quando email é inválido"
 - Cada teste é independente — não depende de outro teste ter rodado antes
 - Use dados de teste explícitos, não dados de produção
+- Teste a interface pública (o "o quê"), não detalhes internos de implementação (o "como") — testes em interface pública sobrevivem a refatorações
 
 ### Passo 4 — Apresentar os testes
 

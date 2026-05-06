@@ -24,6 +24,7 @@ Confirmar que está pronto antes de declarar que está pronto.
 - [ ] Todos os testes existentes continuam passando? (sem regressão)
 - [ ] Os testes novos escritos para esta task passam?
 - [ ] Se algum teste falhou: é um teste desatualizado ou um problema real?
+- [ ] Se for correção de bug: existe um teste de regressão que falha sem a correção e passa com ela? (não basta o bug não ocorrer mais — precisa estar protegido contra regressão futura)
 
 ### 3. Não quebrou nada adjacente?
 

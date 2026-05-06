@@ -1,6 +1,6 @@
 ---
 name: smart-commit
-description: Use ao commitar mudanças. Ativa quando o usuário diz "faz o commit", "salva isso", "commita". Executa automaticamente o fluxo completo: verifica docs desatualizadas, testa o código (write-tests), debuga se falhar (systematic-debugging), só então commita. Infere o contexto do Git para nomear os commits, agrupa arquivos por contexto lógico e executa os commits diretamente sem pedir confirmação.
+description: Use ao commitar mudanças. Ativa quando o usuário diz "faz o commit", "salva isso", "commita". Executa automaticamente o fluxo completo: verifica docs desatualizadas, testa o código (test-gate), debuga se falhar (systematic-debugging), só então commita. Infere o contexto do Git para nomear os commits, agrupa arquivos por contexto lógico e executa os commits diretamente sem pedir confirmação.
 ---
 
 # Smart Commit
@@ -36,7 +36,7 @@ git status --short
 → Apenas rode os testes (não crie novos)
 
 **Se NÃO EXISTEM testes para algum arquivo:**
-→ **Acione `write-tests` automaticamente** para gerar os testes faltantes
+→ **Acione `test-gate` automaticamente** para gerar os testes faltantes
 
 **4. Rodar todos os testes do projeto:**
 

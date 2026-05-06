@@ -58,6 +58,7 @@ Para cada arquivo alterado, verifique:
 - [ ] Não há código comentado que não deveria ir para produção?
 - [ ] Funções e variáveis têm nomes que expressam intenção?
 - [ ] Há código duplicado que poderia ser extraído?
+- [ ] Os testes cobrem a interface pública (o "o quê"), não detalhes de implementação interna (o "como")? Testes em interface pública sobrevivem a refatorações sem precisar de ajuste.
 
 #### Passo 3 — Apresentar relatório de código
 

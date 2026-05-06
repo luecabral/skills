@@ -1,5 +1,5 @@
 ---
-name: writing-plans
+name: prd-to-issues
 description: Use quando o usuário explicitamente pedir "faz o planejamento", "cria o plano", "planeja isso". Quebra a implementação em tasks pequenas (2-5 min cada), deriva o nome da branch e cria a branch. Apresenta o plano na conversa, não cria arquivos. O smart-commit infere o contexto do Git se não houver plano.
 ---
 
@@ -13,21 +13,25 @@ Um plano claro antes de codar evita decisões ruins no meio da implementação. 
 
 ## Processo
 
-### Passo 1 — Carregar contexto
+### Passo 1 — Entender o que será construído
 
-Verifique se há uma branch atual com commits que indiquem o que está sendo feito:
-
-```bash
-git log --oneline
-git diff main...HEAD
-```
-
-Se houver trabalho em andamento, use isso como contexto.
-
-Se não houver nada no Git ainda, pergunte ao usuário:
+Pergunte ao usuário:
 - O que será implementado?
 - Qual é o comportamento esperado?
 - Há alguma restrição técnica ou de integração?
+
+Se vier de um `brainstorming`, o design já está definido — use como contexto e pule as perguntas.
+
+### Passo 1.5 — PRD mínimo (para features maiores que 3 tasks)
+
+Antes de quebrar em tasks, sintetize o que está sendo construído:
+
+- **Problema:** qual dor ou lacuna isso resolve?
+- **Solução:** o que será feito, em uma linha
+- **Non-goals:** o que explicitamente NÃO faz parte desse plano
+- **Perguntas em aberto:** algo que precisa de definição antes ou durante a implementação?
+
+Apresente e aguarde confirmação. Se o usuário ajustar o escopo, atualize antes de seguir para as tasks.
 
 ### Passo 2 — Quebrar em tasks
 
@@ -35,16 +39,19 @@ Crie uma lista de tasks numeradas seguindo estas regras:
 
 - Cada task deve ser completável em 2–5 minutos
 - Cada task deve resultar em um estado testável (algo que funciona ou falha claramente)
+- Cada task deve gerar no máximo ~600 linhas modificadas — se uma task parece maior que isso, quebre em duas. Para calibrar, use `wc -l` em arquivos similares no projeto
 - Nomeie com verbo no infinitivo: "Criar componente X", "Adicionar validação Y", "Conectar Z à API"
 - Inclua a localização exata dos arquivos a criar ou modificar
 - Defina dependências entre tasks quando existirem
 
-**Ordem recomendada:**
-1. Estrutura de dados / banco (se houver mudanças)
-2. Lógica de negócio / backend
-3. Interface / frontend
-4. Testes
-5. Ajustes e polish
+**Princípio: vertical slice, não camadas horizontais.**
+Cada task entrega um caminho completo ponta-a-ponta. Não separe "criar model" de "exibir no frontend" se eles dependem um do outro para qualquer coisa funcionar.
+
+Cada task deve ter um critério claro de conclusão:
+```
+- [ ] 1. Criar model X com campos Y e Z — `app/models/...`
+       ✓ Pronto quando: migration roda sem erro e model responde ao console
+```
 
 ### Passo 3 — Apresentar o plano
 
@@ -92,10 +99,14 @@ Exiba o plano final na conversa no formato abaixo. Não crie nenhum arquivo.
 Branch: [nome da branch]
 Iniciado em: [data]
 
+## Fora do escopo
+- [non-goals confirmados no PRD mínimo]
+
 ## Tasks
 - [ ] 1. [descrição da task] — `caminho/do/arquivo.ext`
+       ✓ Pronto quando: [critério]
 - [ ] 2. [descrição da task] — `caminho/do/arquivo.ext`
-- [ ] 3. [descrição da task] — `caminho/do/arquivo.ext`
+       ✓ Pronto quando: [critério]
 ```
 
 Informe ao usuário que pode começar a implementar a task 1.

@@ -1,138 +1,104 @@
-# Skills de Vibecoding
+# Skills da Lue
 
-Skills são instruções que ensinam a IA a se comportar de um jeito específico em cada etapa do desenvolvimento. Em vez de dar o mesmo contexto repetido toda vez, você ativa a skill certa e ela já sabe o que fazer, o que checar e o que entregar.
-
-Este repositório organiza um fluxo de desenvolvimento minimalista — do primeiro rascunho de uma ideia até o PR revisado e pronto para produção.
+Skills são instruções que ensinam a IA a se comportar de um jeito específico em cada etapa do desenvolvimento. Em vez de dar o mesmo contexto repetido toda vez, você invoca a skill certa e ela já sabe o que fazer, o que checar e o que entregar.
 
 ---
 
-## Princípios das skills
-
-✅ **Independentes**: cada skill funciona sozinha, sem depender de arquivos intermediários  
-✅ **Inferem do Git**: usam commits e diff como fonte de verdade  
-✅ **Não duplicam trabalho**: verificam o que já foi feito antes de refazer  
-✅ **Automáticas quando possível**: você só interage quando realmente necessário  
-✅ **Encadeiam quando faz sentido**: smart-commit chama write-tests, open-pr chama ready-check
-
----
-
-## Fluxo mínimo
-
-```
-1. "cria a branch feature/X"
-2. "implementa Y"
-3. "faz o commit"     → testes + validações automáticas
-4. "abre o PR"        → revisão + push + PR automático
-```
-
-Tudo o mais (testes, debug, documentação, revisão) acontece automaticamente.
-
----
-
-## Fluxo completo
+## Fluxo principal de desenvolvimento
 
 ```
 💡 IDEIA
     ↓
-[brainstorming] ──── explora possibilidades e refina o problema
-    ↓ (opcional)
-[writing-plans] ──── planeja tasks + cria branch
+/brainstorming ──── explora possibilidades, refina o problema, faz threat modeling
     ↓
-    ┌─────────────────────────────────────┐
-    │  DESENVOLVIMENTO                    │
-    │                                     │
-    │  implementa o código                │
-    │       ↓                             │
-    │  Skills ativam conforme necessário: │
-    │  • design-system (UI em Rails)     │
-    │  • ux-validation (telas)           │
-    │  • vibesec (auth/dados)            │
-    └─────────────────────────────────────┘
+/prd-to-issues ──── PRD mínimo + tasks em vertical slice + cria branch
     ↓
-"faz o commit"
+    ┌──────────────────────────────────────────┐
+    │  DESENVOLVIMENTO                         │
+    │                                          │
+    │  implementa o código                     │
+    │       ↓                                  │
+    │  Skills ativam conforme necessário:      │
+    │  • /design-system ou /inkrivel_design_system (UI Rails) │
+    │  • /ux-validation (telas e componentes)  │
+    │  • /vibesec (auth, dados, uploads)       │
+    └──────────────────────────────────────────┘
     ↓
-[smart-commit] ─────┬─→ [context-docs] checklist de docs (se AGENTS.md existir)
-                    ├─→ [write-tests] cria testes se não existirem
+/smart-commit ──────┬─→ /context-docs (checklist de docs)
+                    ├─→ /test-gate (cria testes se não existirem)
                     ├─→ roda todos os testes
-                    ├─→ [systematic-debugging] se falhar
-                    ├─→ [verification-before-completion]
-                    └─→ commita quando tudo verde
+                    ├─→ /systematic-debugging (se falhar)
+                    └─→ commita quando verde
     ↓
-(opcional) "faz o push"
-    ↓
-[push] ─────────────┬─→ verifica código de debug
+/push ──────────────┬─→ verifica código de debug
                     ├─→ roda todos os testes
-                    ├─→ [systematic-debugging] se falhar
                     └─→ push da branch
     ↓
-"abre o PR"
-    ↓
-[open-pr] ──────────┬─→ [context-docs] checklist consolidado da branch
-                    ├─→ [ready-check] revisão de código
-                    ├─→ [ux-validation] se houver UI
+/open-pr ───────────┬─→ /context-docs (checklist consolidado da branch)
+                    ├─→ /ready-check (revisão de código + roteiro de teste)
                     ├─→ rebase com main
-                    └─→ cria PR draft
+                    └─→ cria PR draft com changelog
     ↓
-[review-pr] ──── roteiro de staging para o revisor
+/review-pr ──── roteiro de teste em staging para o revisor
 ```
 
 ---
 
 ## Skills do fluxo
 
----
-
 ### 💡 brainstorming
 
-Use quando quiser **explorar possibilidades** ou entender como fazer algo antes de começar. Essa skill faz perguntas para refinar o problema, identificar restrições e explorar alternativas. Não propõe código — foca no entendimento.
+Refinamento de ideia antes de qualquer linha de código. Faz perguntas uma por vez em ordem de dependência e oferece uma resposta recomendada junto com cada pergunta — reduz a carga cognitiva e acelera o alinhamento.
 
-Para features que envolvem dados, autenticação ou integrações externas, ela também faz **threat modeling**: mapeia ativos, atacantes e vetores de risco. Os riscos de alta prioridade são documentados para virar tasks de segurança depois.
+Para features que envolvem dados, autenticação ou integrações externas, faz **threat modeling**: mapeia ativos, atacantes e vetores de risco antes de propor abordagens.
 
-Apresenta o design refinado na conversa, não cria arquivos.
+Apresenta o design refinado na conversa e passa para `/prd-to-issues` ao final.
 
 **Quando usar:** "como eu poderia fazer X", "quero explorar ideias de Y", "qual a melhor abordagem para Z"
 
 ---
 
-### 📋 writing-plans
+### 📋 prd-to-issues
 
-**Planejamento sob demanda.** Quebra uma implementação complexa em tasks pequenas (2-5 min cada), deriva o nome da branch e a cria.
+Planejamento antes de codar. Parte do que o usuário descreve (não do Git), sintetiza um **PRD mínimo** (problema, solução, non-goals, perguntas em aberto) e quebra a implementação em tasks de **vertical slice** — cada task entrega um caminho completo ponta-a-ponta, não uma camada isolada.
 
-O plano é apresentado na conversa para guiar o desenvolvimento. Não é obrigatório — outras skills (smart-commit, write-tests) inferem o contexto diretamente do Git se não houver plano.
+Cada task tem critério explícito de conclusão e respeita o limite de ~600 linhas modificadas. Ao final, cria a branch.
 
-**Quando usar:** apenas quando você pedir explicitamente: "faz o planejamento", "cria o plano", "planeja isso"
+**Quando usar:** "faz o planejamento", "cria o plano", "planeja isso"
 
 ---
 
 ### 🔒 vibesec
 
-Quem vibecoda sem experiência em segurança introduz vulnerabilidades sem perceber — não por má intenção, mas por não saber o que procurar. Essa skill age como um bug hunter: lê o código implementado e vasculha ativamente pelos erros mais comuns antes que virem problema em produção.
+Quem vibecoda sem experiência em segurança introduz vulnerabilidades sem perceber. Essa skill age como bug hunter: vasculha o código implementado pelos erros mais comuns antes que virem problema em produção.
 
-O checklist cobre as principais categorias de risco: controle de acesso (IDOR), injeção de código (SQL/XSS), autenticação e sessão, exposição de dados, gestão de segredos, uploads, rate limit, security headers, multi-tenancy, race conditions e LGPD. Cada problema encontrado vem acompanhado do impacto e da correção específica, classificado como crítico, alto ou melhoria.
+Checklist cobre: IDOR, SQL/XSS injection, autenticação e sessão, exposição de dados, secrets, uploads, rate limit, security headers, multi-tenancy, race conditions e LGPD. Cada problema vem com impacto e correção, classificado como crítico, alto ou melhoria.
 
-Depois do checklist, ela muda de perspectiva e atua como atacante — tentando explorar o que foi encontrado para garantir que as correções realmente fecham os vetores.
-
-**Quando usar:** sempre que o código tocar em autenticação, inputs, banco de dados, APIs externas ou dados do usuário.
+**Quando usar:** sempre que o código tocar em autenticação, inputs, banco de dados, APIs externas ou dados do usuário
 
 ---
 
-### 🎨 ux-validation
+### 🎨 design-system
 
-Interfaces mal feitas não são só feias — elas confundem, frustram e fazem o usuário desistir. Essa skill revisa a UI implementada com foco nos estados que costumam ser esquecidos: o que aparece enquanto carrega, o que aparece quando dá erro, o que aparece quando a lista está vazia.
+Padrões visuais do admin para projetos Rails + Tailwind CDN + Hotwire. Cobre container de página, escala tipográfica, grids responsivos, cards, botões, tabelas, tabs, badges, breadcrumb e estados vazios. Aplica diretamente ao criar ou modificar HTML.
 
-Ela tem dois modos: `guide` para construir algo novo (orienta durante a implementação) e `review` para revisar código existente (aponta o que está faltando). A análise segue as 10 heurísticas de Nielsen e inclui checagem básica de acessibilidade.
-
-**Quando usar:** sempre que uma tela ou componente for criado ou modificado.
+**Quando usar:** ao criar ou modificar telas na área admin de projetos Rails
 
 ---
 
-### 🧪 write-tests
+### 🎨 inkrivel_design_system
 
-Testes escritos depois da implementação, mas antes do commit. Essa skill **infere o que foi implementado** via `git status` e `git diff`, identifica os cenários relevantes e escreve os testes: happy path, sad path, edge cases e regressão.
+Versão do design system específica para o projeto Inkrivel. Mesma função do `design-system`, com tokens e padrões próprios do projeto.
 
-Se a mudança tocou em autenticação, dados ou uploads, gera **testes de segurança obrigatórios**: acesso sem token, cross-tenant, rate limit, inputs maliciosos, arquivos inválidos.
+**Quando usar:** ao criar ou modificar telas em projetos da stack Inkrivel
 
-Roda os testes e só libera o commit quando estiverem verdes. Se falharem, aciona `systematic-debugging` automaticamente.
+---
+
+### 🧪 test-gate
+
+Gate de qualidade antes do commit: infere o que foi implementado via Git, identifica os cenários relevantes e escreve os testes (happy path, sad path, edge cases, regressão e segurança quando necessário). Usa apenas interfaces públicas — testes escritos assim sobrevivem a refatorações.
+
+Roda os testes e só libera o commit quando estiverem verdes. Se falharem, aciona `systematic-debugging`.
 
 **Quando usar:** "escreve os testes", ou automaticamente via `smart-commit`
 
@@ -140,29 +106,25 @@ Roda os testes e só libera o commit quando estiverem verdes. Se falharem, acion
 
 ### 🐛 systematic-debugging
 
-Quando algo quebra, o impulso é sair tentando coisas aleatórias até funcionar. Essa skill impõe um processo: antes de tocar no código, entender o que está acontecendo de verdade.
+Processo de 4 fases para encontrar a causa raiz — nunca tratar sintoma. Antes de investigar, constrói um **sinal de feedback rápido e determinístico** (teste, curl, script) para que cada experimento seja preciso.
 
-O processo tem 4 fases — observar o erro completo, levantar hipóteses em ordem de probabilidade, testar cada uma com o menor experimento possível e só então corrigir na causa raiz. O objetivo é não tratar sintoma, não esconder o problema com um workaround e não criar novos bugs no processo.
+Fases: observar → hipóteses → testar (com minimização e bisection quando necessário) → corrigir com regression test obrigatório.
 
-**Quando usar:** quando algo não funciona, quando um teste falha, quando há comportamento inesperado no console ou na aplicação.
+**Quando usar:** quando algo não funciona, quando um teste falha, quando há comportamento inesperado
 
 ---
 
 ### ✅ verification-before-completion
 
-Depois de implementar ou corrigir algo, é fácil declarar "pronto" sem verificar se realmente está. Essa skill faz a checagem final antes de avançar: o comportamento implementado funciona? os testes passam? algo adjacente quebrou? tem `console.log` esquecido?
+Checagem final antes de declarar qualquer task, bug ou implementação como concluída. Verifica: comportamento funcionando, testes passando, nada adjacente quebrado, código limpo. Para correções de bug, exige regression test que falha sem a correção e passa com ela.
 
-É uma skill de disciplina — curta, direta, mas que evita que problemas básicos cheguem no PR ou, pior, em produção.
-
-**Quando usar:** após qualquer implementação ou correção, antes de commitar.
+**Quando usar:** após qualquer implementação ou correção, antes de commitar
 
 ---
 
 ### 💾 smart-commit
 
-**Fluxo completo de commit:** verifica docs desatualizadas → cria/roda testes → debuga se falhar → commita quando verde.
-
-Gera mensagens semânticas no formato `tipo: Mensagem em português` inferindo o contexto dos últimos commits e do diff atual. Agrupa arquivos por contexto lógico (banco, modelos, controllers, componentes, testes, docs, config) e executa os commits diretamente.
+Fluxo completo de commit: verifica docs → cria/roda testes → debuga se falhar → commita quando verde. Gera mensagens semânticas em português inferindo o contexto do diff e dos commits recentes. Agrupa arquivos por contexto lógico e executa commits diretamente.
 
 **Quando usar:** "faz o commit", "salva isso", "commita"
 
@@ -170,11 +132,7 @@ Gera mensagens semânticas no formato `tipo: Mensagem em português` inferindo o
 
 ### 📤 push
 
-**Push seguro:** validações técnicas antes de publicar a branch.
-
-Verifica código de debug esquecido (`console.log`, `debugger`, `print`), roda todos os testes, aciona `systematic-debugging` se falharem, e só então faz push.
-
-NÃO faz rebase (isso é no `open-pr`) nem revisão de código (apenas validações técnicas).
+Push seguro: verifica código de debug esquecido, roda todos os testes, aciona `systematic-debugging` se falharem, e só então faz push. Não faz rebase nem revisão de código.
 
 **Quando usar:** "faz o push", "sobe a branch", "publica a branch"
 
@@ -182,9 +140,7 @@ NÃO faz rebase (isso é no `open-pr`) nem revisão de código (apenas validaç�
 
 ### 🔍 ready-check
 
-Revisão de código antes de abrir o PR. Analisa funcionalidade, segurança (12 itens obrigatórios), UX e qualidade geral. Gera roteiro de teste manual para validar os fluxos implementados.
-
-Identifica bloqueantes, sugestões e nitpicks. Se houver bloqueantes, pergunta se quer corrigir antes de prosseguir.
+Revisão de código antes do PR: analisa funcionalidade, segurança (12 itens), UX e qualidade geral. Verifica se os testes cobrem interfaces públicas, não detalhes internos. Gera roteiro de teste manual para validar os fluxos implementados. Identifica bloqueantes, sugestões e nitpicks.
 
 **Quando usar:** automaticamente via `open-pr`, ou "revisa antes do PR"
 
@@ -192,11 +148,9 @@ Identifica bloqueantes, sugestões e nitpicks. Se houver bloqueantes, pergunta s
 
 ### 🚀 open-pr
 
-**Fluxo completo de PR:** validações → push → revisão → PR draft.
+Fluxo completo de PR: validações técnicas → checklist de docs → `ready-check` → rebase com main → gera título, corpo (com seção "Fora do escopo") e changelog em linguagem não-técnica → cria PR draft.
 
-Detecta se a branch já foi publicada. Se não, faz validações técnicas (testes + código limpo) antes do push. Executa `ready-check` para revisão de código, faz rebase com main, gera título, corpo (contexto para IA + roteiro para humano) e changelog.
-
-Cria o PR como draft.
+O corpo do PR serve duas audiências: a IA que vai revisar precisa de contexto de intenção e risco; o humano que vai testar no staging precisa de roteiro claro.
 
 **Quando usar:** "abre o PR", "sobe o PR", "cria o PR"
 
@@ -204,47 +158,76 @@ Cria o PR como draft.
 
 ### 🧭 review-pr
 
-Receber um PR para revisar sem saber por onde começar é comum — especialmente para quem não escreveu o código. Essa skill lê o PR e traduz o que precisa ser testado em um roteiro de ações concretas: onde clicar, o que preencher, o que deve aparecer.
+Lê o PR de outra pessoa e traduz o que precisa ser testado em roteiro de ações concretas: onde clicar, o que preencher, o que deve aparecer. Executável por qualquer pessoa, técnica ou não.
 
-O roteiro é executável por qualquer pessoa, técnica ou não. Para revisores que vão analisar o código, ela também gera o contexto estruturado para colar em uma IA — com a intenção do PR, as decisões técnicas e onde focar a revisão.
-
-**Quando usar:** ao receber um PR para revisar no GitHub.
-
----
-
-## Skills fora do fluxo
-
-Skills acionadas por contexto específico.
+**Quando usar:** ao receber um PR para revisar no GitHub
 
 ---
 
 ### 📝 context-docs
 
-Metodologia completa de documentação para projetos vibecodados por pessoas não-tech. Cria e mantém documentação dual-audience: legível para humanos leigos **e** usada como contexto de guia por agentes de IA.
+Metodologia de documentação dual-audience: legível para humanos leigos e usada como contexto por agentes de IA. Estrutura: `AGENTS.md` (briefing mestre) + `docs/features/` + `docs/flows/` + `docs/changelog.md`.
 
-A estrutura gira em torno do `AGENTS.md` — um briefing que todo agente lê antes de qualquer coisa — e de arquivos em `docs/features/` e `docs/flows/` para detalhar cada parte do sistema. Para projetos pequenos, só o `AGENTS.md` já resolve.
+Acionada automaticamente pelo `smart-commit` (checklist leve) e pelo `open-pr` (checklist consolidado da branch).
 
-A skill é acionada automaticamente pelo `smart-commit` (verificação leve a cada commit) e pelo `open-pr` (verificação consolidada de toda a branch antes do PR). Em ambos os casos, o agente percorre um checklist e bloqueia o avanço se houver documentação desatualizada.
-
-**Quando usar:** "documenta isso", "cria o AGENTS.md", "explica como funciona pra IA", "registra essa feature", ou ao iniciar um projeto novo
+**Quando usar:** "documenta isso", "cria o AGENTS.md", "registra essa feature"
 
 ---
 
-### 🖼️ design-system
+## Skills independentes
 
-**Apenas para projetos Ruby/Rails.** Carrega os padrões visuais do projeto (espaçamento, tipografia, grid, componentes) e aplica diretamente ao criar telas com Tailwind CDN.
+Skills acionadas por contexto específico, fora do fluxo principal.
 
-Cobre container de página admin, escala tipográfica, grids responsivos, cards, botões, tabelas, tabs, badges, breadcrumb e estados vazios.
+---
 
-**Quando usar:** sempre ao criar ou modificar HTML com Tailwind em projetos Rails
+### 🔬 diagnose
 
+Para bugs difíceis, intermitentes ou regressões de performance que o `systematic-debugging` não conseguiu resolver. O diferencial é o investimento upfront em construir um sinal de feedback rápido e determinístico antes de qualquer investigação. Inclui minimização de caso e bisection via `git bisect`.
+
+Ao final, o sinal vira teste de regressão permanente.
+
+**Quando usar:** "não consigo achar a causa", "está difícil de reproduzir", "sumiu em algum commit"
+
+---
+
+### 🏗️ improve-codebase-architecture
+
+Encontra módulos **rasos** no codebase (interface grande, pouca complexidade encapsulada) e propõe como aprofundá-los. Usa o "teste de deleção": se deletar o módulo e reescrever o que o usa não piora nada, o módulo é raso.
+
+Apresenta até 5 candidatos com problema, oportunidade e benefícios. Só prossegue com os aprovados pelo usuário.
+
+**Quando usar:** "o código está difícil de manter", "quero refatorar isso", "como melhorar a arquitetura disso"
 
 ---
 
 ### 🚨 incident-response
 
-Todo sistema que vai para produção vai, em algum momento, enfrentar um problema sério — um vazamento de dados, uma credencial exposta, o sistema fora do ar. A diferença entre um time que responde bem e um que entra em colapso é ter o plano pronto antes de precisar dele.
+Planejamento e resposta a incidentes em produção. Dois modos: **preparação** (antes de ir para prod — define o que conta como incidente, configura alertas, monta playbooks, valida backups, define obrigações LGPD) e **resposta ativa** (durante o incidente — triagem, contenção, preservação de evidências, post-mortem).
 
-Essa skill tem dois modos. **Preparação** (antes de ir para prod): define o que conta como incidente, configura alertas de detecção, monta playbooks de resposta por cenário (vazamento, fora do ar, credencial exposta), valida backups e define quem notificar — incluindo a obrigação legal de notificar a ANPD em 72h em caso de vazamento de dados pessoais (LGPD). **Resposta ativa** (durante um incidente): conduz a triagem, prioriza contenção antes de investigação, preserva evidências e produz o post-mortem.
+**Quando usar:** antes do primeiro deploy em produção, ou imediatamente quando um incidente estiver ativo
 
-**Quando usar:** antes do primeiro deploy em produção, ou imediatamente quando um incidente estiver ativo.
+---
+
+### 🔐 security-audit
+
+Auditoria de segurança automatizada no projeto atual. Analisa controles de acesso, autenticação, validação de inputs, headers, secrets, dependências e mais. Gera relatório acionável com severidade e correções específicas.
+
+**Quando usar:** "faz uma auditoria de segurança", antes de lançamentos importantes
+
+---
+
+### 🗿 caveman
+
+Modo de comunicação ultra-comprimido (~75% menos tokens). Corta artigos, preâmbulos, hedging e confirmações vazias. Mantém precisão técnica total — termos exatos, números precisos, nomes de arquivos sem abreviação.
+
+Persiste pelo resto da conversa até você dizer "para o caveman".
+
+**Quando usar:** "caveman", "responde curto", "sem enrolação" — no início de qualquer conversa onde quiser respostas diretas
+
+---
+
+### ✍️ write-a-skill
+
+Cria novas skills com estrutura correta: trigger claro na descrição, processo com passos concretos, abaixo de 100 linhas. Apresenta o rascunho para confirmação antes de salvar.
+
+**Quando usar:** "cria uma skill para X", "quero uma skill que faça Y"

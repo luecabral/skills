@@ -13,7 +13,7 @@ Nunca comece a implementar sem antes entender o problema real. Uma ideia vaga ge
 
 ## Quando NÃO usar
 
-- O usuário já tem um plano claro e detalhado → use `writing-plans`
+- O usuário já tem um plano claro e detalhado → use `prd-to-issues`
 - O usuário está debugando algo existente → use `systematic-debugging`
 - O usuário quer apenas uma mudança pontual e simples (ex: "muda a cor desse botão")
 
@@ -21,14 +21,22 @@ Nunca comece a implementar sem antes entender o problema real. Uma ideia vaga ge
 
 ### Passo 1 — Entender o problema real
 
-Faça perguntas para refinar a ideia. Foque em:
+Antes de perguntar: mapeie suposições ocultas e pontos cegos da ideia — casos de borda não mencionados, dependências de estado, impacto em módulos existentes.
 
+Para cada questão relevante:
+- Pergunte **uma por vez**, em ordem de dependência (não pergunte sobre deploy antes de entender o que será construído)
+- Junto com cada pergunta, **ofereça uma resposta recomendada** para o usuário confirmar ou redirecionar
+
+  > "Isso vai persistir no banco ou só viver em sessão?
+  > Minha sugestão: banco, porque você vai querer histórico por usuário."
+
+Foco das perguntas:
 - **O quê:** o que exatamente deve acontecer? qual é o comportamento esperado?
 - **Para quem:** quem vai usar isso? qual é o contexto de uso?
 - **Critério de sucesso:** como sabemos que está pronto e funcionando?
 - **Restrições:** há algo que não pode mudar? integrações existentes? limitações técnicas?
-
-Faça uma pergunta por vez. Não bombardeie com todas de uma vez.
+- **Casos de borda:** o que acontece se a entrada for inválida, vazia ou inesperada?
+- **Integrações afetadas:** como isso impacta módulos ou fluxos que já existem?
 
 ### Passo 1.5 — Threat Modeling (obrigatório para features com dados, auth ou integrações externas)
 
@@ -64,7 +72,7 @@ Se a feature tocar em autenticação, dados do usuário, pagamentos, uploads, AP
 |---|---|---|---|
 | [vetor] | Alta/Média/Baixa | Alto/Médio/Baixo | 🔴/🟡/🟢 |
 
-Documente os vetores de alta prioridade em `docs/design.md` na seção "Riscos de segurança". Eles virarão tasks explícitas no `writing-plans`.
+Documente os vetores de alta prioridade em `docs/design.md` na seção "Riscos de segurança". Eles virarão tasks explícitas no `prd-to-issues`.
 
 ### Passo 2 — Explorar alternativas
 
@@ -117,17 +125,17 @@ Após apresentar o resumo, **sempre** pergunte:
 
 > "Quer que eu crie o plano de desenvolvimento para isso? Posso quebrar em tasks pequenas e já definir a ordem de implementação."
 
-- Se o usuário confirmar (sim, pode, vai em frente, etc.) → execute imediatamente a skill `writing-plans`
+- Se o usuário confirmar (sim, pode, vai em frente, etc.) → execute imediatamente a skill `prd-to-issues`
 - Se o usuário recusar → encerre o brainstorming sem implementar nada
 
 **Nunca inicie a implementação diretamente a partir do brainstorming, mesmo que o usuário peça.**
-Se isso acontecer, redirecione: "Deixa eu primeiro criar o plano via `writing-plans` para organizarmos as tasks antes de codar."
+Se isso acontecer, redirecione: "Deixa eu primeiro criar o plano via `prd-to-issues` para organizarmos as tasks antes de codar."
 
 ## Regras
 
 - Nunca proponha código durante o brainstorming
-- Nunca inicie implementação ao final do brainstorming — sempre passe por `writing-plans`
+- Nunca inicie implementação ao final do brainstorming — sempre passe por `prd-to-issues`
 - A pergunta do Passo 5 é obrigatória, sem exceções
 - Se o usuário tentar pular direto para implementação, redirecione gentilmente: "Antes de codar, deixa eu entender melhor o que você precisa"
 - Mantenha o foco no problema, não na solução técnica
-- Se o usuário já souber exatamente o que quer, valide rapidamente e passe para `writing-plans`
+- Se o usuário já souber exatamente o que quer, valide rapidamente e passe para `prd-to-issues`

@@ -144,6 +144,13 @@ Preencha o template abaixo. Ele contém o contexto para a revisão, um checklist
 que não conseguia antes, ou o que foi corrigido. Foque no "o quê" e no
 "para quê", não no "como".]
 
+### Fora do escopo
+[O que este PR deliberadamente NÃO faz — evita que o revisor pergunte
+"por que não fez X também?". Exemplos:
+- "Não cobre o fluxo de edição, apenas criação"
+- "Não migra dados existentes, só afeta registros novos"
+Escreva "Sem exclusões relevantes" se o escopo for completo.]
+
 ### Validações
 - [x] **Documentação:** Changelog, AGENTS.md e/ou docs da feature atualizados.
 - [x] **Testes:** Criados/atualizados e rodando verde.
