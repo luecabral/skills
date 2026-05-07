@@ -55,31 +55,22 @@ Se histórico divergente: ofereça `--rebase` ou `--force-with-lease`, aguarde e
 
 ### Passo 7 — Subir em staging
 
-Antes de abrir PR, o código precisa passar por staging.
+O push feito no Passo 6 dispara o deploy de staging automaticamente. Informe o usuário e prossiga sem aguardar confirmação.
 
+### Passo 8 — Abrir ou editar PR?
+Verifique se já existe PR para a branch:
 ```bash
-git log origin/$(git branch --show-current)..HEAD --oneline
+gh pr view --json number,title,state 2>/dev/null
 ```
 
-Pergunte: "O deploy para staging está configurado automaticamente ou você sobe manualmente?"
+- **PR existente** → pergunte: "Quer atualizar o PR existente?"
+  - **Não** → encerre
+  - **Sim** → continue para Passo 9 (modo edição)
+- **Sem PR** → pergunte: "Quer abrir PR agora?"
+  - **Não** → encerre
+  - **Sim** → continue para Passo 9 (modo criação)
 
-- **Automático** (ex: Render, Railway, Heroku preview apps) → aguarde o deploy concluir e peça a URL de staging
-- **Manual** → instrua o usuário a subir e fornecer a URL de staging
-
-Após receber a URL de staging, liste os fluxos afetados pelo PR e peça confirmação:
-- [ ] Testou o fluxo principal em staging?
-- [ ] Comportamento em staging bate com o esperado?
-- [ ] Sem erros no console / logs de staging?
-
-Aguarde confirmação explícita do usuário antes de prosseguir.
-Se staging falhou ou não foi testado, encerre e não abra PR.
-
-### Passo 8 — Abrir PR?
-Pergunte: "Quer abrir PR agora?"
-- **Não** → encerre
-- **Sim** → continue
-
-Se chamada com foco em PR ("abre o PR") e push já foi feito, pule direto para o Passo 9.
+Se chamada com foco em PR ("abre o PR", "atualiza o PR") e push já foi feito, pule direto para o Passo 9.
 
 ### Passo 9 — Gerar título e corpo
 **Formato:** `tipo: Mensagem no presente, sem ponto final`
@@ -109,14 +100,23 @@ Se `.plans/plan.md` existir e este PR faz parte de um ralph-loop, remova antes d
 rm -f .plans/plan.md
 ```
 
-### Passo 11 — Changelog e criação
+### Passo 11 — Changelog e criar/editar PR
 Em linguagem não-técnica: ✨ Novidades | 🐛 Correções | ⚡ Melhorias
 
 Exiba título, corpo e changelog. Aguarde aprovação do usuário.
+
+**Modo criação** (sem PR existente):
 ```bash
 gh pr create --draft --title "<título>" --body "<corpo>"
 gh pr comment <número> --body "## 📋 Changelog\n\n<changelog>"
 ```
+
+**Modo edição** (PR já existe):
+```bash
+gh pr edit --title "<título>" --body "<corpo>"
+gh pr comment <número> --body "## 📋 Changelog\n\n<changelog>"
+```
+
 Exiba a URL do PR ao final.
 
 ## Regras
