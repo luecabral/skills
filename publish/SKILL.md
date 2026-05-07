@@ -53,14 +53,35 @@ git push -u origin HEAD
 Se conflito no rebase: liste arquivos e aguarde resolução manual.
 Se histórico divergente: ofereça `--rebase` ou `--force-with-lease`, aguarde escolha.
 
-### Passo 7 — Abrir PR?
+### Passo 7 — Subir em staging
+
+Antes de abrir PR, o código precisa passar por staging.
+
+```bash
+git log origin/$(git branch --show-current)..HEAD --oneline
+```
+
+Pergunte: "O deploy para staging está configurado automaticamente ou você sobe manualmente?"
+
+- **Automático** (ex: Render, Railway, Heroku preview apps) → aguarde o deploy concluir e peça a URL de staging
+- **Manual** → instrua o usuário a subir e fornecer a URL de staging
+
+Após receber a URL de staging, liste os fluxos afetados pelo PR e peça confirmação:
+- [ ] Testou o fluxo principal em staging?
+- [ ] Comportamento em staging bate com o esperado?
+- [ ] Sem erros no console / logs de staging?
+
+Aguarde confirmação explícita do usuário antes de prosseguir.
+Se staging falhou ou não foi testado, encerre e não abra PR.
+
+### Passo 8 — Abrir PR?
 Pergunte: "Quer abrir PR agora?"
 - **Não** → encerre
 - **Sim** → continue
 
-Se chamada com foco em PR ("abre o PR") e push já foi feito, pule direto para o Passo 8.
+Se chamada com foco em PR ("abre o PR") e push já foi feito, pule direto para o Passo 9.
 
-### Passo 8 — Gerar título e corpo
+### Passo 9 — Gerar título e corpo
 **Formato:** `tipo: Mensagem no presente, sem ponto final`
 **Tipos:** `feat` | `fix` | `refactor` | `perf` | `docs` | `config`
 
@@ -82,13 +103,13 @@ Se chamada com foco em PR ("abre o PR") e push já foi feito, pule direto para o
 - [ ] Regressão: [fluxos adjacentes]
 ```
 
-### Passo 9 — Remover plano de sessão (se ralph-loop)
+### Passo 10 — Remover plano de sessão (se ralph-loop)
 Se `.plans/plan.md` existir e este PR faz parte de um ralph-loop, remova antes do push:
 ```bash
 rm -f .plans/plan.md
 ```
 
-### Passo 10 — Changelog e criação
+### Passo 11 — Changelog e criação
 Em linguagem não-técnica: ✨ Novidades | 🐛 Correções | ⚡ Melhorias
 
 Exiba título, corpo e changelog. Aguarde aprovação do usuário.
