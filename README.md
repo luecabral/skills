@@ -19,11 +19,11 @@ Skills são instruções que ensinam a IA a se comportar de um jeito específico
     │  /ralph-loop (autônomo, issue a issue)   │
     │    ou implementa manualmente             │
     │       ↓                                  │
-    │  Skills ativam conforme necessário:      │
-    │  • /tdd (guia implementação por testes)  │
-    │  • /inkrivel_design_system (UI Rails)    │
-    │  • /vibesec (auth, dados, uploads)       │
-    │  • /debugging (bug ou teste falhando)    │
+    │  Skills ativam conforme necessário:           │
+    │  • /tdd (analisa, refatora se preciso, testa) │
+    │  • /inkrivel_design_system (UI Rails)         │
+    │  • /vibesec (auth, dados, uploads)            │
+    │  • /debugging (bug ou teste falhando)         │
     └──────────────────────────────────────────┘
     ↓
 /smart-commit ──────┬─→ /context-docs (checklist de docs)
@@ -93,9 +93,9 @@ Padrões visuais do admin para a stack Rails + Tailwind CDN + Hotwire + InkDashb
 
 ### 🧪 tdd
 
-Desenvolvimento guiado por testes: o teste vem antes do código. Segue o ciclo **Red-Green-Refactor** vertical slice por vertical slice — um comportamento por vez, do teste à implementação completa.
+Antes de escrever qualquer teste, analisa os módulos que a task vai tocar e aplica o **teste de deleção** para identificar código raso ou acoplado. Se encontrar, refatora primeiro — confirmando com o usuário — até a interface estar limpa. Só então entra no ciclo **Red-Green-Refactor** vertical slice por vertical slice.
 
-Diferente do `test-gate` (que escreve testes depois da implementação como gate de qualidade), o TDD usa o teste para guiar o **design da interface** antes de qualquer código existir.
+Você não precisa saber que o código precisa de refatoração: o TDD descobre por você.
 
 **Quando usar:** "faz com TDD", "quero usar TDD aqui", "desenvolve orientado a testes"
 
@@ -150,14 +150,6 @@ Documentação dual-audience: legível para humanos e usada como contexto por ag
 ---
 
 ## Skills independentes
-
----
-
-### 🏗️ improve-codebase-architecture
-
-Encontra módulos rasos no codebase e propõe como aprofundá-los. Usa o "teste de deleção": se deletar o módulo e reescrever o que o usa não piora nada, o módulo é raso. Apresenta até 5 candidatos com problema, oportunidade e benefícios.
-
-**Quando usar:** "o código está difícil de manter", "quero refatorar isso", "como melhorar a arquitetura disso"
 
 ---
 
