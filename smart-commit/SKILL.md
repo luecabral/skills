@@ -1,6 +1,6 @@
 ---
 name: smart-commit
-description: Use ao commitar mudanças. Ativa quando o usuário diz "faz o commit", "salva isso", "commita". Executa automaticamente o fluxo completo: verifica docs, testa o código (test-gate), debuga se falhar (systematic-debugging), só então commita. Infere o contexto do Git, agrupa por contexto lógico e executa diretamente.
+description: Use ao commitar mudanças. Ativa quando o usuário diz "faz o commit", "salva isso", "commita". Executa automaticamente o fluxo completo: verifica docs, testa o código (test-gate), debuga se falhar (debugging), só então commita. Infere o contexto do Git, agrupa por contexto lógico e executa diretamente.
 ---
 
 # Smart Commit
@@ -21,7 +21,7 @@ Se existem testes para os arquivos alterados → rode-os. Se não existem → ac
 npm test / npx vitest run / pytest / bundle exec rspec
 ```
 
-Se falhar, acione `systematic-debugging`. Não commite até tudo estar verde.
+Se falhar, acione `debugging`. Não commite até tudo estar verde.
 
 ### Passo 1 — Coletar estado atual
 
