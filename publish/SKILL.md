@@ -72,13 +72,29 @@ gh pr view --json number,title,state 2>/dev/null
 
 Se chamada com foco em PR ("abre o PR", "atualiza o PR") e push já foi feito, pule direto para o Passo 9.
 
-### Passo 9 — Gerar título e corpo
+### Passo 9 — Detectar mudanças de infraestrutura
+
+Antes de redigir o corpo, verifique no diff se o PR introduz:
+- Novas variáveis de ambiente (`process.env.`, `ENV[`, `Rails.application.credentials`)
+- Novos serviços externos (storage, filas, APIs de terceiros)
+- Migrações de banco de dados
+- Alterações em Dockerfile, CI/CD ou configuração de servidor
+
+Se encontrar qualquer um desses, **crie uma seção própria** no corpo do PR — nunca enterre em "outros ajustes". A seção deve listar as vars com descrição e exemplo de valor.
+
+### Passo 10 — Gerar título e corpo
 **Formato:** `tipo: Mensagem no presente, sem ponto final`
 **Tipos:** `feat` | `fix` | `refactor` | `perf` | `docs` | `config`
 
 ```markdown
 ### O que esse PR faz
 [2-3 frases — foco no "o quê" e "para quê"]
+
+### [Nome do serviço/infra] — se detectado no Passo 9
+**Variáveis de ambiente necessárias em produção:**
+\`\`\`
+VAR_NAME=valor_exemplo   # descrição
+\`\`\`
 
 ### Fora do escopo
 [O que este PR deliberadamente NÃO faz]
