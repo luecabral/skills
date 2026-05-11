@@ -26,14 +26,24 @@ Pergunte **uma por vez**, em ordem de dependência. Junto com cada pergunta, **o
 
 Foco: o quê, para quem, critério de sucesso, restrições, casos de borda, integrações afetadas.
 
-### Passo 1.5 — Threat Modeling (quando tocar em auth, dados ou integrações externas)
+### Passo 1.5 — Análise de riscos de segurança / Threat Modeling (quando tocar em autenticação, dados ou integrações externas)
+
+Ao apresentar ao usuário, explique que é uma análise para identificar o que pode dar errado antes de construir.
 
 Documente:
 - **Ativos** — quais dados são sensíveis? há dinheiro envolvido?
-- **Atacantes** — usuário malicioso autenticado, externo sem auth, bot, insider
-- **Vetores** — marque os relevantes: IDOR, SQL injection, XSS, CSRF, race condition, upload malicioso, brute force (ver REFERENCE.md para checklist completo)
+- **Atacantes** — usuário malicioso autenticado, externo sem autenticação, bot, insider
+- **Vetores de ataque** — marque os relevantes e explique brevemente ao usuário o que cada um significa:
+  - IDOR (acesso indevido a dados de outro usuário)
+  - SQL injection (manipulação do banco de dados via campos de formulário)
+  - XSS (injeção de código malicioso que roda no navegador de outra pessoa)
+  - CSRF (ação executada sem o conhecimento do usuário logado)
+  - Race condition (dois processos simultâneos causando comportamento inesperado)
+  - Upload malicioso (arquivo enviado que pode comprometer o servidor)
+  - Brute force (tentativas automáticas de adivinhar senha)
+  - (ver REFERENCE.md para checklist completo)
 
-Classifique cada vetor por probabilidade × impacto (🔴 Alta / 🟡 Média / 🟢 Baixa). Vetores 🔴 viram tasks explícitas no `prd-to-issues`.
+Classifique cada risco por probabilidade × impacto (🔴 Alta / 🟡 Média / 🟢 Baixa). Riscos 🔴 viram tasks explícitas no `prd-to-issues`.
 
 ### Passo 2 — Explorar alternativas
 
@@ -59,3 +69,9 @@ Apresente o resumo do design (problema, solução, escopo, fora do escopo, crit�
 - Nunca proponha código durante o brainstorming
 - Nunca inicie implementação ao final — sempre passe por `prd-to-issues`
 - A pergunta sobre o plano (Passo 4) é obrigatória, sem exceções
+- **Contextualização de termos técnicos:** ao apresentar qualquer conceito técnico ao usuário, sempre inclua uma explicação simples entre parênteses ou em seguida. Exemplos de como fazer:
+  - "banco de dados (onde as informações ficam guardadas de forma permanente)"
+  - "autenticação (o sistema que controla quem pode acessar o quê)"
+  - "integração com API externa (conexão com um serviço de terceiros, como WhatsApp ou Stripe)"
+  - "sessão (memória temporária que some quando o usuário fecha o navegador)"
+  - O objetivo é que qualquer pessoa entenda, sem precisar parar para pesquisar o termo
