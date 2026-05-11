@@ -28,6 +28,17 @@ npm test / npx vitest run / pytest / bundle exec rspec
 ```
 Se falhar, acione `debugging`. Não prossiga até todos estarem verdes.
 
+### Passo 3.1 — Auditar dependências
+```bash
+npm audit --audit-level=high 2>/dev/null || true
+```
+Se houver vulnerabilidades HIGH ou CRITICAL:
+- Liste os pacotes afetados com severidade e CVE
+- Informe que o publish está bloqueado
+- Sugira abrir uma branch `fix/dependabot-*` com `npm audit fix` ou override manual
+
+Se o projeto não usar npm, pule este passo.
+
 ### Passo 4 — Revisão de código e UX
 Analise o diff com o checklist (ver REFERENCE.md): funcionalidade, segurança, UX e qualidade.
 Apresente relatório:
