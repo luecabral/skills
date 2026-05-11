@@ -52,20 +52,27 @@ Escala permitida: `text-[10px]` `text-xs` `text-sm` `text-base` `text-lg` `text-
 
 ---
 
-## Componentes — Classes rápidas
+## Componentes — Referência rápida
 
-**Botões:**
-- Primário: `inline-flex items-center gap-2 px-5 py-3 bg-pink-600 hover:bg-pink-700 text-white text-sm font-medium rounded-lg`
-- Outline (Cancelar): `inline-flex items-center gap-2 px-3 py-2 hover:bg-gray-100 rounded-md text-pink-600 text-sm font-medium border border-pink-600`
-- Secundário: `px-4 py-2 bg-white border border-gray-200 text-gray-600 text-sm font-medium rounded-lg hover:bg-gray-50`
-- Destrutivo (ícone): `p-2 text-red-600 hover:bg-red-50 rounded-lg transition`
+**Botões via `button_component`** (preferir sobre Tailwind bruto):
+- Link-botão: `button_component(builder: :link_to, url: path, color: :pink, size: :md) { "Texto" }`
+- Submit: `button_component(builder: :submit_button, color: :pink, size: :md, type: :submit) { "Salvar" }`
+- Botão HTML: `button_component(builder: :button_tag, color: :white, size: :md, type: :button) { "Cancelar" }`
+- Com exclusão: adicionar `data: { turbo_method: :delete, turbo_confirm: "Tem certeza?" }`
+- Colors: `:pink` (primário) · `:white` (secundário/cancelar) · `:red` (destrutivo) · `:blue` · `:green` · `:dark`
+- Sizes: `:xs` · `:sm` · `:md` · `:lg`
 
 **Selects/date fields:**
 `bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-pink-600 focus:border-pink-600 block w-full p-2.5`
 
-**Cards (base):** `bg-white p-4 flex flex-col gap-4 rounded-lg border border-gray-200` — sempre com título + subtítulo no cabeçalho.
+**Cards (base):** `bg-white p-4 flex flex-col gap-4 rounded-lg border border-gray-200` — sempre com título + subtítulo no cabeçalho. Ver também `card_component`.
 
-**Badges:** `badge_component(color: :green/:red/:amber/:pink, size: :xs)`
+**Badges:** `badge_component(color: :green/:red/:amber/:pink/:blue/:gray/:dark, size: :xs)` — aceita bloco `{ "Texto" }` ou `text: "Texto"`.
+
+**Ícones:** `icon_component(name: "nome-heroicon", type: :outline/:solid, class: "w-5 h-5")`
+- Comuns: `magnifying-glass` · `plus` · `pencil` · `trash` · `eye` · `check` · `x-mark` · `cog-6-tooth` · `user` · `calendar` · `pencil-square`
+
+**Outros helpers:** `alert_component` · `dropdown_component` · `modal_component` · `table_component` — ver COMPONENTS.md.
 
 ---
 
@@ -90,4 +97,6 @@ Escala permitida: `text-[10px]` `text-xs` `text-sm` `text-base` `text-lg` `text-
 - [ ] Empty state implementado em toda lista (imagem `navigation_chareacter.png`)
 - [ ] Tipografia dentro da escala definida
 - [ ] Selects/date fields com classes padrão de input
-- [ ] Tabela via partial `render layout: "universidade/admin/shared/table"`
+- [ ] Tabela via `table_component` ou partial `render layout: "universidade/admin/shared/table"`
+- [ ] Botões usando `button_component` (não Tailwind bruto)
+- [ ] Ícone de busca: `magnifying-glass` (não `search`)

@@ -2,6 +2,49 @@
 
 Exemplos de HTML/ERB prontos para uso. Substitua nomes de rotas e variáveis conforme o contexto.
 
+**Sintaxe preferida:** use helpers `_component` em vez de classes Tailwind brutas para botões, tabelas e outros componentes da gem InkComponents.
+
+```erb
+<%# ✅ Use helper syntax %>
+<%= button_component(builder: :link_to, url: path, color: :pink, size: :md) { "Salvar" } %>
+
+<%# ❌ Não use render direto %>
+<%= render InkComponents::Button::Component.new(...) { "Salvar" } %>
+```
+
+---
+
+## Botão (`button_component`)
+
+```erb
+<%# Link para nova página %>
+<%= button_component(builder: :link_to, url: new_admin_item_path, color: :pink, size: :md) do %>
+  <%= icon_component(name: "plus", type: :outline, class: "w-4 h-4") %>
+  Novo Item
+<% end %>
+
+<%# Submit de formulário %>
+<%= button_component(builder: :submit_button, color: :pink, size: :md, type: :submit) { "Salvar" } %>
+
+<%# Cancelar (secundário) %>
+<%= button_component(builder: :link_to, url: admin_items_path, color: :white, size: :md) { "Cancelar" } %>
+
+<%# Exclusão com confirmação %>
+<%= button_component(builder: :link_to, url: admin_item_path(item), color: :red, size: :sm,
+      data: { turbo_method: :delete, turbo_confirm: "Tem certeza?" }) do %>
+  <%= icon_component(name: "trash", type: :outline, class: "w-4 h-4") %>
+<% end %>
+
+<%# Botão HTML genérico (ex: abrir modal) %>
+<%= button_component(builder: :button_tag, size: :md, type: :button,
+      data: { modal_target: "modal-id", modal_toggle: "modal-id" }) do %>
+  <%= icon_component(name: "plus", type: :outline, class: "text-white w-5 h-5") %>
+  Criar X
+<% end %>
+```
+
+**Parâmetros:** `builder` (`:link_to` | `:submit_button` | `:button_tag`), `color` (`:pink` | `:blue` | `:green` | `:red` | `:white` | `:dark`), `size` (`:xs` | `:sm` | `:md` | `:lg`)
+
 ---
 
 ## Card
@@ -39,11 +82,19 @@ Exemplos de HTML/ERB prontos para uso. Substitua nomes de rotas e variáveis con
 ## Badge/Status
 
 ```erb
+<%# Via bloco %>
 <%= badge_component(color: :green, size: :xs) { "Ativa" } %>
 <%= badge_component(color: :red, size: :xs) { "Pausada" } %>
 <%= badge_component(color: :amber, size: :xs) { "Pendente" } %>
 <%= badge_component(color: :pink, size: :xs) { "Destaque" } %>
+
+<%# Via parâmetro text: %>
+<%= badge_component(text: "Ativo", color: :green, size: :md) %>
+<%= badge_component(text: "Inativo", color: :dark, size: :md) %>
+<%= badge_component(text: "Pendente", color: :blue, size: :sm) %>
 ```
+
+**Colors disponíveis:** `:green` · `:red` · `:amber` · `:pink` · `:blue` · `:gray` · `:dark`
 
 ---
 
@@ -86,7 +137,7 @@ Exemplos de HTML/ERB prontos para uso. Substitua nomes de rotas e variáveis con
     <div class="w-full flex lg:flex-row flex-col items-center self-stretch gap-6">
       <%= form_with url: admin_recursos_path, method: :get, local: true, class: "relative w-full lg:flex-1" do |f| %>
         <%= f.search_field :q, class: "bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-pink-600 focus:border-pink-600 block w-full pl-11 py-3 px-4", value: params[:q], placeholder: "Buscar..." %>
-        <%= icon_component(name: "search", type: :outline, class: "absolute w-5 h-5 left-3 top-3 text-gray-600") %>
+        <%= icon_component(name: "magnifying-glass", type: :outline, class: "absolute w-5 h-5 left-3 top-3 text-gray-600") %>
       <% end %>
 
       <%= link_to new_admin_recurso_path,
@@ -352,6 +403,50 @@ Exemplos de HTML/ERB prontos para uso. Substitua nomes de rotas e variáveis con
 
 ---
 
+## Busca com ícone
+
+```erb
+<%= form_with url: admin_items_path, method: :get do |f| %>
+  <div class="relative">
+    <div class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+      <%= icon_component(name: "magnifying-glass", type: :outline, class: "w-5 h-5 text-gray-500") %>
+    </div>
+    <%= f.search_field :search, value: params[:search], placeholder: "Buscar...",
+        class: "block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm" %>
+  </div>
+<% end %>
+```
+
+---
+
+## Tabela via `table_component`
+
+```erb
+<%= table_component do |table| %>
+  <% table.with_header do |header| %>
+    <% header.with_cell { "Nome" } %>
+    <% header.with_cell { "Status" } %>
+    <% header.with_cell { "Ações" } %>
+  <% end %>
+
+  <% @items.each do |item| %>
+    <% table.with_row do |row| %>
+      <% row.with_cell { item.name } %>
+      <% row.with_cell do %>
+        <%= badge_component(text: item.status, color: item.status_color, size: :sm) %>
+      <% end %>
+      <% row.with_cell do %>
+        <%= button_component(builder: :link_to, url: edit_admin_item_path(item), color: :blue, size: :sm) do %>
+          <%= icon_component(name: "pencil", type: :outline, class: "w-4 h-4") %>
+        <% end %>
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+```
+
+---
+
 ## Tabela via partial
 
 ```erb
@@ -382,3 +477,60 @@ Exemplos de HTML/ERB prontos para uso. Substitua nomes de rotas e variáveis con
 ```
 
 Coluna sticky (quando necessário): `sticky left-0 z-10 bg-gray-50` no header, `sticky left-0 z-10 bg-white` no body.
+
+---
+
+## Alert (`alert_component`)
+
+```erb
+<%# Info %>
+<%= alert_component(color: :blue) do %>
+  Informação contextual para o usuário.
+<% end %>
+
+<%# Sucesso %>
+<%= alert_component(color: :green) do %>
+  Operação realizada com sucesso.
+<% end %>
+
+<%# Atenção %>
+<%= alert_component(color: :yellow) do %>
+  Atenção: esta ação não pode ser desfeita.
+<% end %>
+
+<%# Erro %>
+<%= alert_component(color: :red) do %>
+  Ocorreu um erro. Tente novamente.
+<% end %>
+```
+
+---
+
+## Dropdown (`dropdown_component`)
+
+```erb
+<%= dropdown_component do |dropdown| %>
+  <% dropdown.with_trigger do %>
+    <%= button_component(builder: :button_tag, color: :white, size: :md, type: :button) do %>
+      <%= icon_component(name: "cog-6-tooth", type: :outline, class: "w-4 h-4") %>
+      Ações
+    <% end %>
+  <% end %>
+
+  <% dropdown.with_menu do |menu| %>
+    <% menu.with_item do %>
+      <%= link_to edit_admin_item_path(@item), class: "flex items-center gap-2 text-sm text-gray-700" do %>
+        <%= icon_component(name: "pencil", type: :outline, class: "w-4 h-4") %>
+        Editar
+      <% end %>
+    <% end %>
+    <% menu.with_item do %>
+      <%= link_to admin_item_path(@item), class: "flex items-center gap-2 text-sm text-red-600",
+            data: { turbo_method: :delete, turbo_confirm: "Tem certeza?" } do %>
+        <%= icon_component(name: "trash", type: :outline, class: "w-4 h-4") %>
+        Excluir
+      <% end %>
+    <% end %>
+  <% end %>
+<% end %>
+```
