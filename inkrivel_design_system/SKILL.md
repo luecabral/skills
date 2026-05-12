@@ -16,6 +16,7 @@ Padrões de layout para telas da **área administrativa** (Rails + Tailwind CDN 
 | **Páginas Admin (padrão)** | `<div class="container mx-auto flex flex-col items-start gap-6 relative pt-[42px]">` |
 | **Formulários Admin** | `<div class="container mx-auto flex flex-col items-start gap-6 relative pt-[42px] mb-8">` |
 | **Páginas Públicas** | `<div class="w-full">` — o layout já provê o container |
+| **Hub (Next.js)** | `pt-[42px]` é específico do admin Rails (compensa o layout engine). No hub, usar `pt-4` — o `<main>` já tem `py-6`. |
 
 ---
 
@@ -41,6 +42,7 @@ Escala permitida: `text-[10px]` `text-xs` `text-sm` `text-base` `text-lg` `text-
 - Dentro do card: `gap-4`
 - Entre label e input: `gap-2`
 - Entre título e sidebar (formulário): `gap-[42px]`
+- **Hub (Next.js):** bloco título+breadcrumb recebe `mt-4` na primeira seção abaixo — o `gap-6` do container é o padrão entre as demais seções
 
 ---
 
@@ -88,7 +90,7 @@ Escala permitida: `text-[10px]` `text-xs` `text-sm` `text-base` `text-lg` `text-
 
 ## Checklist antes de finalizar
 
-- [ ] Container: `pt-[42px]` obrigatório; formulários adicionam `mb-8`
+- [ ] Container: `pt-[42px]` obrigatório no admin Rails; no hub Next.js usar `pt-4`; formulários adicionam `mb-8`
 - [ ] Index sem busca: layout inline, sem section/background
 - [ ] Index com busca: H3 + section com toolbar; tabela fora
 - [ ] Formulários: breadcrumb obrigatório

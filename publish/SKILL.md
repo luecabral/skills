@@ -39,6 +39,26 @@ Se houver vulnerabilidades HIGH ou CRITICAL:
 
 Se o projeto não usar npm, pule este passo.
 
+### Passo 3.2 — Testes de regressão
+
+Identifique os arquivos alterados no diff e localize os specs relacionados — tanto os diretos quanto os de funcionalidades adjacentes que usam os mesmos arquivos ou camadas:
+
+```bash
+# Arquivos alterados
+git diff origin/main...HEAD --name-only
+
+# Specs candidatos (Rails)
+git diff origin/main...HEAD --name-only | sed 's|app/||; s|\.rb$|_spec.rb|' | xargs -I{} find spec -name "$(basename {})" 2>/dev/null
+
+# Rodar apenas os specs encontrados
+bundle exec rspec <lista de specs>
+```
+
+Se o projeto usar outro framework, adapte o mapeamento `arquivo → spec`.
+
+Se algum spec falhar: **bloqueie** e acione `debugging`. Não prossiga até verde.
+Se nenhum spec for encontrado para os arquivos alterados: informe e continue.
+
 ### Passo 4 — Revisão de código e UX
 Analise o diff com o checklist (ver REFERENCE.md): funcionalidade, segurança, UX e qualidade.
 Apresente relatório:
