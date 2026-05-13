@@ -13,10 +13,12 @@ Padrões de layout para telas da **área administrativa** (Rails + Tailwind CDN 
 
 | Contexto | Container |
 |---|---|
-| **Páginas Admin (padrão)** | `<div class="container mx-auto flex flex-col items-start gap-6 relative pt-[42px]">` |
-| **Formulários Admin** | `<div class="container mx-auto flex flex-col items-start gap-6 relative pt-[42px] mb-8">` |
+| **Páginas Admin (padrão)** | `<div class="flex flex-col gap-6 w-full">` — o layout já provê padding via `<main class="p-8">` |
+| **Formulários Admin** | `<div class="flex flex-col gap-6 w-full mb-8">` |
 | **Páginas Públicas** | `<div class="w-full">` — o layout já provê o container |
 | **Hub (Next.js)** | `pt-[42px]` é específico do admin Rails (compensa o layout engine). No hub, usar `pt-4` — o `<main>` já tem `py-6`. |
+
+**IMPORTANTE:** Elementos filhos diretos do container que precisam ocupar toda a largura (forms, sections, divs de tabelas/calendários) devem ter `class="w-full"`.
 
 ---
 
@@ -24,7 +26,7 @@ Padrões de layout para telas da **área administrativa** (Rails + Tailwind CDN 
 
 | Nível | Classes |
 |---|---|
-| Título de página (H1/H3) | `font-bold text-xl text-gray-900 dark:text-white` |
+| Título de página (H1/H3) | `font-bold text-xl text-gray-900` |
 | Título de card/seção | `text-gray-900 text-lg font-semibold leading-6` |
 | Subtítulo de seção | `text-sm text-gray-500 leading-5` |
 | Texto corrido | `text-sm text-gray-700` |

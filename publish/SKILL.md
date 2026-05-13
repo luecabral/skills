@@ -30,12 +30,18 @@ Se falhar, acione `debugging`. Não prossiga até todos estarem verdes.
 
 ### Passo 3.1 — Auditar dependências
 ```bash
-npm audit --audit-level=high 2>/dev/null || true
+npm audit 2>/dev/null || true
 ```
-Se houver vulnerabilidades HIGH ou CRITICAL:
+Se houver vulnerabilidades de QUALQUER severidade (HIGH, MODERATE, LOW ou CRITICAL):
 - Liste os pacotes afetados com severidade e CVE
-- Informe que o publish está bloqueado
-- Sugira abrir uma branch `fix/dependabot-*` com `npm audit fix` ou override manual
+- **Informe que o publish está bloqueado até correção**
+- Execute automaticamente `npm audit fix` para correções não-breaking
+- Se remanescerem vulnerabilidades, liste-as e sugira:
+  - `npm audit fix --force` (atenção: breaking changes)
+  - Upgrade manual de pacotes específicos
+  - Análise de override se for falso positivo
+
+**Não prossiga com o PR enquanto houver vulnerabilidades pendentes.**
 
 Se o projeto não usar npm, pule este passo.
 
