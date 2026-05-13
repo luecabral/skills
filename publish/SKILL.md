@@ -172,8 +172,52 @@ gh pr comment <número> --body "## 📋 Changelog\n\n<changelog>"
 
 Exiba a URL do PR ao final.
 
+### Passo 12 — Aguardar CI
+
+Depois de criar/editar o PR, aguarde o CI do GitHub terminar. Os testes locais (Passo 3) cobrem só o que roda na sua máquina; o CI roda a suíte completa (unit_tests paralelos, system_tests, linter, etc).
+
+```bash
+gh pr checks --watch --fail-fast
+```
+
+- **Todos verdes** → exiba o resumo (`gh pr checks`) e encerre.
+- **Algum check falhou** → não encerre. Faça:
+  ```bash
+  # Identificar o run e os jobs que falharam
+  gh run list --branch "$(git branch --show-current)" --limit 1 --json databaseId,conclusion
+  gh run view <run-id> --log-failed
+  ```
+  Apresente:
+  - Nome do check vermelho (ex: `CI / Test system_tests`)
+  - Trecho relevante do log (últimas 50 linhas do job que falhou)
+  - Link direto pro run no GitHub
+
+  Em seguida, acione automaticamente a skill `debugging` passando o log como contexto. Não encerre o publish enquanto o CI estiver vermelho — depois do fix, o usuário roda `publish` de novo e o ciclo recomeça do Passo 1.
+
+### Passo 13 — Merge na main
+
+**Pré-requisito:** Passo 12 terminou com todos os checks verdes. Se algum check estiver vermelho, pulando ou pendente, **não ofereça merge** — volte para o Passo 12.
+
+Confirme com `gh pr checks` que o estado é `pass` em todos antes de perguntar.
+
+Pergunte: "Todos os CIs passaram. Quer mergear na main agora?"
+- **Não** → encerre exibindo a URL do PR.
+- **Sim** → execute:
+  ```bash
+  gh pr merge --merge
+  ```
+
+**Importante — não deletar a branch:**
+- Use `--merge` (merge commit), `--squash` ou `--rebase` conforme padrão do repo, mas **nunca** passe `--delete-branch`.
+- Se o repositório tiver "automatically delete head branches" ligado no GitHub, avise o usuário que a branch será removida pelo próprio GitHub apesar da flag local — e pergunte se quer prosseguir mesmo assim.
+
+Após o merge, exiba o SHA do commit de merge e encerre. **Não rode `git branch -d` nem `git push origin --delete`.**
+
 ## Regras
 - Nunca crie PR sem confirmação do usuário
 - Nunca use `--force` sozinho, sempre `--force-with-lease`
 - Changelog legível por quem não é desenvolvedor
 - "O que tem mais risco" nunca em branco sem justificativa
+- CI vermelho bloqueia o encerramento — sempre aciona `debugging` com o log do job que falhou
+- Merge só com CI 100% verde — não ofereça merge enquanto algum check estiver pendente, pulando ou falhando
+- **Nunca delete a branch** — não passe `--delete-branch` no `gh pr merge`, nem rode `git branch -d` ou `git push origin --delete`
