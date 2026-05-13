@@ -33,12 +33,14 @@ Skills são instruções que ensinam a IA a se comportar de um jeito específico
                     └─→ commita quando verde
     ↓
 /publish ───────────┬─→ verifica código de debug
-                    ├─→ roda todos os testes
+                    ├─→ roda todos os testes + npm audit
                     ├─→ revisão de código e UX (REFERENCE.md)
                     ├─→ checklist de verificação
                     ├─→ roteiro de teste manual
                     ├─→ rebase com main + push (dispara staging automaticamente)
-                    └─→ cria ou edita PR draft com changelog (opcional)
+                    ├─→ cria ou edita PR draft com changelog (opcional)
+                    ├─→ aguarda CI (gh pr checks --watch); aciona /debugging se vermelho
+                    └─→ oferece merge na main quando CI 100% verde (sem deletar branch)
     ↓
 /review-pr ──── roteiro de teste em staging para o revisor
 ```
@@ -127,7 +129,7 @@ Fluxo completo de commit: verifica docs → cria/roda testes → aciona `debuggi
 
 ### 🚀 publish
 
-Fluxo unificado de publicação: verifica debug → roda testes → revisão de código e UX → checklist de verificação → roteiro de teste manual → rebase + push (dispara staging automaticamente) → cria ou edita PR draft com changelog (opcional). Remove `.plans/plan.md` antes do push quando parte de um `ralph-loop`.
+Fluxo unificado de publicação: verifica debug → roda testes + `npm audit` → revisão de código e UX → checklist de verificação → roteiro de teste manual → rebase + push (dispara staging automaticamente) → cria ou edita PR draft com changelog → aguarda CI no GitHub (`gh pr checks --watch`) e aciona `/debugging` se falhar → oferece merge na main quando todos os checks ficam verdes, sem deletar a branch. Remove `.plans/plan.md` antes do push quando parte de um `ralph-loop`.
 
 **Quando usar:** "faz o push", "sobe a branch", "abre o PR", "cria o PR"
 
