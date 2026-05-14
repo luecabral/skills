@@ -11,6 +11,13 @@ Segurança desde o início, não como revisão posterior.
 
 Revise automaticamente quando o código tocar em: autenticação e sessões, inputs de formulário ou parâmetros de URL, queries ao banco, APIs externas, upload de arquivos, dados sensíveis (senhas, tokens, CPF), controle de acesso.
 
+## Dois modos de operação
+
+- **Modo escrita** (default): ativa durante o desenvolvimento, ao tocar áreas sensíveis. Revisa o código que está sendo escrito.
+- **Modo diff** (pré-PR / pré-merge): ativa quando há branch contra `main` ou PR aberto. Analisa **apenas o que mudou** (`git diff main..HEAD`), reduzindo falso positivo e mirando no escopo do PR. Use antes de pedir review e como gate final.
+
+Se houver branch divergente de `main`, comece pelo modo diff e só expanda pro arquivo inteiro se o achado depender de contexto fora do diff.
+
 ## Processo
 
 ### Passo 1 — Percorrer o checklist (ver REFERENCE.md)
@@ -70,3 +77,27 @@ Após listar todos os achados, pergunte se o usuário quer aplicar as correçõe
 - Nunca ignore um problema por parecer improvável de ser explorado
 - Se não tiver certeza, sinalize como revisão manual necessária
 - Proponha sempre a correção, não apenas o problema
+
+## Gate de CI (opcional, recomendado para o ink-connect)
+
+Para virar gate automático antes do merge, adicione a action oficial da Anthropic no workflow do PR:
+
+```yaml
+# .github/workflows/security-review.yml
+name: Security Review
+on:
+  pull_request:
+    branches: [main]
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: anthropics/claude-code-security-review@main
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+```
+
+A action roda em cima do diff do PR e comenta achados inline — complementa a `vibesec` na escrita, não substitui. Combina com a regra de só mergear com CI verde.
