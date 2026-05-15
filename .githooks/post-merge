@@ -1,0 +1,7 @@
+#!/bin/bash
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+for skill_file in "$REPO_ROOT"/*/SKILL.md; do
+  skill_dir="$(dirname "$skill_file")"
+  skill_name="$(basename "$skill_dir")"
+  cp "$skill_file" "$REPO_ROOT/${skill_name}.md"
+done
