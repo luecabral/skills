@@ -17,16 +17,6 @@ Pergunte ao usuário: o que será implementado, comportamento esperado, restriç
 
 Se vier de um `brainstorming`, o design já está definido — use como contexto e pule as perguntas.
 
-### Passo 1.5 — PRD mínimo (para features maiores que 3 tasks)
-
-Sintetize antes de quebrar em tasks:
-- **Problema:** qual dor isso resolve?
-- **Solução:** o que será feito, em uma linha
-- **Non-goals:** o que explicitamente NÃO faz parte
-- **Perguntas em aberto:** o que precisa de definição antes ou durante
-
-Apresente e aguarde confirmação. Ajuste o escopo se necessário.
-
 ### Passo 2 — Quebrar em tasks
 
 Cada task deve:
