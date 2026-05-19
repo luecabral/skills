@@ -31,17 +31,23 @@ Identifique a estrutura de branches no plano:
 
 Anuncie: `N issues encontradas. Iniciando ralph-loop.`
 
+Para cada issue `[ ]` encontrada, crie uma Claude task via `TaskCreate` com:
+- `title`: título da issue
+- `description`: critério de conclusão ("✓ Pronto quando: …") extraído do plano
+
 ### Passo 2 — Loop por issue
 Para cada issue com checkbox `[ ]`:
 
 1. Anuncia `[X/N] Iniciando: <título>`
-2. **Se branch única:** permanece na branch do plano. **Se branches por issue:** faz checkout da branch da issue (ou cria a partir da anterior se não existir)
-3. Invoca skill `tdd` com escopo da issue
-4. Implementa até testes passarem (máx. 2 ciclos; se falhar, pausa e reporta)
-5. Commita via `smart-commit`
-6. **Se branches por issue:** abre PR via `open-pr` para essa branch
-7. Atualiza checkbox para `[x]` no doc
-8. Avança para a próxima issue
+2. Marca a Claude task correspondente como `in_progress` via `TaskUpdate`
+3. **Se branch única:** permanece na branch do plano. **Se branches por issue:** faz checkout da branch da issue (ou cria a partir da anterior se não existir)
+4. Invoca skill `tdd` com escopo da issue
+5. Implementa até testes passarem (máx. 2 ciclos; se falhar, pausa e reporta)
+6. Invoca skill `smart-commit`
+7. **Se branches por issue:** abre PR via `open-pr` para essa branch
+8. Atualiza checkbox para `[x]` no doc
+9. Marca a Claude task como `completed` via `TaskUpdate`
+10. Avança para a próxima issue
 
 Após todas as issues concluídas:
 - **Se branch única:** abre um único PR via `open-pr` para a branch da feature
@@ -63,7 +69,7 @@ Leia o doc, identifique a estrutura de branches do plano.
 - **Branches por issue:** mapeie todas as branches downstream a partir da issue informada
 
 ### Passo 2 — Corrigir issue base
-Checkout da branch, aplica ajuste com TDD, commita e força push.
+Checkout da branch, aplica ajuste com TDD, invoca skill `smart-commit`, força push.
 
 ### Passo 3 — Rebase em cascade (somente se branches por issue)
 Para cada issue downstream em ordem:
