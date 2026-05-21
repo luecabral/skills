@@ -244,7 +244,58 @@ Pergunte: "Todos os CIs passaram. Quer mergear na main agora?"
 - Use `--merge` (merge commit), `--squash` ou `--rebase` conforme padrão do repo, mas **nunca** passe `--delete-branch`.
 - Se o repositório tiver "automatically delete head branches" ligado no GitHub, avise o usuário que a branch será removida pelo próprio GitHub apesar da flag local — e pergunte se quer prosseguir mesmo assim.
 
-Após o merge, exiba o SHA do commit de merge e encerre. **Não rode `git branch -d` nem `git push origin --delete`.**
+Após o merge, exiba o SHA do commit de merge e continue para o Passo 14. **Não rode `git branch -d` nem `git push origin --delete`.**
+
+### Passo 14 — Deploy em produção (Heroku)
+
+**Pré-requisito:** merge na main concluído no Passo 13.
+
+Verifique se o remote Heroku existe:
+```bash
+git remote | grep heroku
+```
+
+- **Remote não encontrado** → informe: "Remote `heroku` não configurado neste projeto. Configure com `heroku git:remote -a <nome-do-app>` e rode o deploy manualmente." Encerre.
+- **Remote encontrado** → pergunte: "Quer fazer o deploy em produção agora?"
+  - **Não** → encerre exibindo o SHA do merge.
+  - **Sim** → prossiga.
+
+**Verificar migrações pendentes:**
+Cheque se o diff inclui arquivos em `db/migrate/`:
+```bash
+git diff HEAD~1..HEAD --name-only | grep "db/migrate"
+```
+Se houver, avise o usuário antes de prosseguir: "Este deploy inclui migrations. Elas serão rodadas após o push."
+
+**Executar deploy:**
+```bash
+git push heroku main
+```
+
+Se o push falhar com histórico divergente, ofereça:
+```bash
+git push heroku main --force-with-lease
+```
+Nunca use `--force` sozinho.
+
+**Rodar migrações (se houver):**
+```bash
+heroku run rails db:migrate
+```
+Aguarde a confirmação de sucesso antes de continuar.
+
+**Verificar dynos após deploy:**
+```bash
+heroku ps
+heroku releases --num 1
+```
+
+- **Dynos up e release criada** → exiba a versão (`vN`) e encerre com: "Deploy em produção concluído."
+- **Dyno crashed ou release falhou** → exiba os logs:
+  ```bash
+  heroku logs --tail --num 50
+  ```
+  Acione `debugging` com o log. Não encerre enquanto o app estiver em crash.
 
 ## Regras
 - Nunca crie PR sem confirmação do usuário
