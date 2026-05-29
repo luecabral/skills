@@ -137,14 +137,17 @@ Apresentar ao usuário como:
 
 ## Merge de worktrees
 
-Após cada grupo paralelo concluir, para cada worktree do grupo:
+Após cada grupo paralelo concluir, para cada worktree do grupo. **A task pode ter feito mais de um commit** — nunca aplique só um hash; traga o range inteiro ou faça merge da branch.
 
 ```bash
-# Confirma o commit do subagente
-git -C <worktree-path> log --oneline -1
+# Lista todos os commits que a worktree criou (pode ser >1)
+git -C <worktree-path> log --oneline <branch-base>..HEAD
 
-# Aplica na branch principal
-git cherry-pick <commit-hash>
+# Opção A — merge da branch da worktree (preserva todos os commits)
+git merge --no-ff <branch-da-worktree>
+
+# Opção B — cherry-pick do range completo (não um hash só)
+git cherry-pick <branch-base>..<branch-da-worktree>
 ```
 
 Se conflito:
