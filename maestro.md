@@ -74,6 +74,8 @@ Cada task deve:
 
 **Princípio vertical slice:** cada task entrega um caminho funcional de ponta a ponta — não separe backend (model) da tela (frontend) se um depende do outro. **Inclua atualização de docs no escopo da task** quando a mudança afetar README/docs.
 
+**Riscos 🔴 viram tasks:** cada vetor de alta prioridade do threat modeling (Fase 1 Passo 1.5) entra como task explícita de mitigação (ex: "Validar propriedade do recurso no endpoint X — previne IDOR"). Nenhum 🔴 fica sem task.
+
 **Marque migrations destrutivas:** se uma task muda schema de forma que pode apagar dados existentes (drop/rename, mudança de tipo, `NOT NULL` em coluna com dados, `--accept-data-loss` — detalhe no Passo 14), sinalize na task: vai exigir backup de **produção** no deploy. Aditiva (nova tabela/coluna nullable, índice) não precisa.
 
 Critério por task:
@@ -105,12 +107,13 @@ Se não → encerra na branch criada.
 
 O líder (este agente, em **Opus 4.8 High**) orquestra; quem escreve código são os subagentes em **Sonnet 4.6 Médio**.
 
-1. Lê `.plans/plan.md`, reconstrói o grafo de dependências.
-2. Para cada grupo paralelo em ordem topológica:
+1. Lê `.plans/plan.md`, reconstrói o grafo de dependências. **Retomada:** se a sessão anterior parou no meio, as tasks já feitas estão marcadas (`[x]`) — pegue só as não-marcadas, descarte worktrees órfãs de tasks concluídas e recomece pelo primeiro grupo com task pendente.
+2. **Feature pequena (≤2 tasks sem interdependência de schema):** worktree + paralelismo custa mais do que rende. *Pergunte* se prefere executar inline (sem worktree), mantendo TDD + commit + validação. Default continua worktree — só pula se o usuário topar.
+3. Para cada grupo paralelo em ordem topológica:
    - Lança um `Agent(isolation: "worktree", model: "sonnet")` por task no grupo — **sempre `model: "sonnet"`**, esforço Médio (instrua no prompt). O líder nunca delega dev pra Opus.
    - Cada subagente segue o **ciclo TDD + commit** abaixo.
    - Aguarda todos do grupo concluírem; faz merge de cada worktree de volta à branch principal (ver REFERENCE.md). Se conflito: pausa, descreve, aguarda resolução humana.
-3. Atualiza checkboxes no `.plans/plan.md` conforme tasks completam.
+4. Atualiza checkboxes no `.plans/plan.md` conforme tasks completam.
 
 ### O que cada subagente faz (TDD + smart-commit, inline)
 
@@ -132,6 +135,7 @@ Repita por comportamento. Nunca escreva produção sem um teste falhando antes; 
 Antes do relatório final, o líder valida o conjunto:
 - Roda a suíte de testes completa do projeto.
 - Invoca `verify` (Verify do Claude) pra **homologar todos os fluxos impactados** — não só os testes, mas o comportamento real de cada fluxo que a feature tocou (feliz + alternativos do design da Fase 1). O `verify` sobe o app e observa de verdade.
+- **Fallback (só quando o app genuinamente não sobe — lib pura, CLI, cron sem UI):** pule o `verify` e cubra com a suíte completa + o roteiro manual abaixo, anotando que a homologação foi por testes, não por observação. Se dá pra subir, o `verify` é obrigatório.
 - Se algum fluxo falhar → `debugging`, corrige e revalida antes de seguir.
 
 ### Roteiro de teste manual (entregue ao anunciar o fim do desenvolvimento)
@@ -175,10 +179,13 @@ Dispare **tudo no mesmo bloco**: subagentes read-only (só reportam) + checks me
 - **Regressão:** mapeia specs dos arquivos alterados (diretos + adjacentes) e roda só eles:
   ```bash
   git diff origin/main...HEAD --name-only
+  # Ruby/RSpec:  app/x.rb -> spec/x_spec.rb
   git diff origin/main...HEAD --name-only | sed 's|app/||; s|\.rb$|_spec.rb|' | xargs -I{} find spec -name "$(basename {})" 2>/dev/null
   bundle exec rspec <specs>
+  # JS/Vitest:   src/x.ts -> x.test.ts / x.spec.ts  →  npx vitest run <arquivos>
+  # Python:      x.py     -> test_x.py / tests/test_x.py  →  pytest <arquivos>
   ```
-  Adapte o mapeamento se outro framework. Sem specs → informe.
+  Adapte o mapeamento ao framework do projeto. Sem specs → informe.
 - **Auditoria** (só npm): `npm audit 2>/dev/null || true`. Qualquer severidade conta.
 
 #### Passo 3 — Consolidação e gates
@@ -199,7 +206,7 @@ Para cada ⚠️ que o usuário **não** aplicou: procure `fixes-futuros.md`/`FI
 #### Passo 6 — Confirmar publicação e limpar plano
 - **Homologação:** se veio da Fase 3 nesta sessão, o roteiro de teste manual já foi entregue e homologado — só pergunte "publicar agora?". **Entrada direta** (`maestro publica`, sem Fase 3 nesta sessão): gere o roteiro (fluxos afetados + passos executáveis por quem não escreveu o código) e aguarde a confirmação de que homologou.
 - Confirme: fluxo principal funciona? se bug, não ocorre mais? regressão passa? dados existentes íntegros?
-- **Limpeza:** se `.plans/plan.md` existir, `rm -f .plans/plan.md` (está no `.gitignore`, é só faxina antes do push).
+- **Limpeza:** se `.plans/plan.md` existir, **primeiro guarde os `em_resumo:` das tasks concluídas** (alimentam o changelog do Passo 11), depois `rm -f .plans/plan.md` (está no `.gitignore`, é só faxina antes do push).
 
 #### Passo 7 — Push (dispara staging)
 ```bash
@@ -239,7 +246,7 @@ VAR_NAME=valor_exemplo   # descrição
 ```
 
 #### Passo 11 — Changelog e criar/editar PR
-Changelog não-técnico: ✨ Novidades | 🐛 Correções | ⚡ Melhorias. Exiba título, corpo e changelog; aguarde aprovação.
+Changelog não-técnico: ✨ Novidades | 🐛 Correções | ⚡ Melhorias. Monte-o a partir dos `em_resumo:` guardados no Passo 6 (já são frases não-tech) — ajuste se a implementação divergiu do plano. Exiba título, corpo e changelog; aguarde aprovação.
 - Criação: `gh pr create --draft --title "<t>" --body "<corpo>"` + `gh pr comment <n> --body "## 📋 Changelog\n\n<changelog>"`
 - Edição: `gh pr edit --title "<t>" --body "<corpo>"` + comment do changelog.
 Exiba a URL.
