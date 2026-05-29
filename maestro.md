@@ -74,7 +74,7 @@ Cada task deve:
 
 **Princípio vertical slice:** cada task entrega um caminho funcional de ponta a ponta — não separe backend (model) da tela (frontend) se um depende do outro. **Inclua atualização de docs no escopo da task** quando a mudança afetar README/docs.
 
-**Marque migrations destrutivas:** se uma task faz mudança de schema que pode apagar dados existentes (drop/rename de coluna ou tabela, mudança de tipo, `NOT NULL` em coluna com dados, `--accept-data-loss`), sinalize na task — ela vai exigir backup de **produção** no deploy (Fase 4 Passo 14). Migration aditiva (nova tabela/coluna nullable, novo índice) não perde dado e não precisa de backup.
+**Marque migrations destrutivas:** se uma task muda schema de forma que pode apagar dados existentes (drop/rename, mudança de tipo, `NOT NULL` em coluna com dados, `--accept-data-loss` — detalhe no Passo 14), sinalize na task: vai exigir backup de **produção** no deploy. Aditiva (nova tabela/coluna nullable, índice) não precisa.
 
 Critério por task:
 ```
@@ -107,7 +107,7 @@ O líder (este agente, em **Opus 4.8 High**) orquestra; quem escreve código sã
 
 1. Lê `.plans/plan.md`, reconstrói o grafo de dependências.
 2. Para cada grupo paralelo em ordem topológica:
-   - Lança um `Agent(isolation: "worktree", model: "sonnet")` por task no grupo — **sempre `model: "sonnet"`**, esforço Médio (instrua no prompt). O líder nunca delega pra Opus.
+   - Lança um `Agent(isolation: "worktree", model: "sonnet")` por task no grupo — **sempre `model: "sonnet"`**, esforço Médio (instrua no prompt). O líder nunca delega dev pra Opus.
    - Cada subagente segue o **ciclo TDD + commit** abaixo.
    - Aguarda todos do grupo concluírem; faz merge de cada worktree de volta à branch principal (ver REFERENCE.md). Se conflito: pausa, descreve, aguarda resolução humana.
 3. Atualiza checkboxes no `.plans/plan.md` conforme tasks completam.
@@ -146,7 +146,7 @@ Se não → encerra na branch, pronta pra fixes manuais e Fase 4 depois.
 
 ## Fase 4 — Publish
 
-Validação → revisão → push → PR → CI → merge → deploy. Entra aqui direto via `maestro fase 4` / `maestro publica`, mesmo em sessão nova depois de fixes manuais.
+Entra aqui direto via `maestro fase 4` / `maestro publica`, mesmo em sessão nova depois de fixes manuais.
 
 - **Bloco 1 — Análise e correções:** tudo depende só do diff já commitado → roda em paralelo, sem ordem fixa.
 - **Bloco 2 — Pipeline de publicação:** push → staging → PR → CI → merge → deploy. **Estritamente sequencial.**
