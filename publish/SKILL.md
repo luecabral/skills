@@ -7,9 +7,9 @@ Valida código, faz revisão, push e opcionalmente abre PR como draft.
 
 # Publish
 
-Um fluxo só: validação → revisão → push → PR opcional.
+Dois blocos: **Bloco 1 — análise em paralelo** (tudo que depende só do diff) → consolidação → correções; **Bloco 2 — pipeline sequencial** (push → staging → PR → CI → merge → deploy), onde cada passo depende do anterior e tem efeito colateral.
 
-**Modelos:** o publish roda na sessão principal (recomendado: Opus 4.8 High, dado o risco de prod/migrations). Etapas terceirizadas para subagentes com modelo fixo: a **revisão do Passo 4** (Segurança/Correção em Opus 4.8 High + UX em Sonnet 4.6 Médio, read-only) e a **implementação das correções escolhidas** (Sonnet 4.6 Médio). Steps com efeito colateral ou gate (backup, push, merge, deploy) nunca viram subagente.
+**Modelos:** o publish roda na sessão principal (recomendado: Opus 4.8 High, dado o risco de prod/migrations). Etapas terceirizadas para subagentes com modelo fixo, todas no Bloco 1: revisão de **Segurança/Correção em Opus 4.8 High**, **UX em Sonnet 4.6 Médio** e **Documentação em Sonnet 4.6 Médio** (todas read-only), e a **implementação das correções escolhidas** em Sonnet 4.6 Médio. Steps do Bloco 2 (efeito colateral ou gate) nunca viram subagente.
 
 ## Processo
 
@@ -27,77 +27,52 @@ git log origin/$(git branch --show-current)..HEAD --oneline 2>/dev/null || git l
 ```
 Se for `main` ou não houver commits novos, informe e encerre.
 
-### Passo 2 — Verificar código de debug
-Busque no diff: `console.log`, `debugger`, `print(`, `puts `, `p `, `pp `, `var_dump`, `dd(`.
-Se encontrar, pergunte: remover automaticamente ou seguir mesmo assim?
+### Passo 2 — Bloco 1: Análise em paralelo
 
-### Passo 3 — Rodar testes
-```bash
-npm test / npx vitest run / pytest / bundle exec rspec
-```
-Se falhar, acione `debugging`. Não prossiga até todos estarem verdes.
+Tudo aqui depende **só do diff já commitado** → dispare **tudo no mesmo bloco, em paralelo**. Os subagentes são read-only (só reportam, não editam); os checks mecânicos rodam na sessão principal junto. Aguarde todos terminarem e consolide no Passo 3.
 
-### Passo 3.1 — Auditar dependências
-```bash
-npm audit 2>/dev/null || true
-```
-Se houver vulnerabilidades de QUALQUER severidade (HIGH, MODERATE, LOW ou CRITICAL):
-- Liste os pacotes afetados com severidade e CVE
-- **Informe que o publish está bloqueado até correção**
-- Execute automaticamente `npm audit fix` para correções não-breaking
-- Se remanescerem vulnerabilidades, liste-as e sugira:
-  - `npm audit fix --force` (atenção: breaking changes)
-  - Upgrade manual de pacotes específicos
-  - Análise de override se for falso positivo
+**Subagentes de revisão (read-only, modelo fixo):**
+1. **Segurança/Correção** — `Agent(model: "opus")`, Opus 4.8 High (instrua esforço High no prompt). Aplica os blocos **Funcionalidade**, **Segurança** e **Qualidade** do checklist (ver REFERENCE.md) sobre `git diff origin/main...HEAD`. Devolve achados 🚨/⚠️. É o que protege contra bug indo pra prod — por isso o modelo forte.
+2. **UX** — `Agent(model: "sonnet")`, Sonnet 4.6 Médio. Aplica o bloco **UX** do checklist. Devolve achados 🚨/⚠️.
+3. **Documentação** — `Agent(model: "sonnet")`, Sonnet 4.6 Médio. Verifica se README, docs e comentários públicos refletem a mudança do diff. Lista o que está desatualizado ou faltando — read-only, só reporta (o update vem no Passo 4).
 
-**Não prossiga com o PR enquanto houver vulnerabilidades pendentes.**
+**Checks mecânicos (sessão principal, no mesmo bloco):**
+- **Código de debug:** busca no diff `console.log`, `debugger`, `print(`, `puts `, `p `, `pp `, `var_dump`, `dd(`.
+- **Testes:** `npm test` / `npx vitest run` / `pytest` / `bundle exec rspec`.
+- **Regressão:** mapeia os specs dos arquivos alterados (diretos + adjacentes que usam os mesmos arquivos/camadas) e roda só eles:
+  ```bash
+  git diff origin/main...HEAD --name-only
+  # Rails: arquivo → spec
+  git diff origin/main...HEAD --name-only | sed 's|app/||; s|\.rb$|_spec.rb|' | xargs -I{} find spec -name "$(basename {})" 2>/dev/null
+  bundle exec rspec <specs>
+  ```
+  Adapte o mapeamento se o framework for outro. Sem specs para os arquivos → informe.
+- **Auditoria de dependências** (só se usar npm): `npm audit 2>/dev/null || true`. Qualquer severidade conta.
 
-Se o projeto não usar npm, pule este passo.
+### Passo 3 — Consolidação e gates
 
-### Passo 3.2 — Testes de regressão
+Junte tudo num **relatório único** — review (3 subagentes) + checks mecânicos:
+- 🚨 BLOQUEANTE — falhas de teste/regressão, vulnerabilidades pendentes, achados críticos de review. Resolver antes de prosseguir.
+- ⚠️ SUGESTÃO — melhorias de review/UX, docs desatualizadas. Pergunte o que aplicar agora.
 
-Identifique os arquivos alterados no diff e localize os specs relacionados — tanto os diretos quanto os de funcionalidades adjacentes que usam os mesmos arquivos ou camadas:
+Regras de bloqueio:
+- **Teste ou regressão vermelho** → aciona `debugging`; não prossegue até verde.
+- **Vulnerabilidade de qualquer severidade** (CRITICAL/HIGH/MODERATE/LOW) → bloqueia. Liste pacotes + CVE, roda `npm audit fix` (não-breaking) automático; para remanescentes, sugira `npm audit fix --force` (breaking), upgrade manual ou override se falso positivo. Não prossegue com pendência.
+- **Código de debug encontrado** → pergunte: remover automaticamente ou seguir.
 
-```bash
-# Arquivos alterados
-git diff origin/main...HEAD --name-only
+### Passo 4 — Aplicar correções escolhidas (subagentes Sonnet 4.6 Médio)
 
-# Specs candidatos (Rails)
-git diff origin/main...HEAD --name-only | sed 's|app/||; s|\.rb$|_spec.rb|' | xargs -I{} find spec -name "$(basename {})" 2>/dev/null
+Depois que o usuário decide o que aplicar (🚨 obrigatórios + ⚠️ aceitas, **incluindo updates de documentação**), a implementação é feita por subagentes `Agent(model: "sonnet")` em Sonnet 4.6 Médio (instrua esforço Médio no prompt) — **nunca inline**. Cada subagente recebe a descrição exata do achado e implementa.
 
-# Rodar apenas os specs encontrados
-bundle exec rspec <lista de specs>
-```
-
-Se o projeto usar outro framework, adapte o mapeamento `arquivo → spec`.
-
-Se algum spec falhar: **bloqueie** e acione `debugging`. Não prossiga até verde.
-Se nenhum spec for encontrado para os arquivos alterados: informe e continue.
-
-### Passo 4 — Revisão de código e UX (dois subagentes em paralelo)
-
-A revisão é read-only (analisa o diff, não edita). Lance **dois subagentes em paralelo**, cada um com modelo fixo, e mantenha a sessão principal só orquestrando:
-
-1. **Subagente de Segurança/Correção** — `Agent(model: "opus")`, **Opus 4.8 High** (instrua o esforço High no prompt). Aplica os blocos **Funcionalidade**, **Segurança** e **Qualidade** do checklist (ver REFERENCE.md). Recebe o diff (`git diff origin/main...HEAD`) e devolve uma lista de achados 🚨/⚠️. É a etapa que protege contra bug indo pra prod — por isso o modelo forte.
-2. **Subagente de UX** — `Agent(model: "sonnet")`, **Sonnet 4.6 Médio** (instrua o esforço Médio no prompt). Aplica o bloco **UX** do checklist. Devolve achados 🚨/⚠️.
-
-Ambos são read-only e independentes → rode no mesmo bloco, em paralelo. A sessão principal **consolida** os dois relatórios e apresenta um relatório único:
-- 🚨 BLOQUEANTE — corrija antes de prosseguir
-- ⚠️ SUGESTÃO — pergunte se quer aplicar
-
-Os gates (corrigir? aplicar sugestão?) acontecem na sessão principal com o usuário — os subagentes só analisam e reportam.
-
-**Aplicar as correções escolhidas (subagentes Sonnet 4.6 Médio):** depois que o usuário decide o que aplicar agora (🚨 obrigatórios + ⚠️ sugestões escolhidas), a implementação é feita por subagentes `Agent(model: "sonnet")` em **Sonnet 4.6 Médio** (instrua o esforço Médio no prompt) — não pela sessão principal. Cada subagente recebe a descrição exata do achado e implementa.
-
-- **Mais de uma correção em arquivos diferentes** → subagentes **em paralelo**, um por correção (mesmo bloco).
+- **Correções em arquivos diferentes** → subagentes **em paralelo**, um por correção (mesmo bloco).
 - **Correções no mesmo arquivo** → um único subagente, sequencial, para evitar conflito de edição.
-- **Uma só correção** → ainda via subagente Sonnet 4.6, não inline.
+- **Uma só** → ainda via subagente Sonnet 4.6.
 
-Depois que os subagentes terminam, a sessão principal **re-roda os testes relevantes** (Passos 3 e 3.2); se algo quebrar → aciona `debugging`. As correções aplicadas entram no commit antes do push (Passo 6).
+Depois que os subagentes terminam, a sessão principal **re-roda testes + regressão**; se algo quebrar → `debugging`. As correções entram no commit antes do push (Passo 6).
 
 ### Passo 4.1 — Registrar sugestões não atendidas
 
-Para cada ⚠️ SUGESTÃO do Passo 4 que o usuário optou por **não** aplicar agora:
+Para cada ⚠️ SUGESTÃO que o usuário optou por **não** aplicar agora:
 
 1. Verifique se existe um arquivo de melhorias futuras no projeto:
    ```bash
@@ -264,7 +239,7 @@ Exiba a URL do PR ao final.
 
 ### Passo 12 — Aguardar CI
 
-Depois de criar/editar o PR, aguarde o CI do GitHub terminar. Os testes locais (Passo 3) cobrem só o que roda na sua máquina; o CI roda a suíte completa (unit_tests paralelos, system_tests, linter, etc).
+Depois de criar/editar o PR, aguarde o CI do GitHub terminar. Os testes locais (Passo 2) cobrem só o que roda na sua máquina; o CI roda a suíte completa (unit_tests paralelos, system_tests, linter, etc).
 
 ```bash
 gh pr checks --watch --fail-fast
@@ -370,9 +345,9 @@ heroku releases --num 1
   Acione `debugging` com o log. Não encerre enquanto o app estiver em crash.
 
 ## Regras
-- Revisão do Passo 4 sempre em dois subagentes read-only: Segurança/Correção em `model: "opus"` (High), UX em `model: "sonnet"` (Médio) — consolide os dois relatórios na sessão principal
-- Correções escolhidas (🚨 + ⚠️ aceitas) são implementadas por subagentes `model: "sonnet"` (Médio), nunca inline: paralelo em arquivos distintos, sequencial no mesmo arquivo
-- Steps com efeito colateral ou gate (backup, push, merge, deploy) nunca viram subagente
+- Bloco 1 (análise) roda em paralelo no mesmo bloco: subagentes read-only de Segurança/Correção (`model: "opus"`, High), UX (`model: "sonnet"`, Médio) e Documentação (`model: "sonnet"`, Médio) + checks mecânicos (testes, regressão, audit, debug-scan). Consolide tudo num relatório único antes de qualquer gate
+- Correções escolhidas (🚨 + ⚠️ aceitas, incluindo docs) são implementadas por subagentes `model: "sonnet"` (Médio), nunca inline: paralelo em arquivos distintos, sequencial no mesmo arquivo
+- Bloco 2 (push → staging → PR → CI → merge → deploy) é estritamente sequencial; nenhum desses steps vira subagente
 - Mudanças não commitadas no início → sempre via `smart-commit`, nunca `git commit` manual
 - Reverificar rebase antes do merge — se a `main` avançou, rebasear, dar `--force-with-lease` e revalidar o CI antes de mergear
 - Nunca crie PR sem confirmação do usuário
