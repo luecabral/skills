@@ -1,5 +1,98 @@
 # Maestro — Referência
 
+Tudo que o `SKILL.md` referencia como "REFERENCE.md" está aqui. Este arquivo é autossuficiente — não depende dos REFERENCE das skills avulsas.
+
+## Fase 1 — Checklist de vetores (Threat Modeling)
+
+- [ ] Acesso a dados de outro usuário (IDOR)
+- [ ] Injeção em queries (SQL/NoSQL Injection)
+- [ ] Execução de script no browser (XSS)
+- [ ] Falsificação de requisição (CSRF)
+- [ ] Enumeração de usuários ou recursos
+- [ ] Race condition (especialmente em pagamentos e contadores)
+- [ ] Upload de arquivo malicioso
+- [ ] Prompt injection (se houver IA)
+- [ ] Abuso de rate (brute force, scraping)
+
+Classificação:
+
+| Vetor | Probabilidade | Impacto | Prioridade |
+|---|---|---|---|
+| [vetor] | Alta/Média/Baixa | Alto/Médio/Baixo | 🔴/🟡/🟢 |
+
+## Fase 1 — Template de resumo do design (Passo 4)
+
+```
+# Design: [nome da feature]
+Data: [data]
+
+## Problema
+[descrição do problema]
+
+## Solução escolhida
+[descrição da abordagem]
+
+## Benchmark / referência
+[produto ou tela usada como base — deixe vazio se não houver]
+
+## O que será feito
+[lista do escopo]
+
+## Fluxos
+[caminho passo a passo do usuário — feliz + alternativos (erro, vazio, cancelamento)]
+
+## Comportamentos esperados
+[o que o sistema faz em cada situação: loading, sucesso, erro, estados]
+
+## Regras de negócio
+[condições e restrições que governam a feature, uma por linha]
+
+## Fora do escopo
+[lista do que não será feito]
+
+## Critério de sucesso
+[como saber que está pronto]
+
+## Riscos de segurança
+[vetores identificados no threat modeling — deixe vazio se não aplicável]
+```
+
+## Fase 4 — Checklist de revisão
+
+Usado pelos subagentes de revisão do Bloco 1. Segurança/Correção aplica **Funcionalidade + Segurança + Qualidade**; UX aplica **UX**.
+
+### Funcionalidade
+- [ ] Faz o que foi proposto? Edge cases óbvios tratados?
+
+### Segurança
+- [ ] Inputs sanitizados em todas as camadas?
+- [ ] Recursos verificam propriedade antes de retornar (sem IDOR)?
+- [ ] Dados sensíveis não aparecem em logs ou respostas?
+- [ ] Nenhuma secret no código ou arquivos commitados?
+- [ ] Security headers configurados (CSP, HSTS, X-Frame-Options)?
+- [ ] Rate limit em endpoints de auth e dados sensíveis?
+- [ ] Cookies com `HttpOnly`, `Secure` e `SameSite`?
+- [ ] Multi-tenancy: `tenant_id` validado em todas as queries?
+- [ ] Uploads: MIME type, magic bytes e tamanho validados no servidor?
+- [ ] Operações financeiras/contadores protegidos contra race condition?
+- [ ] IA no sistema: inputs protegidos contra prompt injection?
+
+### UX
+- [ ] Ações assíncronas têm feedback visual (loading, sucesso, erro)?
+- [ ] Mensagens de erro são específicas — nunca "Algo deu errado"?
+- [ ] Empty states implementados?
+- [ ] Interface volta ao estado correto após erro (não fica presa em loading)?
+- [ ] Confirmação em ações destrutivas?
+- [ ] Inputs têm `label` (não só placeholder)?
+- [ ] Botões com ícone têm `aria-label`?
+- [ ] Imagens têm `alt` descritivo?
+- [ ] Navegação por Tab em ordem lógica?
+- [ ] Componente já existe no projeto? (nunca recriar sem razão)
+
+### Qualidade
+- [ ] Sem `console.log`, `debugger` ou código de debug?
+- [ ] Testes cobrem interface pública, não implementação interna?
+
 ## Formato `.plans/plan.md`
 
 ```
