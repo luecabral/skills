@@ -74,6 +74,8 @@ Cada task deve:
 
 **Princípio vertical slice:** cada task entrega um caminho funcional de ponta a ponta — não separe backend (model) da tela (frontend) se um depende do outro. **Inclua atualização de docs no escopo da task** quando a mudança afetar README/docs.
 
+**Marque migrations destrutivas:** se uma task faz mudança de schema que pode apagar dados existentes (drop/rename de coluna ou tabela, mudança de tipo, `NOT NULL` em coluna com dados, `--accept-data-loss`), sinalize na task — ela vai exigir backup de **produção** no deploy (Fase 4 Passo 14). Migration aditiva (nova tabela/coluna nullable, novo índice) não perde dado e não precisa de backup.
+
 Critério por task:
 ```
 - [ ] 1. Criar model X — `app/models/x.rb`
@@ -85,16 +87,13 @@ Critério por task:
 ### Passo 2 — Dependências e grupos paralelos
 Para cada task declare `depends_on: [ids]`. Calcule grupos paralelos via topological sort (ver REFERENCE.md). Apresente: "X tasks em Y grupos, Z em paralelo no pico".
 
-### Passo 3 — Backup antes de migration
-**Se qualquer task tocar em schema** (`prisma/schema.prisma`, `db/migrate/`, `prisma/migrations/`): adicione **task T00 obrigatória** no Grupo 1 — "Backup local + remoto antes de migration". Todas as tasks de schema dependem de T00.
-
-### Passo 4 — Aprovar e criar branch
+### Passo 3 — Aprovar e criar branch
 Apresente o plano completo, aguarde aprovação, ajuste. Proponha nome (`tipo/descricao-em-kebab-case`; tipos: `feat` nova funcionalidade, `fix` correção, `refactor` melhoria interna, `chore` manutenção — explique cada um). Após confirmação:
 ```bash
 git fetch origin && git checkout main && git pull origin main && git checkout -b <nome>
 ```
 
-### Passo 5 — Salvar plano
+### Passo 4 — Salvar plano
 Salve em `.plans/plan.md` na raiz (formato em REFERENCE.md). Sobrescreva se existir. Garanta `.plans/` no `.gitignore`.
 
 **Gate:** "Plano salvo. Quer que eu execute com subagentes em paralelo (Fase 3)?"
@@ -106,7 +105,7 @@ Se não → encerra na branch criada.
 
 O líder (este agente, em **Opus 4.8 High**) orquestra; quem escreve código são os subagentes em **Sonnet 4.6 Médio**.
 
-1. Lê `.plans/plan.md`, reconstrói o grafo de dependências. Se houver task T00 de backup, valide que o backup completou antes de lançar qualquer task de schema.
+1. Lê `.plans/plan.md`, reconstrói o grafo de dependências.
 2. Para cada grupo paralelo em ordem topológica:
    - Lança um `Agent(isolation: "worktree", model: "sonnet")` por task no grupo — **sempre `model: "sonnet"`**, esforço Médio (instrua no prompt). O líder nunca delega pra Opus.
    - Cada subagente segue o **ciclo TDD + commit** abaixo.
@@ -147,20 +146,23 @@ Se não → encerra na branch, pronta pra fixes manuais e Fase 4 depois.
 
 ## Fase 4 — Publish
 
-Validação → revisão → push → PR → CI → merge → deploy. Entra aqui direto via `maestro fase 4` / `maestro publica`, mesmo em sessão nova depois de fixes manuais. Dois blocos: **Bloco 1 (análise em paralelo)** → consolidação → correções; **Bloco 2 (pipeline sequencial)**.
+Validação → revisão → push → PR → CI → merge → deploy. Entra aqui direto via `maestro fase 4` / `maestro publica`, mesmo em sessão nova depois de fixes manuais.
 
-### Passo 0 — Commitar pendências
-`git status --short`. Se houver mudanças não commitadas, rode o fluxo de commit da Fase 3 (testes → debug → commit agrupado). Working tree limpo → pule.
+- **Bloco 1 — Análise e correções:** tudo depende só do diff já commitado → roda em paralelo, sem ordem fixa.
+- **Bloco 2 — Pipeline de publicação:** push → staging → PR → CI → merge → deploy. **Estritamente sequencial.**
 
-### Passo 1 — Verificar commits
+### Bloco 1 — Análise e correções
+
+#### Passo 1 — Preparar
+`git status --short`: se houver pendências, rode o fluxo de commit da Fase 3 (testes → debug → commit agrupado). Depois confirme que há commits novos:
 ```bash
 git branch --show-current
 git log origin/$(git branch --show-current)..HEAD --oneline 2>/dev/null || git log HEAD --oneline -5
 ```
 Se for `main` ou não houver commits novos, informe e encerre.
 
-### Passo 2 — Bloco 1: Análise em paralelo
-Tudo aqui depende **só do diff já commitado** → dispare **tudo no mesmo bloco, em paralelo**. Subagentes read-only (só reportam); checks mecânicos na sessão principal. Aguarde todos e consolide no Passo 3.
+#### Passo 2 — Análise em paralelo
+Dispare **tudo no mesmo bloco**: subagentes read-only (só reportam) + checks mecânicos na sessão principal. Aguarde todos e consolide no Passo 3.
 
 **Subagentes de revisão (read-only, modelo fixo):**
 1. **Segurança/Correção** — `Agent(model: "opus")`, Opus 4.8 High. Aplica os blocos **Funcionalidade**, **Segurança** e **Qualidade** do checklist (REFERENCE.md) sobre `git diff origin/main...HEAD`. Devolve 🚨/⚠️. Protege contra bug indo pra prod — por isso o modelo forte.
@@ -179,50 +181,40 @@ Tudo aqui depende **só do diff já commitado** → dispare **tudo no mesmo bloc
   Adapte o mapeamento se outro framework. Sem specs → informe.
 - **Auditoria** (só npm): `npm audit 2>/dev/null || true`. Qualquer severidade conta.
 
-### Passo 3 — Consolidação e gates
+#### Passo 3 — Consolidação e gates
 Relatório **único** — review (3 subagentes) + checks:
 - 🚨 BLOQUEANTE — falhas de teste/regressão, vulnerabilidades pendentes, achados críticos. Resolver antes de prosseguir.
 - ⚠️ SUGESTÃO — melhorias de review/UX, docs desatualizadas. Pergunte o que aplicar agora.
 
 Bloqueios: teste/regressão vermelho → `debugging`, não prossegue até verde. Vulnerabilidade de qualquer severidade → bloqueia (lista pacotes+CVE, roda `npm audit fix` não-breaking; remanescentes → sugere `--force` breaking, upgrade manual ou override). Debug code → pergunta remover ou seguir.
 
-### Passo 4 — Aplicar correções escolhidas
+#### Passo 4 — Aplicar correções escolhidas
 As que o usuário escolher (🚨 + ⚠️ aceitas, **incl. docs**) → subagentes `Agent(model: "sonnet")`, Sonnet 4.6 Médio, **nunca inline**. Arquivos diferentes → paralelo; mesmo arquivo → um subagente sequencial; uma só → ainda via subagente. Depois, a sessão principal **re-roda testes + regressão** (quebrou → `debugging`). Correções entram no commit antes do push.
 
-### Passo 4.1 — Registrar sugestões não atendidas
+#### Passo 5 — Registrar sugestões não atendidas
 Para cada ⚠️ que o usuário **não** aplicou: procure `fixes-futuros.md`/`FIXES-FUTUROS.md`/`TODO.md` (`find . -maxdepth 3 ...`). Se achar → append `## <data>` + descrição. Se não → crie `docs/fixes-futuros.md` (ou na raiz). Informe o arquivo. Se aplicou todas ou não havia, pule.
 
-### Passo 5 — Confirmação final pré-deploy
-O roteiro de teste manual foi entregue no fim da Fase 3. Aqui é a confirmação final antes de empurrar pra produção:
-- **Veio da Fase 3 nesta sessão:** revalide o roteiro já entregue considerando os fixes pontuais aplicados entre as fases — atualize-o se algum fluxo mudou. Não gere do zero.
-- **Entrada direta (`maestro publica`, sem Fase 3 nesta sessão):** gere o roteiro agora — liste fluxos afetados e passos executáveis por quem não escreveu o código.
+### Bloco 2 — Pipeline de publicação (sequencial)
 
-Confirme em qualquer caso: fluxo principal funciona (resultado exato)? se bug, não ocorre mais? regressão passa? dados existentes não corrompidos? Aguarde confirmação.
+#### Passo 6 — Confirmar publicação e limpar plano
+- **Homologação:** se veio da Fase 3 nesta sessão, o roteiro de teste manual já foi entregue e homologado — só pergunte "publicar agora?". **Entrada direta** (`maestro publica`, sem Fase 3 nesta sessão): gere o roteiro (fluxos afetados + passos executáveis por quem não escreveu o código) e aguarde a confirmação de que homologou.
+- Confirme: fluxo principal funciona? se bug, não ocorre mais? regressão passa? dados existentes íntegros?
+- **Limpeza:** se `.plans/plan.md` existir, `rm -f .plans/plan.md` (está no `.gitignore`, é só faxina antes do push).
 
-### Passo 5.5 — Backup obrigatório antes de migration
-Cheque schema no diff: `git diff origin/main...HEAD --name-only | grep -E "(db/migrate|prisma/migrations|prisma/schema\.prisma|schema\.sql)"`. Se houver, **antes de prosseguir**:
-- **Local:** `pg_dump <db> > backup-local-$(date +%Y%m%d-%H%M).sql` (ou via `docker exec <container> pg_dump ...`).
-- **Remoto (Heroku):** `heroku pg:backups:capture --app <staging>` e `--app <prod>`; aguarde `Completed` (`heroku pg:backups --app <prod>`).
-- **Release script:** `cat Procfile | grep release`. Se usar `prisma db push --accept-data-loss`, avise: **"migrations SQL serão IGNORADAS, drops aceitos sem confirmação. Backup OBRIGATÓRIO. Backfills manuais via `heroku run`/`pg:psql`."**
-Backup falhou/impossível → **PARE** e peça intervenção humana.
-
-### Passo 6 — Push
+#### Passo 7 — Push (dispara staging)
 ```bash
 git fetch origin && git rebase origin/main
 git push -u origin HEAD
 ```
-Conflito no rebase → liste arquivos, aguarde resolução. Histórico divergente → ofereça `--rebase` ou `--force-with-lease`.
+Conflito no rebase → liste arquivos, aguarde resolução. Histórico divergente → `--force-with-lease` (nunca `--force` sozinho). O push dispara o deploy de staging automaticamente — informe e siga sem aguardar.
 
-### Passo 7 — Staging
-O push do Passo 6 dispara o deploy de staging. Informe e prossiga sem aguardar.
-
-### Passo 8 — Abrir ou editar PR?
+#### Passo 8 — Abrir ou editar PR?
 `gh pr view --json number,title,state 2>/dev/null`. PR existente → "Atualizar?" (não → encerra; sim → Passo 9 modo edição). Sem PR → "Abrir agora?" (não → encerra; sim → Passo 9 modo criação). Se chamada com foco em PR e push feito, pule pro 9.
 
-### Passo 9 — Detectar mudanças de infraestrutura
-No diff, verifique: novas env vars (`process.env.`, `ENV[`, `Rails.application.credentials`), novos serviços externos, migrações, mudanças em Dockerfile/CI/config. Se houver, **crie seção própria** no corpo do PR (nunca enterre em "outros ajustes"), listando vars com descrição e exemplo.
+#### Passo 9 — Detectar mudanças de infraestrutura
+No diff, verifique: novas env vars (`process.env.`, `ENV[`, `Rails.application.credentials`), novos serviços externos, migrações, mudanças em Dockerfile/CI/config. Anote as env vars novas — elas alimentam **o corpo do PR (Passo 10)** e a **checagem de prod (Passo 14)**. Se houver, **crie seção própria** no corpo do PR (nunca enterre em "outros ajustes"), listando vars com descrição e exemplo.
 
-### Passo 10 — Gerar título e corpo
+#### Passo 10 — Gerar título e corpo
 Formato: `tipo: Mensagem no presente, sem ponto`. Tipos: `feat·fix·refactor·perf·docs·config`.
 ```markdown
 ### O que esse PR faz
@@ -246,21 +238,18 @@ VAR_NAME=valor_exemplo   # descrição
 - [ ] Regressão: fluxos adjacentes
 ```
 
-### Passo 10.1 — Remover plano de sessão
-Se `.plans/plan.md` existir, remova antes do push: `rm -f .plans/plan.md`.
-
-### Passo 11 — Changelog e criar/editar PR
+#### Passo 11 — Changelog e criar/editar PR
 Changelog não-técnico: ✨ Novidades | 🐛 Correções | ⚡ Melhorias. Exiba título, corpo e changelog; aguarde aprovação.
 - Criação: `gh pr create --draft --title "<t>" --body "<corpo>"` + `gh pr comment <n> --body "## 📋 Changelog\n\n<changelog>"`
 - Edição: `gh pr edit --title "<t>" --body "<corpo>"` + comment do changelog.
 Exiba a URL.
 
-### Passo 12 — Aguardar CI
+#### Passo 12 — Aguardar CI
 `gh pr checks --watch --fail-fast`. Os testes locais (Passo 2) cobrem só a máquina; o CI roda a suíte completa.
 - Todos verdes → exiba `gh pr checks` e siga.
 - Algum falhou → não encerre: `gh run list --branch "$(git branch --show-current)" --limit 1 --json databaseId,conclusion` + `gh run view <id> --log-failed`. Apresente o check vermelho, últimas ~50 linhas do log e o link. Acione `debugging` com o log. CI vermelho bloqueia encerramento.
 
-### Passo 13 — Merge na main
+#### Passo 13 — Merge na main
 Pré-requisito: Passo 12 todo verde (confirme com `gh pr checks` = `pass`). **Reverificar rebase:** entre o push e agora a `main` pode ter andado:
 ```bash
 git fetch origin
@@ -270,15 +259,22 @@ Se andou → avise, `git rebase origin/main` (conflito → resolução manual), 
 
 Pergunte: "Todos os CIs passaram. Quer mergear na main?" Não → encerra exibindo a URL. Sim → `gh pr merge --merge` (ou `--squash`/`--rebase` conforme o repo; **nunca `--delete-branch`**). Se o repo deleta head branch automaticamente, avise e confirme. Exiba o SHA do merge. **Não rode `git branch -d` nem `git push origin --delete`.**
 
-### Passo 14 — Deploy em produção (Heroku)
+#### Passo 14 — Deploy em produção (Heroku)
 Pré-requisito: merge concluído. `git remote | grep heroku`. Sem remote → informe como configurar (`heroku git:remote -a <app>`) e encerre. Com remote → "Deploy em produção agora?" (não → encerra com o SHA).
 
-**Migrações pendentes:** `git diff HEAD~1..HEAD --name-only | grep -E "(db/migrate|prisma/migrations|prisma/schema)"`. Se houver, antes do push confirme: backup do 5.5 completo e listado em `heroku pg:backups`? release usa `--accept-data-loss` (migrations SQL não rodam → backfills manuais)? Avise que `heroku rollback` pode recriar colunas/tabelas vazias — backup é a única rede real.
+**a) Env vars (do Passo 9):** se o Passo 9 detectou variáveis novas, confirme que estão setadas em prod **antes** do push — `heroku config --app <prod> | grep <VAR>`. Faltando → `heroku config:set <VAR>=... --app <prod>` (peça o valor ao usuário). Sem isso a app crasha no boot.
 
+**b) Backup de produção (só se a migration puder perder dados):** cheque migration destrutiva no diff:
+```bash
+git diff origin/main...HEAD --name-only | grep -E "(db/migrate|prisma/migrations|prisma/schema\.prisma|schema\.sql)"
+```
+Se houver schema no diff, avalie se é **destrutiva** (drop/rename de coluna ou tabela, mudança de tipo, `NOT NULL` em coluna com dados, release com `--accept-data-loss`). Aditiva (nova tabela/coluna nullable, índice) → segue sem backup. Destrutiva → **agora** (o mais próximo possível da migration, não antes): `heroku pg:backups:capture --app <prod>` e aguarde `Completed` (`heroku pg:backups --app <prod>`). Cheque o release (`cat Procfile | grep release`): se usa `prisma db push --accept-data-loss`, avise que migrations SQL são IGNORADAS, drops são aceitos sem confirmação e backfills são manuais via `heroku run`/`pg:psql`. Backup falhou/impossível → **PARE** e peça intervenção humana. `heroku rollback` pode recriar colunas/tabelas vazias — o backup é a única rede real.
+
+**c) Deploy:**
 ```bash
 git push heroku main
 ```
-Falha por histórico divergente → ofereça `--force-with-lease` (nunca `--force` sozinho). Migrações: `heroku run rails db:migrate` (aguarde sucesso). Verifique: `heroku ps` + `heroku releases --num 1`. Dynos up → exiba `vN` e "Deploy concluído". Crash → `heroku logs --tail --num 50` + `debugging`; não encerre enquanto crashar.
+Falha por histórico divergente → `--force-with-lease` (nunca `--force` sozinho). Migrações: `heroku run rails db:migrate` (aguarde sucesso). Verifique: `heroku ps` + `heroku releases --num 1`. Dynos up → exiba `vN` e "Deploy concluído". Crash → `heroku logs --tail --num 50` + `debugging`; não encerre enquanto crashar.
 
 ---
 
@@ -297,7 +293,7 @@ Falha por histórico divergente → ofereça `--force-with-lease` (nunca `--forc
 - Nunca implemente durante Fase 1 ou 2; nunca proponha código durante a Fase 1
 - Se task for ambígua, para e pergunta antes de lançar o subagente
 - **Modelos:** líder Opus 4.8 High; dev (Fase 3) e correções (Fase 4) em `model: "sonnet"` Médio; revisão de Segurança (Fase 4) em `model: "opus"` High
-- **Backup antes de migration é inegociável** — task T00 (local + remoto) na Fase 2/3; backup do Passo 5.5 antes de qualquer deploy com schema
+- **Backup só de produção e só em migration destrutiva** (drop/rename de coluna ou tabela, mudança de tipo, `NOT NULL` em coluna com dados, `--accept-data-loss`) — capturado no Passo 14, imediatamente antes da migration do deploy. Sem backup local nem de staging; migration aditiva não precisa
 - Bloco 1 da Fase 4 roda em paralelo; correções nunca inline (subagentes Sonnet); Bloco 2 (push→deploy) é estritamente sequencial
 - Nunca use `--force` sozinho, sempre `--force-with-lease`; **nunca delete a branch**; nunca `--amend`/`--no-verify`
 - CI vermelho bloqueia o encerramento; merge só com CI 100% verde
