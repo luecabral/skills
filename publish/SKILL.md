@@ -9,7 +9,7 @@ Valida código, faz revisão, push e opcionalmente abre PR como draft.
 
 Um fluxo só: validação → revisão → push → PR opcional.
 
-**Modelos:** o publish roda na sessão principal (recomendado: Opus 4.8 High, dado o risco de prod/migrations). A única etapa terceirizada é a revisão do Passo 4, em dois subagentes read-only com modelo fixo: **Segurança/Correção em Opus 4.8 High** e **UX em Sonnet 4.6 Médio**. Steps com efeito colateral ou gate (backup, push, merge, deploy) nunca viram subagente.
+**Modelos:** o publish roda na sessão principal (recomendado: Opus 4.8 High, dado o risco de prod/migrations). Etapas terceirizadas para subagentes com modelo fixo: a **revisão do Passo 4** (Segurança/Correção em Opus 4.8 High + UX em Sonnet 4.6 Médio, read-only) e a **implementação das correções escolhidas** (Sonnet 4.6 Médio). Steps com efeito colateral ou gate (backup, push, merge, deploy) nunca viram subagente.
 
 ## Processo
 
@@ -86,6 +86,14 @@ Ambos são read-only e independentes → rode no mesmo bloco, em paralelo. A ses
 - ⚠️ SUGESTÃO — pergunte se quer aplicar
 
 Os gates (corrigir? aplicar sugestão?) acontecem na sessão principal com o usuário — os subagentes só analisam e reportam.
+
+**Aplicar as correções escolhidas (subagentes Sonnet 4.6 Médio):** depois que o usuário decide o que aplicar agora (🚨 obrigatórios + ⚠️ sugestões escolhidas), a implementação é feita por subagentes `Agent(model: "sonnet")` em **Sonnet 4.6 Médio** (instrua o esforço Médio no prompt) — não pela sessão principal. Cada subagente recebe a descrição exata do achado e implementa.
+
+- **Mais de uma correção em arquivos diferentes** → subagentes **em paralelo**, um por correção (mesmo bloco).
+- **Correções no mesmo arquivo** → um único subagente, sequencial, para evitar conflito de edição.
+- **Uma só correção** → ainda via subagente Sonnet 4.6, não inline.
+
+Depois que os subagentes terminam, a sessão principal **re-roda os testes relevantes** (Passos 3 e 3.2); se algo quebrar → aciona `debugging`. As correções aplicadas entram no commit antes do push (Passo 6).
 
 ### Passo 4.1 — Registrar sugestões não atendidas
 
@@ -363,6 +371,7 @@ heroku releases --num 1
 
 ## Regras
 - Revisão do Passo 4 sempre em dois subagentes read-only: Segurança/Correção em `model: "opus"` (High), UX em `model: "sonnet"` (Médio) — consolide os dois relatórios na sessão principal
+- Correções escolhidas (🚨 + ⚠️ aceitas) são implementadas por subagentes `model: "sonnet"` (Médio), nunca inline: paralelo em arquivos distintos, sequencial no mesmo arquivo
 - Steps com efeito colateral ou gate (backup, push, merge, deploy) nunca viram subagente
 - Mudanças não commitadas no início → sempre via `smart-commit`, nunca `git commit` manual
 - Reverificar rebase antes do merge — se a `main` avançou, rebasear, dar `--force-with-lease` e revalidar o CI antes de mergear
