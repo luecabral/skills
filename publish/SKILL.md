@@ -9,6 +9,8 @@ Valida código, faz revisão, push e opcionalmente abre PR como draft.
 
 Um fluxo só: validação → revisão → push → PR opcional.
 
+**Modelos:** o publish roda na sessão principal (recomendado: Opus 4.8 High, dado o risco de prod/migrations). A única etapa terceirizada é a revisão do Passo 4, em dois subagentes read-only com modelo fixo: **Segurança/Correção em Opus 4.8 High** e **UX em Sonnet 4.6 Médio**. Steps com efeito colateral ou gate (backup, push, merge, deploy) nunca viram subagente.
+
 ## Processo
 
 ### Passo 0 — Commitar mudanças pendentes (smart-commit)
@@ -72,11 +74,18 @@ Se o projeto usar outro framework, adapte o mapeamento `arquivo → spec`.
 Se algum spec falhar: **bloqueie** e acione `debugging`. Não prossiga até verde.
 Se nenhum spec for encontrado para os arquivos alterados: informe e continue.
 
-### Passo 4 — Revisão de código e UX
-Analise o diff com o checklist (ver REFERENCE.md): funcionalidade, segurança, UX e qualidade.
-Apresente relatório:
+### Passo 4 — Revisão de código e UX (dois subagentes em paralelo)
+
+A revisão é read-only (analisa o diff, não edita). Lance **dois subagentes em paralelo**, cada um com modelo fixo, e mantenha a sessão principal só orquestrando:
+
+1. **Subagente de Segurança/Correção** — `Agent(model: "opus")`, **Opus 4.8 High** (instrua o esforço High no prompt). Aplica os blocos **Funcionalidade**, **Segurança** e **Qualidade** do checklist (ver REFERENCE.md). Recebe o diff (`git diff origin/main...HEAD`) e devolve uma lista de achados 🚨/⚠️. É a etapa que protege contra bug indo pra prod — por isso o modelo forte.
+2. **Subagente de UX** — `Agent(model: "sonnet")`, **Sonnet 4.6 Médio** (instrua o esforço Médio no prompt). Aplica o bloco **UX** do checklist. Devolve achados 🚨/⚠️.
+
+Ambos são read-only e independentes → rode no mesmo bloco, em paralelo. A sessão principal **consolida** os dois relatórios e apresenta um relatório único:
 - 🚨 BLOQUEANTE — corrija antes de prosseguir
 - ⚠️ SUGESTÃO — pergunte se quer aplicar
+
+Os gates (corrigir? aplicar sugestão?) acontecem na sessão principal com o usuário — os subagentes só analisam e reportam.
 
 ### Passo 4.1 — Registrar sugestões não atendidas
 
@@ -353,6 +362,8 @@ heroku releases --num 1
   Acione `debugging` com o log. Não encerre enquanto o app estiver em crash.
 
 ## Regras
+- Revisão do Passo 4 sempre em dois subagentes read-only: Segurança/Correção em `model: "opus"` (High), UX em `model: "sonnet"` (Médio) — consolide os dois relatórios na sessão principal
+- Steps com efeito colateral ou gate (backup, push, merge, deploy) nunca viram subagente
 - Mudanças não commitadas no início → sempre via `smart-commit`, nunca `git commit` manual
 - Reverificar rebase antes do merge — se a `main` avançou, rebasear, dar `--force-with-lease` e revalidar o CI antes de mergear
 - Nunca crie PR sem confirmação do usuário
