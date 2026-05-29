@@ -2,12 +2,12 @@
 name: maestro
 description: Use para o ciclo completo de uma feature — do brainstorming ao código rodando.
 Ativa quando o usuário diz "maestro", "roda o maestro", "faz o maestro". Pode entrar
-diretamente em qualquer fase: "maestro fase 2", "maestro planeja", "maestro executa".
+diretamente em qualquer fase: "maestro fase 2", "maestro planeja", "maestro executa", "maestro publica".
 ---
 
 # Maestro
 
-Ciclo completo de uma feature: exploração → plano com grafo de dependências → execução paralela com subagentes.
+Ciclo completo de uma feature, do brainstorming ao deploy. O maestro **não reimplementa nada** — ele orquestra skills que já são donas de cada fase: **`brainstorming` (Fase 1) + `prd-to-issues` (Fase 2) + `tdd` + `smart-commit` (Fase 3) + `publish` (Fase 4)**. O que é só do maestro: grafo de dependências, paralelismo com worktrees, modelos e os gates entre fases.
 
 **Modelos (obrigatório):** o Maestro (líder que orquestra todas as fases e gerencia os subagentes) roda em **Opus 4.8 High**. Todos os subagentes de desenvolvimento na Fase 3 rodam em **Sonnet 4.6 no esforço Médio**. Ver Fase 3.
 
@@ -65,6 +65,19 @@ O líder (este agente, em **Opus 4.8 High**) orquestra; quem escreve código sã
 - Máx. 3 falhas consecutivas: para e apresenta relatório
 - Máx. 15 tasks por sessão; se exceder, pede confirmação para continuar
 
+**Gate:** "Desenvolvimento homologado pelo `verify` e mergeado na branch. Quer publicar agora (Fase 4)? Se preferir aplicar ajustes pontuais antes, é só chamar `maestro fase 4` (ou `maestro publica`) quando terminar."
+Se não → encerra na branch, pronta pra fixes manuais e Fase 4 depois.
+
+---
+
+## Fase 4 — Publish
+
+Quando o desenvolvimento está homologado (e quaisquer fixes pontuais do usuário aplicados), siga o processo completo do `publish` — ele é a fonte única da revisão, push, PR, CI, merge e deploy. O maestro só invoca; não duplica nenhum passo do publish.
+
+- Entra aqui direto via `maestro fase 4` / `maestro publica`, mesmo numa sessão nova depois dos fixes manuais.
+- O `publish` traz seus próprios subagentes e modelos (Segurança em Opus, UX/Docs em Sonnet) — o maestro não interfere nisso.
+- Gates do publish (aplicar sugestão? mergear? deployar?) continuam sendo do publish, com o usuário.
+
 ---
 
 ## Entrada direta por fase
@@ -74,12 +87,13 @@ O líder (este agente, em **Opus 4.8 High**) orquestra; quem escreve código sã
 | Ideia vaga / "como fazer X" | Fase 1 |
 | Design definido / "planeja isso" | Fase 2 |
 | `.plans/plan.md` já existe | Fase 3 |
+| Branch desenvolvida + fixes aplicados / "maestro publica" | Fase 4 |
 
 ## Regras
 
 - Gates de confirmação entre fases são obrigatórios — nunca avance sem resposta explícita
 - Nunca implemente durante Fase 1 ou 2
-- Não mergeie PRs — responsabilidade do usuário
+- O maestro não reimplementa as sub-skills — cada fase delega à skill dona (brainstorming/prd-to-issues/tdd+smart-commit/publish); merge e deploy acontecem só dentro da Fase 4 via `publish`, respeitando os gates dele
 - Se task for ambígua, para e pergunta antes de lançar o subagente
 - Contextualizar termos técnicos ao longo de todas as fases (seguir padrão do `brainstorming`)
 - **Backup antes de migration é inegociável** — qualquer plano que toque schema (Prisma, Rails migrate, SQL) precisa de task T00 de backup local + remoto como pré-requisito do Group 1. Validar no início da Fase 3 que o backup completou antes de lançar qualquer task de schema.
