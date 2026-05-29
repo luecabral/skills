@@ -135,9 +135,12 @@ Antes do relatório final, o líder valida o conjunto:
 - Invoca `verify` (Verify do Claude) pra **homologar todos os fluxos impactados** — não só os testes, mas o comportamento real de cada fluxo que a feature tocou (feliz + alternativos do design da Fase 1). O `verify` sobe o app e observa de verdade.
 - Se algum fluxo falhar → `debugging`, corrige e revalida antes de seguir.
 
+### Roteiro de teste manual (entregue ao anunciar o fim do desenvolvimento)
+Com a validação verde, gere um **roteiro de teste manual** pro usuário homologar com as próprias mãos antes de publicar. Liste cada fluxo afetado (feliz + alternativos do design da Fase 1) como passos executáveis por quem **não** escreveu o código — o que abrir, o que clicar, o resultado exato esperado em cada etapa. Inclua os estados de borda (erro, vazio, cancelamento) e a checagem de regressão dos fluxos adjacentes. Apresente esse roteiro junto do anúncio de que o desenvolvimento acabou.
+
 **Proteções:** máx. 2 ciclos TDD por task antes de pausar; máx. 3 falhas consecutivas para e reporta; máx. 15 tasks por sessão (pede confirmação se exceder).
 
-**Gate:** "Desenvolvimento homologado pelo `verify` e mergeado na branch. Quer publicar agora (Fase 4)? Se preferir aplicar ajustes pontuais antes, é só chamar `maestro fase 4` (ou `maestro publica`) quando terminar."
+**Gate:** "Desenvolvimento concluído e homologado pelo `verify`, mergeado na branch. Acima está o roteiro pra você homologar manualmente. Quer publicar agora (Fase 4)? Se preferir aplicar ajustes pontuais antes, é só chamar `maestro fase 4` (ou `maestro publica`) quando terminar."
 Se não → encerra na branch, pronta pra fixes manuais e Fase 4 depois.
 
 ---
@@ -189,8 +192,12 @@ As que o usuário escolher (🚨 + ⚠️ aceitas, **incl. docs**) → subagente
 ### Passo 4.1 — Registrar sugestões não atendidas
 Para cada ⚠️ que o usuário **não** aplicou: procure `fixes-futuros.md`/`FIXES-FUTUROS.md`/`TODO.md` (`find . -maxdepth 3 ...`). Se achar → append `## <data>` + descrição. Se não → crie `docs/fixes-futuros.md` (ou na raiz). Informe o arquivo. Se aplicou todas ou não havia, pule.
 
-### Passo 5 — Verificação e roteiro manual
-Confirme: fluxo principal funciona (resultado exato)? se bug, não ocorre mais? regressão passa? dados existentes não corrompidos? Liste fluxos afetados e gere roteiro executável por quem não escreveu o código. Aguarde confirmação.
+### Passo 5 — Confirmação final pré-deploy
+O roteiro de teste manual foi entregue no fim da Fase 3. Aqui é a confirmação final antes de empurrar pra produção:
+- **Veio da Fase 3 nesta sessão:** revalide o roteiro já entregue considerando os fixes pontuais aplicados entre as fases — atualize-o se algum fluxo mudou. Não gere do zero.
+- **Entrada direta (`maestro publica`, sem Fase 3 nesta sessão):** gere o roteiro agora — liste fluxos afetados e passos executáveis por quem não escreveu o código.
+
+Confirme em qualquer caso: fluxo principal funciona (resultado exato)? se bug, não ocorre mais? regressão passa? dados existentes não corrompidos? Aguarde confirmação.
 
 ### Passo 5.5 — Backup obrigatório antes de migration
 Cheque schema no diff: `git diff origin/main...HEAD --name-only | grep -E "(db/migrate|prisma/migrations|prisma/schema\.prisma|schema\.sql)"`. Se houver, **antes de prosseguir**:
