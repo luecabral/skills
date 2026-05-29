@@ -9,13 +9,17 @@ diretamente em qualquer fase: "maestro fase 2", "maestro planeja", "maestro exec
 
 Ciclo completo de uma feature: exploração → plano com grafo de dependências → execução paralela com subagentes.
 
+**Modelos (obrigatório):** o Maestro (líder que orquestra todas as fases e gerencia os subagentes) roda em **Opus 4.8 High**. Todos os subagentes de desenvolvimento na Fase 3 rodam em **Sonnet 4.6 no esforço Médio**. Ver Fase 3.
+
 ## Fase 1 — Explore
 
-Siga o processo completo do `brainstorming`:
+Siga o processo completo do `brainstorming`, sem encurtar a exploração:
 - Perguntas uma por vez com sugestão de resposta
+- **Pergunta de benchmark/referência** quando a feature tiver paralelo no mercado (Passo 1.7 do `brainstorming`) — pergunte se há um produto ou tela de referência a seguir
 - Threat modeling se tocar em auth/dados/integrações
 - Apresenta 2–3 alternativas de abordagem, aguarda escolha
-- Resumo do design (problema, solução, escopo, riscos)
+- **Design detalhado** (Passo 3 do `brainstorming`): descreva fluxos passo a passo (feliz + alternativos), comportamentos esperados (loading, sucesso, erro, estados) e regras de negócio explícitas — não apenas a lista do que será criado. Confirme cada parte com o usuário.
+- Resumo do design (problema, solução, benchmark, escopo, fluxos, comportamentos, regras de negócio, riscos)
 
 **Gate:** "Design definido. Quer que eu crie o plano com grafo de dependências (Fase 2)?"
 Se não → encerra sem implementar nada.
@@ -25,7 +29,7 @@ Se não → encerra sem implementar nada.
 ## Fase 2 — Plan
 
 1. Quebra em tasks (2–5 min cada, max ~600 linhas, verbo no infinitivo, localização de arquivo)
-2. Para cada task declara `depends_on: [ids]`
+2. Para cada task declara `depends_on: [ids]` e uma **explicação em uma linha para não-techs** (`em_resumo:`) — uma frase simples, sem jargão, do que aquela task entrega na prática (ex: "permite que o usuário recupere a senha pelo e-mail")
 3. Calcula grupos paralelos via topological sort (ver REFERENCE.md)
 4. Apresenta o plano com os grupos: "X tasks em Y grupos, Z em paralelo no pico"
 5. **Se qualquer task tocar em schema** (`prisma/schema.prisma`, `db/migrate/`, `prisma/migrations/`): adicionar **task T00 obrigatória** no Grupo 1 — "Backup local + remoto antes de migration". Todas as tasks de schema dependem de T00.
@@ -40,15 +44,21 @@ Se não → encerra na branch criada.
 
 ## Fase 3 — Execute
 
+O líder (este agente, em **Opus 4.8 High**) orquestra; quem escreve código são os subagentes em **Sonnet 4.6 Médio**.
+
 1. Lê `.plans/plan.md`, reconstrói o grafo de dependências
 2. Para cada grupo paralelo em ordem topológica:
-   - Lança um `Agent(isolation: "worktree")` por task no grupo
+   - Lança um `Agent(isolation: "worktree", model: "sonnet")` por task no grupo — **sempre `model: "sonnet"`** (Sonnet 4.6, esforço Médio). Instrua cada subagente no prompt a operar em esforço Médio. O líder nunca delega para Opus.
    - Cada subagente: invoca `tdd` → implementa → invoca `smart-commit`
    - Aguarda todos do grupo concluírem
    - Merge de cada worktree de volta à branch principal (ver REFERENCE.md)
    - Se conflito: pausa, descreve o conflito, aguarda resolução humana
 3. Atualiza checkboxes no `.plans/plan.md` conforme tasks completam
-4. Após todas as tasks: apresenta relatório final
+4. **Validação** — antes do relatório final, o líder valida o conjunto:
+   - Roda a suíte de testes completa do projeto
+   - Invoca o `verify` (Verify do Claude) para **homologar todos os fluxos impactados** — não só os testes automatizados, mas o comportamento real de cada fluxo que a feature tocou (caminho feliz + alternativos do design da Fase 1). O `verify` sobe o app e observa o comportamento de verdade.
+   - Se algum fluxo falhar na homologação: aciona `debugging`, corrige e revalida antes de seguir.
+5. Após validação verde: apresenta relatório final
 
 **Proteções:**
 - Máx. 2 ciclos TDD por task antes de pausar e reportar

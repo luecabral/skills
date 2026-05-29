@@ -30,8 +30,20 @@ Data: [data]
 ## Solução escolhida
 [descrição da abordagem]
 
+## Benchmark / referência
+[produto ou tela usada como base — deixe vazio se não houver]
+
 ## O que será feito
 [lista do escopo]
+
+## Fluxos
+[caminho passo a passo do usuário — feliz + alternativos (erro, vazio, cancelamento)]
+
+## Comportamentos esperados
+[o que o sistema faz em cada situação: loading, sucesso, erro, estados]
+
+## Regras de negócio
+[condições e restrições que governam a feature, uma por linha]
 
 ## Fora do escopo
 [lista do que não será feito]

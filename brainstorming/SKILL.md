@@ -45,16 +45,33 @@ Documente:
 
 Classifique cada risco por probabilidade × impacto (🔴 Alta / 🟡 Média / 🟢 Baixa). Riscos 🔴 viram tasks explícitas no `prd-to-issues`.
 
+### Passo 1.7 — Benchmark / referência (quando a feature tiver paralelo no mercado)
+
+Se a feature for algo que produtos conhecidos já resolvem (ex: login social, carrinho, chat, agendamento, paywall), **pergunte se há um benchmark ou referência** que o usuário quer seguir:
+
+> "Tem algum produto ou tela de referência que você gostaria de usar como base para o comportamento dessa feature? (ex: 'o agendamento do Calendly', 'o checkout da Shopify'). Se tiver, me manda o nome ou um print que eu adapto o design a partir dele."
+
+- Se houver referência → use-a como âncora ao descrever fluxos e comportamentos no Passo 3.
+- Se não houver → siga com as boas práticas do domínio e diga ao usuário em que está se baseando.
+
+Pule este passo para features sem paralelo óbvio no mercado (lógica de negócio muito específica, integrações internas).
+
 ### Passo 2 — Explorar alternativas
 
 Apresente 2–3 abordagens com: o que faz, vantagem principal, desvantagem ou risco. Recomende uma com justificativa. Aguarde o usuário escolher.
 
-### Passo 3 — Apresentar o design
+### Passo 3 — Apresentar o design (detalhado)
 
-Com a abordagem escolhida, descreva em seções curtas (uma por vez, aguardando confirmação):
-- O que será criado ou modificado
-- Como as partes se conectam
-- O que fica fora do escopo
+Com a abordagem escolhida, descreva em seções curtas (uma por vez, aguardando confirmação). Não basta listar o que será criado — **descreva como a feature vai se comportar de verdade**:
+
+- **O que será criado ou modificado** — telas, endpoints, modelos de dados.
+- **Fluxos passo a passo** — descreva o caminho que o usuário percorre, do início ao fim, incluindo o que ele vê e clica em cada etapa. Inclua o fluxo principal (caminho feliz) e os fluxos alternativos (erro, vazio, cancelamento).
+- **Comportamentos esperados** — o que o sistema faz em cada situação: estados de carregamento, mensagens de sucesso e erro, o que acontece em cada ação.
+- **Regras de negócio** — as condições e restrições que governam a feature (ex: "só admin pode aprovar", "limite de 3 tentativas", "desconto só vale acima de R$100"). Liste cada regra explicitamente e confirme com o usuário se está correta.
+- **Como as partes se conectam** — o que depende do quê.
+- **O que fica fora do escopo.**
+
+Se houver benchmark do Passo 1.7, referencie-o ao descrever cada fluxo ("igual ao Calendly, o usuário escolhe o horário antes de informar o e-mail").
 
 ### Passo 4 — Resumo final e próximo passo
 

@@ -25,12 +25,14 @@ Cada task deve:
 - Gerar no máximo ~600 linhas modificadas (quebre se maior — calibre com `wc -l` em arquivos similares)
 - Ter verbo no infinitivo: "Criar X", "Adicionar Y", "Conectar Z"
 - Incluir localização exata dos arquivos
+- Trazer uma **explicação em uma linha para não-techs** (`em_resumo:`): uma frase simples, sem jargão, do que aquela task entrega na prática
 
 **Princípio: vertical slice** (fatia vertical — entrega completa de ponta a ponta). Cada task entrega um caminho funcional completo — não separe a lógica do servidor (model/backend) da tela (frontend) se um depende do outro para funcionar.
 
 Critério de conclusão por task:
 ```
 - [ ] 1. Criar model X — `app/models/...`
+       em_resumo: guarda as informações de X de forma permanente
        ✓ Pronto quando: migration (script que cria/altera a estrutura do banco de dados) roda sem erro e o dado pode ser consultado
 ```
 
@@ -64,6 +66,7 @@ Branch: [nome] | Data: [data]
 
 ## Tasks
 - [ ] 1. [descrição] — `arquivo`
+       em_resumo: [uma frase simples, para não-techs, do que essa task entrega]
        ✓ Pronto quando: [critério]
 ```
 

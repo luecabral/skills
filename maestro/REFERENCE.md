@@ -12,18 +12,22 @@ Branch: feat/nome | Data: YYYY-MM-DD
 ## Tasks
 
 - [ ] 1. Criar model X — `app/models/x.rb`
+       em_resumo: guarda os dados de X no sistema
        depends_on: []
        ✓ Pronto quando: migration roda sem erro
 
 - [ ] 2. Criar controller Y — `app/controllers/y.rb`
+       em_resumo: recebe a ação do usuário e responde
        depends_on: [1]
        ✓ Pronto quando: endpoint responde 200
 
 - [ ] 3. Criar view Z — `app/views/z.html.erb`
+       em_resumo: a tela que o usuário vê
        depends_on: [1]
        ✓ Pronto quando: página renderiza sem erro
 
 - [ ] 4. Integrar controller + view — `app/...`
+       em_resumo: liga a tela à ação, fechando o fluxo
        depends_on: [2, 3]
        ✓ Pronto quando: fluxo completo funciona
 ```

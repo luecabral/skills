@@ -11,6 +11,13 @@ Um fluxo só: validação → revisão → push → PR opcional.
 
 ## Processo
 
+### Passo 0 — Commitar mudanças pendentes (smart-commit)
+```bash
+git status --short
+```
+Se houver mudanças não commitadas (modificadas, novas ou em stage), **acione `smart-commit`** — ele cuida de testes → debug → commit, agrupando por contexto lógico. Não faça `git add`/`git commit` manualmente aqui.
+Se o working tree estiver limpo, pule para o Passo 1.
+
 ### Passo 1 — Verificar commits
 ```bash
 git branch --show-current
@@ -114,6 +121,39 @@ Antes de prosseguir, confirme:
 
 Liste os fluxos afetados e gere roteiro executável por quem não escreveu o código.
 Aguarde confirmação do usuário antes de prosseguir.
+
+### Passo 5.5 — Backup obrigatório antes de migration
+
+**Cheque se o diff inclui mudança de schema** (arquivos em `db/migrate/`, `prisma/migrations/`, `prisma/schema.prisma`, `schema.sql`):
+```bash
+git diff origin/main...HEAD --name-only | grep -E "(db/migrate|prisma/migrations|prisma/schema\.prisma|schema\.sql)"
+```
+
+Se houver **qualquer** mudança de schema, **antes de prosseguir** faça backup:
+
+**Local** (se houver banco local rodando):
+```bash
+# Postgres em Docker
+docker exec <nome-container-db> pg_dump -U <user> <db> > backup-local-$(date +%Y%m%d-%H%M).sql
+# Postgres local instalado
+pg_dump <db> > backup-local-$(date +%Y%m%d-%H%M).sql
+```
+
+**Remoto** (se Heroku):
+```bash
+heroku pg:backups:capture --app <nome-app-staging>
+heroku pg:backups:capture --app <nome-app-prod>
+# Aguarde Status: Completed
+heroku pg:backups --app <nome-app-prod> | head -5
+```
+
+**Atenção ao release script:**
+```bash
+cat Procfile | grep release
+```
+Se o release usar `prisma db push --accept-data-loss` (em vez de `prisma migrate deploy`), avise o usuário explicitamente: **"migrations SQL serão IGNORADAS — o release vai aceitar drops sem confirmação. Backup é OBRIGATÓRIO. Backfills/transformações precisam ser rodados manualmente via `heroku run` ou `heroku pg:psql`."**
+
+Se o backup falhar ou não puder ser feito, **PARE** e peça intervenção humana. Não prossiga sem confirmar que existe backup recente.
 
 ### Passo 6 — Push
 ```bash
@@ -233,6 +273,17 @@ gh pr checks --watch --fail-fast
 
 Confirme com `gh pr checks` que o estado é `pass` em todos antes de perguntar.
 
+**Reverificar rebase antes do merge:** entre o push (Passo 6) e agora, a `main` pode ter avançado (outros PRs mergeados). Cheque se a branch ainda está em cima da `main`:
+```bash
+git fetch origin
+git log --oneline HEAD..origin/main   # se trouxer commits, a main andou — precisa rebase
+```
+Se a `main` avançou:
+- Avise o usuário e rode `git rebase origin/main`.
+- Se houver conflito: liste os arquivos e aguarde resolução manual; não mergeie até resolver.
+- Após o rebase, `git push --force-with-lease` (nunca `--force` sozinho) e **volte ao Passo 12** para reconfirmar o CI sobre o novo HEAD antes de mergear.
+Se nada veio do `fetch`, a branch está atualizada — prossiga.
+
 Pergunte: "Todos os CIs passaram. Quer mergear na main agora?"
 - **Não** → encerre exibindo a URL do PR.
 - **Sim** → execute:
@@ -261,11 +312,15 @@ git remote | grep heroku
   - **Sim** → prossiga.
 
 **Verificar migrações pendentes:**
-Cheque se o diff inclui arquivos em `db/migrate/`:
+Cheque se o diff inclui arquivos em `db/migrate/`, `prisma/migrations/` ou `prisma/schema.prisma`:
 ```bash
-git diff HEAD~1..HEAD --name-only | grep "db/migrate"
+git diff HEAD~1..HEAD --name-only | grep -E "(db/migrate|prisma/migrations|prisma/schema)"
 ```
-Se houver, avise o usuário antes de prosseguir: "Este deploy inclui migrations. Elas serão rodadas após o push."
+
+Se houver, **antes do `git push heroku main`** confirme:
+- [ ] Backup do Passo 5.5 está completo e listado em `heroku pg:backups`?
+- [ ] Se release script usa `prisma db push --accept-data-loss`: migrations SQL **não vão rodar** — backfills precisam ser executados manualmente. Liste quais e quando.
+- [ ] Avise o usuário: "Este deploy inclui migrations. Em caso de problema, `heroku rollback` PODE recriar colunas/tabelas vazias — backup do Passo 5.5 é a única rede de proteção real."
 
 **Executar deploy:**
 ```bash
@@ -298,6 +353,8 @@ heroku releases --num 1
   Acione `debugging` com o log. Não encerre enquanto o app estiver em crash.
 
 ## Regras
+- Mudanças não commitadas no início → sempre via `smart-commit`, nunca `git commit` manual
+- Reverificar rebase antes do merge — se a `main` avançou, rebasear, dar `--force-with-lease` e revalidar o CI antes de mergear
 - Nunca crie PR sem confirmação do usuário
 - Nunca use `--force` sozinho, sempre `--force-with-lease`
 - Changelog legível por quem não é desenvolvedor
