@@ -100,7 +100,7 @@ git fetch origin && git checkout main && git pull origin main && git checkout -b
 ### Passo 4 — Salvar plano
 Salve em `.plans/plan.md` na raiz (formato em REFERENCE.md). Sobrescreva se existir. Garanta `.plans/` no `.gitignore`.
 
-**Gate:** "Plano salvo. Ao executar, cada task vira um item no painel de tarefas do Claude Code, marcado ao vivo conforme conclui — você não precisa acompanhar o `plan.md`. Quer que eu execute com subagentes em paralelo (Fase 3)?"
+**Gate:** "Plano salvo. Quer que eu execute com subagentes em paralelo (Fase 3)?"
 Se não → encerra na branch criada.
 
 ---
@@ -109,16 +109,13 @@ Se não → encerra na branch criada.
 
 O líder (este agente, em **Opus 4.8 High**) orquestra; quem escreve código são os subagentes em **Sonnet 4.6 Médio**.
 
-1. Lê `.plans/plan.md`, reconstrói o grafo de dependências. **Retomada:** rode `TaskList` — se já houver tasks `completed`, não recrie; pegue só as pendentes, descarte worktrees órfãs e recomece pelo primeiro grupo com task pendente.
-2. **Popula o painel de tarefas do Claude Code:** uma `TaskCreate` por task do plano (`subject` = descrição curta; `activeForm` = "fazendo X"). Mapeie `depends_on` com `TaskUpdate(addBlockedBy: [...])` pra refletir o grafo. **Esse painel — não o `plan.md` — é o que o usuário acompanha ao vivo.**
-3. **Feature pequena (≤2 tasks sem interdependência de schema):** worktree + paralelismo custa mais do que rende. *Pergunte* se prefere executar inline (sem worktree), mantendo TDD + commit + validação. Default continua worktree — só pula se o usuário topar.
-4. Para cada grupo paralelo em ordem topológica:
-   - **Ao lançar cada task:** `TaskUpdate(<taskId>, status: "in_progress")`.
+1. Lê `.plans/plan.md`, reconstrói o grafo de dependências. **Retomada:** se a sessão anterior parou no meio, as tasks já feitas estão marcadas (`[x]`) — pegue só as não-marcadas, descarte worktrees órfãs de tasks concluídas e recomece pelo primeiro grupo com task pendente.
+2. **Feature pequena (≤2 tasks sem interdependência de schema):** worktree + paralelismo custa mais do que rende. *Pergunte* se prefere executar inline (sem worktree), mantendo TDD + commit + validação. Default continua worktree — só pula se o usuário topar.
+3. Para cada grupo paralelo em ordem topológica:
    - Lança um `Agent(isolation: "worktree", model: "sonnet")` por task no grupo — **sempre `model: "sonnet"`**, esforço Médio (instrua no prompt). O líder nunca delega dev pra Opus.
    - Cada subagente segue o **ciclo TDD + commit** abaixo.
    - Aguarda todos do grupo concluírem; faz merge de cada worktree de volta à branch principal (ver REFERENCE.md). Se conflito: pausa, descreve, aguarda resolução humana.
-   - **Ao concluir e mergear cada task:** `TaskUpdate(<taskId>, status: "completed")`. Subagentes têm lista isolada — **quem marca o painel é o líder**, com base no retorno de cada um.
-5. Mantém o `.plans/plan.md` em sincronia (checkbox) como registro durável pra retomada em sessão nova — mas o acompanhamento ao vivo é o painel.
+4. Atualiza os checkboxes no `.plans/plan.md` conforme as tasks completam.
 
 ### O que cada subagente faz (TDD + smart-commit, inline)
 
