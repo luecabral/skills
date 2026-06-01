@@ -45,11 +45,11 @@ Com referência → use como âncora nos fluxos do Passo 3. Sem → siga boas pr
 Apresente 2–3 abordagens (o que faz, vantagem, desvantagem/risco). Recomende uma com justificativa. Aguarde o usuário escolher.
 
 ### Passo 3 — Apresentar o design (detalhado)
-Com a abordagem escolhida, descreva em seções curtas (uma por vez, aguardando confirmação). **Descreva como a feature vai se comportar de verdade:**
+Com a abordagem escolhida, descreva o design **completo de uma vez** (não seção por seção, sem parar entre cada item). **Descreva como a feature vai se comportar de verdade:**
 - **O que será criado/modificado** — telas, endpoints, modelos de dados.
 - **Fluxos passo a passo** — caminho do usuário do início ao fim, o que vê e clica em cada etapa. Fluxo principal (feliz) + alternativos (erro, vazio, cancelamento).
 - **Comportamentos esperados** — loading, mensagens de sucesso/erro, o que acontece em cada ação.
-- **Regras de negócio** — condições e restrições explícitas (ex: "só admin aprova", "limite de 3 tentativas"). Liste cada uma e confirme.
+- **Regras de negócio** — condições e restrições explícitas (ex: "só admin aprova", "limite de 3 tentativas"). Liste todas (a confirmação vem uma vez só, no resumo do Passo 4).
 - **Como as partes se conectam** e **o que fica fora do escopo.**
 
 Com benchmark do Passo 1.7, referencie-o em cada fluxo.
@@ -90,7 +90,7 @@ Critério por task:
 Para cada task declare `depends_on: [ids]`. Calcule grupos paralelos via topological sort (ver REFERENCE.md). Apresente: "X tasks em Y grupos, Z em paralelo no pico".
 
 ### Passo 3 — Aprovar e criar branch
-Apresente o plano completo, aguarde aprovação, ajuste. Proponha nome (`tipo/descricao-em-kebab-case`; tipos: `feat` nova funcionalidade, `fix` correção, `refactor` melhoria interna, `chore` manutenção — explique cada um). Após confirmação:
+Apresente o plano completo **já com o nome de branch proposto** (`tipo/descricao-em-kebab-case`; tipos: `feat` nova funcionalidade, `fix` correção, `refactor` melhoria interna, `chore` manutenção — explique cada um). **Uma única aprovação cobre plano + nome.** Após o ok:
 ```bash
 git fetch origin && git checkout main && git pull origin main && git checkout -b <nome>
 ```
@@ -203,9 +203,9 @@ Para cada ⚠️ que o usuário **não** aplicou: procure `fixes-futuros.md`/`FI
 
 ### Bloco 2 — Pipeline de publicação (sequencial)
 
-#### Passo 6 — Confirmar publicação e limpar plano
-- **Homologação:** se veio da Fase 3 nesta sessão, o roteiro de teste manual já foi entregue e homologado — só pergunte "publicar agora?". **Entrada direta** (`maestro publica`, sem Fase 3 nesta sessão): gere o roteiro (fluxos afetados + passos executáveis por quem não escreveu o código) e aguarde a confirmação de que homologou.
-- Confirme: fluxo principal funciona? se bug, não ocorre mais? regressão passa? dados existentes íntegros?
+#### Passo 6 — Homologação e limpar plano
+- **Veio da Fase 3 nesta sessão:** já homologado e o gate da Fase 3 já autorizou publicar — **não re-pergunte**, siga direto.
+- **Entrada direta** (`maestro publica`, sem Fase 3 nesta sessão): gere o roteiro (fluxos afetados + passos executáveis por quem não escreveu o código), confirme homologação (fluxo principal ok? bug não ocorre mais? regressão passa? dados íntegros?) e aguarde o ok pra publicar.
 - **Limpeza:** se `.plans/plan.md` existir, `rm -f .plans/plan.md` (está no `.gitignore`, é só faxina antes do push).
 
 #### Passo 7 — Push (dispara staging)
@@ -246,7 +246,7 @@ VAR_NAME=valor_exemplo   # descrição
 ```
 
 #### Passo 11 — Criar/editar PR
-Exiba título e corpo; aguarde aprovação.
+Crie o PR já como **draft** (editável) e exiba título + corpo — não bloqueie esperando aprovação do texto; ajuste depois se quiser.
 - Criação: `gh pr create --draft --title "<t>" --body "<corpo>"`
 - Edição: `gh pr edit --title "<t>" --body "<corpo>"`
 Exiba a URL.
@@ -296,7 +296,7 @@ Falha por histórico divergente → `--force-with-lease` (nunca `--force` sozinh
 
 ## Regras
 
-- Gates de confirmação entre fases são obrigatórios — nunca avance sem resposta explícita
+- **Cadência de confirmação:** confirme **uma vez por fase** (no entregável — design na Fase 1, plano+branch na Fase 2, homologação na Fase 3) e só nos **stops irreversíveis**. Não pare a cada seção ou micro-passo: agrupe e siga. Stops inegociáveis (sempre peça ok): merge na main, deploy em produção, escolher quais correções aplicar, backup antes de migration destrutiva. Criar branch e push já estão cobertos pela aprovação do plano/gate — não re-pergunte
 - Nunca implemente durante Fase 1 ou 2; nunca proponha código durante a Fase 1
 - Se task for ambígua, para e pergunta antes de lançar o subagente
 - **Modelos:** líder Opus 4.8 High; dev (Fase 3) e correções (Fase 4) em `model: "sonnet"` Médio; revisão de Segurança (Fase 4) em `model: "opus"` High
