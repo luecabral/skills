@@ -141,7 +141,7 @@ Antes do relatório final, o líder valida o conjunto:
 ### Roteiro de teste manual (entregue ao anunciar o fim do desenvolvimento)
 Com a validação verde, gere um **roteiro de teste manual** pro usuário homologar com as próprias mãos antes de publicar. Liste cada fluxo afetado (feliz + alternativos do design da Fase 1) como passos executáveis por quem **não** escreveu o código — o que abrir, o que clicar, o resultado exato esperado em cada etapa. Inclua os estados de borda (erro, vazio, cancelamento) e a checagem de regressão dos fluxos adjacentes. Apresente esse roteiro junto do anúncio de que o desenvolvimento acabou.
 
-**Proteções:** máx. 2 ciclos TDD por task antes de pausar; máx. 3 falhas consecutivas para e reporta; máx. 15 tasks por sessão (pede confirmação se exceder).
+**Proteções:** máx. 2 ciclos TDD por task antes de pausar; máx. 3 falhas consecutivas para e reporta.
 
 **Gate:** "Desenvolvimento concluído e homologado pelo `verify`, mergeado na branch. Acima está o roteiro pra você homologar manualmente. Quer publicar agora (Fase 4)? Se preferir aplicar ajustes pontuais antes, é só chamar `maestro fase 4` (ou `maestro publica`) quando terminar."
 Se não → encerra na branch, pronta pra fixes manuais e Fase 4 depois.
@@ -206,7 +206,7 @@ Para cada ⚠️ que o usuário **não** aplicou: procure `fixes-futuros.md`/`FI
 #### Passo 6 — Confirmar publicação e limpar plano
 - **Homologação:** se veio da Fase 3 nesta sessão, o roteiro de teste manual já foi entregue e homologado — só pergunte "publicar agora?". **Entrada direta** (`maestro publica`, sem Fase 3 nesta sessão): gere o roteiro (fluxos afetados + passos executáveis por quem não escreveu o código) e aguarde a confirmação de que homologou.
 - Confirme: fluxo principal funciona? se bug, não ocorre mais? regressão passa? dados existentes íntegros?
-- **Limpeza:** se `.plans/plan.md` existir, **primeiro guarde os `em_resumo:` das tasks concluídas** (alimentam o changelog do Passo 11), depois `rm -f .plans/plan.md` (está no `.gitignore`, é só faxina antes do push).
+- **Limpeza:** se `.plans/plan.md` existir, `rm -f .plans/plan.md` (está no `.gitignore`, é só faxina antes do push).
 
 #### Passo 7 — Push (dispara staging)
 ```bash
@@ -245,10 +245,10 @@ VAR_NAME=valor_exemplo   # descrição
 - [ ] Regressão: fluxos adjacentes
 ```
 
-#### Passo 11 — Changelog e criar/editar PR
-Changelog não-técnico: ✨ Novidades | 🐛 Correções | ⚡ Melhorias. Monte-o a partir dos `em_resumo:` guardados no Passo 6 (já são frases não-tech) — ajuste se a implementação divergiu do plano. Exiba título, corpo e changelog; aguarde aprovação.
-- Criação: `gh pr create --draft --title "<t>" --body "<corpo>"` + `gh pr comment <n> --body "## 📋 Changelog\n\n<changelog>"`
-- Edição: `gh pr edit --title "<t>" --body "<corpo>"` + comment do changelog.
+#### Passo 11 — Criar/editar PR
+Exiba título e corpo; aguarde aprovação.
+- Criação: `gh pr create --draft --title "<t>" --body "<corpo>"`
+- Edição: `gh pr edit --title "<t>" --body "<corpo>"`
 Exiba a URL.
 
 #### Passo 12 — Aguardar CI
@@ -304,4 +304,4 @@ Falha por histórico divergente → `--force-with-lease` (nunca `--force` sozinh
 - Bloco 1 da Fase 4 roda em paralelo; correções nunca inline (subagentes Sonnet); Bloco 2 (push→deploy) é estritamente sequencial
 - Nunca use `--force` sozinho, sempre `--force-with-lease`; **nunca delete a branch**; nunca `--amend`/`--no-verify`
 - CI vermelho bloqueia o encerramento; merge só com CI 100% verde
-- Changelog legível por não-desenvolvedor; "O que tem mais risco" nunca em branco
+- "O que tem mais risco" no corpo do PR nunca em branco
