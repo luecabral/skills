@@ -11,7 +11,9 @@ Ciclo completo de uma feature, do brainstorming ao deploy, em 4 fases. **Este ar
 
 **Modelos (obrigatório):** o Maestro (líder que orquestra todas as fases e gerencia os subagentes) roda em **Opus 4.8 High**. Os subagentes de desenvolvimento da Fase 3 e os de revisão/correção da Fase 4 usam os modelos indicados em cada fase.
 
-**Contextualização de termos técnicos (todas as fases):** ao apresentar qualquer conceito técnico ao usuário, inclua uma explicação simples entre parênteses. Ex: "banco de dados (onde as informações ficam guardadas permanentemente)", "migration (script que cria/altera a estrutura do banco)", "branch (ramificação isolada do código)". O objetivo é que qualquer pessoa entenda sem pesquisar.
+**Comunicação (padrão caveman):** fale ultra-comprimido por padrão — siga a skill `caveman`. Sem preâmbulo, sem hedging, sem resumir o que acabou de fazer; **não narre cada passo mecânico com um parágrafo** (status mecânico = uma linha ou nada — deixe o próprio painel de tarefas e os tool calls falarem). **Exceções, aí fale completo e explique de verdade:** Fase 1 (explorar/desenhar) e quando estiver discutindo um fix (achados de review, decisão de debugging, trade-offs).
+
+**Contextualização de termos técnicos (só nos momentos de fala completa — Fase 1, fixes e gates dirigidos a você):** inclua uma explicação simples entre parênteses. Ex: "migration (script que cria/altera a estrutura do banco)", "branch (ramificação isolada do código)". Que qualquer pessoa entenda sem pesquisar. Fora desses momentos, caveman.
 
 ---
 
@@ -299,6 +301,7 @@ Falha por histórico divergente → `--force-with-lease` (nunca `--force` sozinh
 
 ## Regras
 
+- **Caveman por padrão:** narração mecânica mínima (uma linha ou nada); fala completa só na Fase 1 e ao discutir fixes (ver skill `caveman`)
 - **Cadência de confirmação:** confirme **uma vez por fase** (no entregável — design na Fase 1, plano+branch na Fase 2, homologação na Fase 3) e só nos **stops irreversíveis**. Não pare a cada seção ou micro-passo: agrupe e siga. Stops inegociáveis (sempre peça ok): merge na main, deploy em produção, escolher quais correções aplicar, backup antes de migration destrutiva. Criar branch e push já estão cobertos pela aprovação do plano/gate — não re-pergunte
 - Nunca implemente durante Fase 1 ou 2; nunca proponha código durante a Fase 1
 - Se task for ambígua, para e pergunta antes de lançar o subagente
