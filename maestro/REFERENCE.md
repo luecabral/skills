@@ -97,7 +97,7 @@ Usado pelos subagentes de revisão do Bloco 1. Segurança/Correção aplica **Fu
 
 ```
 # Plano: [feature]
-Branch: feat/nome | Data: YYYY-MM-DD
+Branch: feat/nome | Data: YYYY-MM-DD | nivel: alto|medio|trivial
 
 ## Fora do escopo
 - [non-goals]
