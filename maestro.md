@@ -15,6 +15,10 @@ Ciclo completo de uma feature, do brainstorming ao deploy, em 4 fases. **Este ar
 
 **Contextualização de termos técnicos (só nos momentos de fala completa — Fase 1, fixes e gates dirigidos a você):** inclua uma explicação simples entre parênteses. Ex: "migration (script que cria/altera a estrutura do banco)", "branch (ramificação isolada do código)". Que qualquer pessoa entenda sem pesquisar. Fora desses momentos, caveman.
 
+**Orquestração (nativa, via Agent tool):** todo o paralelismo e a verificação do maestro são feitos com subagentes `Agent` — **não** dependem do Workflow tool nem de digitar "ultracode". Subagentes que reportam dado devolvem **estruturado (schema)**, não prosa, pra você operar sobre o resultado sem reparsear.
+
+**Profundidade por risco (escala o esforço, nunca a segurança):** classifique a feature por sinais que você já tem — **TRIVIAL** (≤2 tasks, sem 🔴, sem migration) / **ALTO** (tem 🔴, migration destrutiva, ou toca auth/pagamento/dados sensíveis) / **MÉDIO** (o resto). O nível só dimensiona **quantos** subagentes você dispara (painel da Fase 1, pool de review da Fase 4) — **nunca rebaixa Segurança, nem pula gate ou backup**. É derivado: não pergunte, informe em 1 linha e grave `nivel:` no topo do `.plans/plan.md`.
+
 ---
 
 ## Fase 1 — Explore
@@ -43,8 +47,8 @@ Se for algo que produtos conhecidos já resolvem (login social, carrinho, chat, 
 
 Com referência → use como âncora nos fluxos do Passo 3. Sem → siga boas práticas e diga em que está se baseando. Pule pra features sem paralelo óbvio.
 
-### Passo 2 — Explorar alternativas
-Apresente 2–3 abordagens (o que faz, vantagem, desvantagem/risco). Recomende uma com justificativa. Aguarde o usuário escolher.
+### Passo 2 — Explorar alternativas (painel de lentes)
+Não invente as abordagens sozinho (single-agent ancora na 1ª ideia). **TRIVIAL → pule, faça você mesmo** (comportamento antigo). Senão dispare **em paralelo** N subagentes read-only `Agent(model: "sonnet")` (default 3), cada um com uma **lente** distinta e o mesmo briefing (problema, critério de sucesso, restrições, 🔴 do Passo 1.5 se houve, benchmark): (1) menor superfície / mais simples; (2) mais robusto e seguro; (3) mais rápido de entregar. Cada um devolve via schema: abordagem, vantagem, risco principal, custo. Você (o juiz): se rodou o Passo 1.5, descarte quem deixa algum 🔴 sem cobertura; recomende a vencedora e **liste o que vale puxar das outras**; lentes que convergem → funda e diga. Apresente os finalistas + a recomendação e aguarde o usuário escolher.
 
 ### Passo 3 — Apresentar o design (detalhado)
 Com a abordagem escolhida, descreva o design **completo de uma vez** (não seção por seção, sem parar entre cada item). **Descreva como a feature vai se comportar de verdade:**
@@ -91,6 +95,8 @@ Critério por task:
 ### Passo 2 — Dependências e grupos paralelos
 Para cada task declare `depends_on: [ids]`. Calcule grupos paralelos via topological sort (ver REFERENCE.md). Apresente: "X tasks em Y grupos, Z em paralelo no pico".
 
+**Valide o grafo antes de seguir** (raciocínio sobre o que você já tem; sem pergunta, saída de 1 linha "grafo ok"): sem ciclo em `depends_on`; nenhum `depends_on` apontando pra id inexistente; **duas tasks do mesmo grupo não tocam o mesmo arquivo** (colisão = conflito de merge garantido → serialize uma via `depends_on`). Não reabra ~600 linhas nem 🔴→task (já são regra acima). Dimensione a largura dos grupos ao cap de paralelismo (~16 subagentes); se capar, diga quantos rodam vs. o pico.
+
 ### Passo 3 — Aprovar e criar branch
 Apresente o plano completo **já com o nome de branch proposto** (`tipo/descricao-em-kebab-case`; tipos: `feat` nova funcionalidade, `fix` correção, `refactor` melhoria interna, `chore` manutenção — explique cada um). **Uma única aprovação cobre plano + nome.** Após o ok:
 ```bash
@@ -98,7 +104,7 @@ git fetch origin && git checkout main && git pull origin main && git checkout -b
 ```
 
 ### Passo 4 — Salvar plano
-Salve em `.plans/plan.md` na raiz (formato em REFERENCE.md). Sobrescreva se existir. Garanta `.plans/` no `.gitignore`.
+Salve em `.plans/plan.md` na raiz (formato em REFERENCE.md), com o `nivel:` no cabeçalho (ver Profundidade por risco). Sobrescreva se existir. Garanta `.plans/` no `.gitignore`.
 
 **Gate:** "Plano salvo. Quer que eu execute com subagentes em paralelo (Fase 3)?"
 Se não → encerra na branch criada.
@@ -113,8 +119,8 @@ O líder (este agente, em **Opus 4.8 High**) orquestra; quem escreve código sã
 2. **Feature pequena (≤2 tasks sem interdependência de schema):** worktree + paralelismo custa mais do que rende. *Pergunte* se prefere executar inline (sem worktree), mantendo TDD + commit + validação. Default continua worktree — só pula se o usuário topar.
 3. Para cada grupo paralelo em ordem topológica:
    - Lança um `Agent(isolation: "worktree", model: "sonnet")` por task no grupo — **sempre `model: "sonnet"`**, esforço Médio (instrua no prompt). O líder nunca delega dev pra Opus.
-   - Cada subagente segue o **ciclo TDD + commit** abaixo.
-   - Aguarda todos do grupo concluírem; faz merge de cada worktree de volta à branch principal (ver REFERENCE.md). Se conflito: pausa, descreve, aguarda resolução humana.
+   - Cada subagente segue o **ciclo TDD + commit** abaixo e **retorna estruturado** (schema): `{task_id, status: done|paused|failed, commits_range: "base..HEAD", arquivos_tocados, motivo}`. Acaba o palpite de "o que mergear".
+   - Aguarda todos do grupo concluírem. **Antes de mergear, cheque colisão:** cruze os `arquivos_tocados` (confirme com `git diff --name-only` do `commits_range` — subagente pode esquecer de listar arquivo gerado/lockfile) entre as tasks; se duas tocaram o mesmo arquivo, mergeie uma e re-rode/ajuste a outra. Faz merge de cada worktree pelo `commits_range` devolvido (ver REFERENCE.md). Conflito: pausa, descreve, aguarda resolução humana.
 4. Atualiza os checkboxes no `.plans/plan.md` conforme as tasks completam.
 
 ### O que cada subagente faz (TDD + smart-commit, inline)
@@ -175,6 +181,11 @@ Dispare **tudo no mesmo bloco**: subagentes read-only (só reportam) + checks me
 2. **UX** — `Agent(model: "sonnet")`, Sonnet 4.6 Médio. Aplica o bloco **UX** do checklist. Devolve 🚨/⚠️.
 3. **Documentação** — `Agent(model: "sonnet")`, Sonnet 4.6 Médio. Verifica se README, docs e comentários públicos refletem o diff. Lista o desatualizado/faltando — só reporta (update vem no Passo 4).
 
+**Profundidade pelo nível** (lê `nivel:` do plan.md; entrada direta sem plano = MÉDIO; **Segurança roda sempre em Opus, em qualquer nível**):
+- **TRIVIAL** → só checks mecânicos + Segurança; pula UX/Docs se o diff não toca view/template/`.css`/`.md`.
+- **MÉDIO** → os 3 revisores acima (atual).
+- **ALTO** → os 3 + lentes de perf e regressão + **1 cético** `Agent(model: "opus")` que tenta refutar cada 🚨 não-mecânico contra o diff. **Nunca rebaixa** achado de classe alta-confiança (SQLi, IDOR, secret commitada, falha de auth) — esses sempre bloqueiam. Rebaixado vira ⚠️ com 1 linha de evidência (a guarda que já existe no diff).
+
 **Checks mecânicos (sessão principal, mesmo bloco):**
 - **Código de debug:** busca no diff `console.log`, `debugger`, `print(`, `puts `, `p `, `pp `, `var_dump`, `dd(`.
 - **Testes:** `npm test` / `npx vitest run` / `pytest` / `bundle exec rspec`.
@@ -191,7 +202,8 @@ Dispare **tudo no mesmo bloco**: subagentes read-only (só reportam) + checks me
 - **Auditoria** (só npm): `npm audit 2>/dev/null || true`. Qualquer severidade conta.
 
 #### Passo 3 — Consolidação e gates
-Relatório **único** — review (3 subagentes) + checks:
+Antes de consolidar, **1 completeness critic** (`Agent`, read-only): "o review cobre todos os fluxos do design da Fase 1, as env vars novas (Passo 9) e cada 🔴 do threat modeling? o que falta?" — buracos viram itens do relatório.
+Relatório **único** — review + critic + checks:
 - 🚨 BLOQUEANTE — falhas de teste/regressão, vulnerabilidades pendentes, achados críticos. Resolver antes de prosseguir.
 - ⚠️ SUGESTÃO — melhorias de review/UX, docs desatualizadas. Pergunte o que aplicar agora.
 
@@ -305,6 +317,8 @@ Falha por histórico divergente → `--force-with-lease` (nunca `--force` sozinh
 - **Modelos:** líder Opus 4.8 High; dev (Fase 3) e correções (Fase 4) em `model: "sonnet"` Médio; revisão de Segurança (Fase 4) em `model: "opus"` High
 - **Backup só de produção e só em migration destrutiva** (drop/rename de coluna ou tabela, mudança de tipo, `NOT NULL` em coluna com dados, `--accept-data-loss`) — capturado no Passo 14, imediatamente antes da migration do deploy. Sem backup local nem de staging; migration aditiva não precisa
 - Bloco 1 da Fase 4 roda em paralelo; correções nunca inline (subagentes Sonnet); Bloco 2 (push→deploy) é estritamente sequencial
+- **Profundidade escala por risco (nível TRIVIAL/MÉDIO/ALTO), nunca por capricho** — e o cético do nível ALTO **nunca rebaixa** achado de classe alta-confiança (SQLi/IDOR/secret/auth); Segurança roda sempre em Opus, mesmo em TRIVIAL
+- Subagentes que reportam dado devolvem estruturado (schema), não prosa; toda verificação/painel é via Agent tool, sem depender do Workflow tool
 - Nunca use `--force` sozinho, sempre `--force-with-lease`; **nunca delete a branch**; nunca `--amend`/`--no-verify`
 - CI vermelho bloqueia o encerramento; merge só com CI 100% verde
 - "O que tem mais risco" no corpo do PR nunca em branco
