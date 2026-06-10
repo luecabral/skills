@@ -97,17 +97,19 @@ Para cada task declare `depends_on: [ids]`. Calcule grupos paralelos via topolog
 
 **Valide o grafo antes de seguir** (raciocínio sobre o que você já tem; sem pergunta, saída de 1 linha "grafo ok"): sem ciclo em `depends_on`; nenhum `depends_on` apontando pra id inexistente; **duas tasks do mesmo grupo não tocam o mesmo arquivo** (colisão = conflito de merge garantido → serialize uma via `depends_on`). Não reabra ~600 linhas nem 🔴→task (já são regra acima). Dimensione a largura dos grupos ao cap de paralelismo (~16 subagentes); se capar, diga quantos rodam vs. o pico.
 
-### Passo 3 — Aprovar e criar branch
-Apresente o plano completo **já com o nome de branch proposto** (`tipo/descricao-em-kebab-case`; tipos: `feat` nova funcionalidade, `fix` correção, `refactor` melhoria interna, `chore` manutenção — explique cada um). **Uma única aprovação cobre plano + nome.** Após o ok:
+### Passo 3 — Aprovar (gate único: plano → branch → execução)
+Apresente o plano completo **já com o nome de branch proposto** (`tipo/descricao-em-kebab-case`; tipos: `feat` nova funcionalidade, `fix` correção, `refactor` melhoria interna, `chore` manutenção — explique cada um). **Uma única aprovação cobre plano + nome + início da execução** — deixe explícito no gate:
+> "Se aprovar, eu crio a branch, salvo o plano e **já começo a executar** (Fase 3) com subagentes em paralelo. (Se preferir só salvar na branch sem executar agora, me avise.)"
+
+Após o ok:
 ```bash
 git fetch origin && git checkout main && git pull origin main && git checkout -b <nome>
 ```
 
-### Passo 4 — Salvar plano
+### Passo 4 — Salvar plano e seguir
 Salve em `.plans/plan.md` na raiz (formato em REFERENCE.md), com o `nivel:` no cabeçalho (ver Profundidade por risco). Sobrescreva se existir. Garanta `.plans/` no `.gitignore`.
 
-**Gate:** "Plano salvo. Quer que eu execute com subagentes em paralelo (Fase 3)?"
-Se não → encerra na branch criada.
+Plano salvo → **siga direto pra Fase 3** (a execução já foi aprovada no Passo 3; **sem novo gate**). Só pare na branch se o usuário pediu o opt-out de não executar agora.
 
 ---
 
@@ -311,7 +313,7 @@ Falha por histórico divergente → `--force-with-lease` (nunca `--force` sozinh
 ## Regras
 
 - **Caveman por padrão:** narração mecânica mínima (uma linha ou nada); fala completa só na Fase 1 e ao discutir fixes (ver skill `caveman`)
-- **Cadência de confirmação:** confirme **uma vez por fase** (no entregável — design na Fase 1, plano+branch na Fase 2, homologação na Fase 3) e só nos **stops irreversíveis**. Não pare a cada seção ou micro-passo: agrupe e siga. Stops inegociáveis (sempre peça ok): merge na main, deploy em produção, escolher quais correções aplicar, backup antes de migration destrutiva. Criar branch e push já estão cobertos pela aprovação do plano/gate — não re-pergunte
+- **Cadência de confirmação:** confirme **uma vez por fase** (no entregável — design na Fase 1; **plano+branch+execução na Fase 2: um gate só — aprovar o plano cria a branch e dispara a Fase 3**; homologação na Fase 3) e só nos **stops irreversíveis**. Não pare a cada seção ou micro-passo: agrupe e siga. Stops inegociáveis (sempre peça ok): merge na main, deploy em produção, escolher quais correções aplicar, backup antes de migration destrutiva. Criar branch e push já estão cobertos pela aprovação do plano/gate — não re-pergunte
 - Nunca implemente durante Fase 1 ou 2; nunca proponha código durante a Fase 1
 - Se task for ambígua, para e pergunta antes de lançar o subagente
 - **Modelos:** líder Opus 4.8 High; dev (Fase 3) e correções (Fase 4) em `model: "sonnet"` Médio; revisão de Segurança (Fase 4) em `model: "opus"` High
