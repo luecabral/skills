@@ -172,7 +172,12 @@ Receba (ou peça) o bloco: lista livre do que ajustar — bugs da homologação,
 Mapeie os fixes por arquivo. **Arquivos diferentes → paralelo; mesmo arquivo → sequencial** (um subagente por vez, senão conflito garantido). Apresente o plano de fixes em 1-2 linhas.
 
 ### Passo 4 — Orquestrar os subagentes
-Um `Agent(model: "sonnet")` Médio por fix (ou por grupo de mesmo-arquivo), **nunca inline**. O líder nunca delega fix pra Opus. Cada subagente: corrige, garante teste verde do que mexeu (sem teste → `test-gate`; falhou → `debugging`), e **retorna estruturado** `{fix, status, commits_range, arquivos_tocados}`. Paralelo entre arquivos diferentes; sequencial no mesmo arquivo.
+Um `Agent(model: "sonnet")` Médio por fix (ou por grupo de mesmo-arquivo), **nunca inline**; o líder nunca delega fix pra Opus. **Cada subagente classifica o fix e escolhe o caminho:**
+- **Comportamento novo** (a feature ganhou algo que não existia) → **ciclo TDD completo** (RED→GREEN→REFACTOR, igual Fase 3). É desenvolvimento, não conserto.
+- **Bug** (comportamento existe mas está errado) → escreva primeiro um teste que **reproduz o bug** (falha), corrija até passar — vira teste de regressão.
+- **Ajuste trivial sem mudar comportamento** (texto, estilo, rename) → só aplica e mantém os testes verdes; sem teste novo.
+
+Sem teste pros arquivos quando o caminho exige um → `test-gate`; falhou → `debugging`. **Retorna estruturado** `{fix, tipo, status, commits_range, arquivos_tocados}`. Paralelo entre arquivos diferentes; sequencial no mesmo arquivo.
 
 ### Passo 5 — Revalidar e commitar
 Sessão principal **re-roda testes + regressão** (quebrou → `debugging`). Commita as correções (smart-commit: agrupa por contexto, `tipo: Mensagem`, nunca `--amend`/`--no-verify`). Re-homologa só os fluxos que mudaram (`verify` / roteiro atualizado).
