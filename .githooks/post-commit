@@ -1,7 +1,21 @@
 #!/bin/bash
 REPO_ROOT="$(git rev-parse --show-toplevel)"
+COMMANDS_DIR="$HOME/.claude/commands"
+
+# 1. Copia SKILL.md de cada skill para o flat .md no root do repo
 for skill_file in "$REPO_ROOT"/*/SKILL.md; do
   skill_dir="$(dirname "$skill_file")"
   skill_name="$(basename "$skill_dir")"
   cp "$skill_file" "$REPO_ROOT/${skill_name}.md"
 done
+
+# 2. Sincroniza todos os flat .md para ~/.claude/commands/
+if [ -d "$COMMANDS_DIR" ]; then
+  for md_file in "$REPO_ROOT"/*.md; do
+    filename="$(basename "$md_file")"
+    cp "$md_file" "$COMMANDS_DIR/$filename"
+  done
+  echo "✓ sincronizado com $COMMANDS_DIR"
+else
+  echo "⚠ diretório $COMMANDS_DIR não encontrado — sync pulado"
+fi
