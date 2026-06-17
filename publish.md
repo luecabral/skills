@@ -7,9 +7,18 @@ Valida código, faz revisão, push e opcionalmente abre PR como draft.
 
 # Publish
 
-Um fluxo só: validação → revisão → push → PR opcional.
+Dois blocos: **Bloco 1 — análise em paralelo** (tudo que depende só do diff) → consolidação → correções; **Bloco 2 — pipeline sequencial** (push → staging → PR → CI → merge → deploy), onde cada passo depende do anterior e tem efeito colateral.
+
+**Modelos:** o publish roda na sessão principal (recomendado: Opus 4.8 High, dado o risco de prod/migrations). Etapas terceirizadas para subagentes com modelo fixo, todas no Bloco 1: revisão de **Segurança/Correção em Opus 4.8 High**, **UX em Sonnet 4.6 Médio** e **Documentação em Sonnet 4.6 Médio** (todas read-only), e a **implementação das correções escolhidas** em Sonnet 4.6 Médio. Steps do Bloco 2 (efeito colateral ou gate) nunca viram subagente.
 
 ## Processo
+
+### Passo 0 — Commitar mudanças pendentes (smart-commit)
+```bash
+git status --short
+```
+Se houver mudanças não commitadas (modificadas, novas ou em stage), **acione `smart-commit`** — ele cuida de testes → debug → commit, agrupando por contexto lógico. Não faça `git add`/`git commit` manualmente aqui.
+Se o working tree estiver limpo, pule para o Passo 1.
 
 ### Passo 1 — Verificar commits
 ```bash
@@ -18,62 +27,52 @@ git log origin/$(git branch --show-current)..HEAD --oneline 2>/dev/null || git l
 ```
 Se for `main` ou não houver commits novos, informe e encerre.
 
-### Passo 2 — Verificar código de debug
-Busque no diff: `console.log`, `debugger`, `print(`, `puts `, `p `, `pp `, `var_dump`, `dd(`.
-Se encontrar, pergunte: remover automaticamente ou seguir mesmo assim?
+### Passo 2 — Bloco 1: Análise em paralelo
 
-### Passo 3 — Rodar testes
-```bash
-npm test / npx vitest run / pytest / bundle exec rspec
-```
-Se falhar, acione `debugging`. Não prossiga até todos estarem verdes.
+Tudo aqui depende **só do diff já commitado** → dispare **tudo no mesmo bloco, em paralelo**. Os subagentes são read-only (só reportam, não editam); os checks mecânicos rodam na sessão principal junto. Aguarde todos terminarem e consolide no Passo 3.
 
-### Passo 3.1 — Auditar dependências
-```bash
-npm audit 2>/dev/null || true
-```
-Se houver vulnerabilidades de QUALQUER severidade (HIGH, MODERATE, LOW ou CRITICAL):
-- Liste os pacotes afetados com severidade e CVE
-- **Informe que o publish está bloqueado até correção**
-- Execute automaticamente `npm audit fix` para correções não-breaking
-- Se remanescerem vulnerabilidades, liste-as e sugira:
-  - `npm audit fix --force` (atenção: breaking changes)
-  - Upgrade manual de pacotes específicos
-  - Análise de override se for falso positivo
+**Subagentes de revisão (read-only, modelo fixo):**
+1. **Segurança/Correção** — `Agent(model: "opus")`, Opus 4.8 High (instrua esforço High no prompt). Aplica os blocos **Funcionalidade**, **Segurança** e **Qualidade** do checklist (ver REFERENCE.md) sobre `git diff origin/main...HEAD`. Devolve achados 🚨/⚠️. É o que protege contra bug indo pra prod — por isso o modelo forte.
+2. **UX** — `Agent(model: "sonnet")`, Sonnet 4.6 Médio. Aplica o bloco **UX** do checklist. Devolve achados 🚨/⚠️.
+3. **Documentação** — `Agent(model: "sonnet")`, Sonnet 4.6 Médio. Verifica se README, docs e comentários públicos refletem a mudança do diff. Lista o que está desatualizado ou faltando — read-only, só reporta (o update vem no Passo 4).
 
-**Não prossiga com o PR enquanto houver vulnerabilidades pendentes.**
+**Checks mecânicos (sessão principal, no mesmo bloco):**
+- **Código de debug:** busca no diff `console.log`, `debugger`, `print(`, `puts `, `p `, `pp `, `var_dump`, `dd(`.
+- **Testes:** `npm test` / `npx vitest run` / `pytest` / `bundle exec rspec`.
+- **Regressão:** mapeia os specs dos arquivos alterados (diretos + adjacentes que usam os mesmos arquivos/camadas) e roda só eles:
+  ```bash
+  git diff origin/main...HEAD --name-only
+  # Rails: arquivo → spec
+  git diff origin/main...HEAD --name-only | sed 's|app/||; s|\.rb$|_spec.rb|' | xargs -I{} find spec -name "$(basename {})" 2>/dev/null
+  bundle exec rspec <specs>
+  ```
+  Adapte o mapeamento se o framework for outro. Sem specs para os arquivos → informe.
+- **Auditoria de dependências** (só se usar npm): `npm audit 2>/dev/null || true`. Qualquer severidade conta.
 
-Se o projeto não usar npm, pule este passo.
+### Passo 3 — Consolidação e gates
 
-### Passo 3.2 — Testes de regressão
+Junte tudo num **relatório único** — review (3 subagentes) + checks mecânicos:
+- 🚨 BLOQUEANTE — falhas de teste/regressão, vulnerabilidades pendentes, achados críticos de review. Resolver antes de prosseguir.
+- ⚠️ SUGESTÃO — melhorias de review/UX, docs desatualizadas. Pergunte o que aplicar agora.
 
-Identifique os arquivos alterados no diff e localize os specs relacionados — tanto os diretos quanto os de funcionalidades adjacentes que usam os mesmos arquivos ou camadas:
+Regras de bloqueio:
+- **Teste ou regressão vermelho** → aciona `debugging`; não prossegue até verde.
+- **Vulnerabilidade de qualquer severidade** (CRITICAL/HIGH/MODERATE/LOW) → bloqueia. Liste pacotes + CVE, roda `npm audit fix` (não-breaking) automático; para remanescentes, sugira `npm audit fix --force` (breaking), upgrade manual ou override se falso positivo. Não prossegue com pendência.
+- **Código de debug encontrado** → pergunte: remover automaticamente ou seguir.
 
-```bash
-# Arquivos alterados
-git diff origin/main...HEAD --name-only
+### Passo 4 — Aplicar correções escolhidas (subagentes Sonnet 4.6 Médio)
 
-# Specs candidatos (Rails)
-git diff origin/main...HEAD --name-only | sed 's|app/||; s|\.rb$|_spec.rb|' | xargs -I{} find spec -name "$(basename {})" 2>/dev/null
+Depois que o usuário decide o que aplicar (🚨 obrigatórios + ⚠️ aceitas, **incluindo updates de documentação**), a implementação é feita por subagentes `Agent(model: "sonnet")` em Sonnet 4.6 Médio (instrua esforço Médio no prompt) — **nunca inline**. Cada subagente recebe a descrição exata do achado e implementa.
 
-# Rodar apenas os specs encontrados
-bundle exec rspec <lista de specs>
-```
+- **Correções em arquivos diferentes** → subagentes **em paralelo**, um por correção (mesmo bloco).
+- **Correções no mesmo arquivo** → um único subagente, sequencial, para evitar conflito de edição.
+- **Uma só** → ainda via subagente Sonnet 4.6.
 
-Se o projeto usar outro framework, adapte o mapeamento `arquivo → spec`.
-
-Se algum spec falhar: **bloqueie** e acione `debugging`. Não prossiga até verde.
-Se nenhum spec for encontrado para os arquivos alterados: informe e continue.
-
-### Passo 4 — Revisão de código e UX
-Analise o diff com o checklist (ver REFERENCE.md): funcionalidade, segurança, UX e qualidade.
-Apresente relatório:
-- 🚨 BLOQUEANTE — corrija antes de prosseguir
-- ⚠️ SUGESTÃO — pergunte se quer aplicar
+Depois que os subagentes terminam, a sessão principal **re-roda testes + regressão**; se algo quebrar → `debugging`. As correções entram no commit antes do push (Passo 6).
 
 ### Passo 4.1 — Registrar sugestões não atendidas
 
-Para cada ⚠️ SUGESTÃO do Passo 4 que o usuário optou por **não** aplicar agora:
+Para cada ⚠️ SUGESTÃO que o usuário optou por **não** aplicar agora:
 
 1. Verifique se existe um arquivo de melhorias futuras no projeto:
    ```bash
@@ -114,6 +113,39 @@ Antes de prosseguir, confirme:
 
 Liste os fluxos afetados e gere roteiro executável por quem não escreveu o código.
 Aguarde confirmação do usuário antes de prosseguir.
+
+### Passo 5.5 — Backup obrigatório antes de migration
+
+**Cheque se o diff inclui mudança de schema** (arquivos em `db/migrate/`, `prisma/migrations/`, `prisma/schema.prisma`, `schema.sql`):
+```bash
+git diff origin/main...HEAD --name-only | grep -E "(db/migrate|prisma/migrations|prisma/schema\.prisma|schema\.sql)"
+```
+
+Se houver **qualquer** mudança de schema, **antes de prosseguir** faça backup:
+
+**Local** (se houver banco local rodando):
+```bash
+# Postgres em Docker
+docker exec <nome-container-db> pg_dump -U <user> <db> > backup-local-$(date +%Y%m%d-%H%M).sql
+# Postgres local instalado
+pg_dump <db> > backup-local-$(date +%Y%m%d-%H%M).sql
+```
+
+**Remoto** (se Heroku):
+```bash
+heroku pg:backups:capture --app <nome-app-staging>
+heroku pg:backups:capture --app <nome-app-prod>
+# Aguarde Status: Completed
+heroku pg:backups --app <nome-app-prod> | head -5
+```
+
+**Atenção ao release script:**
+```bash
+cat Procfile | grep release
+```
+Se o release usar `prisma db push --accept-data-loss` (em vez de `prisma migrate deploy`), avise o usuário explicitamente: **"migrations SQL serão IGNORADAS — o release vai aceitar drops sem confirmação. Backup é OBRIGATÓRIO. Backfills/transformações precisam ser rodados manualmente via `heroku run` ou `heroku pg:psql`."**
+
+Se o backup falhar ou não puder ser feito, **PARE** e peça intervenção humana. Não prossiga sem confirmar que existe backup recente.
 
 ### Passo 6 — Push
 ```bash
@@ -207,7 +239,7 @@ Exiba a URL do PR ao final.
 
 ### Passo 12 — Aguardar CI
 
-Depois de criar/editar o PR, aguarde o CI do GitHub terminar. Os testes locais (Passo 3) cobrem só o que roda na sua máquina; o CI roda a suíte completa (unit_tests paralelos, system_tests, linter, etc).
+Depois de criar/editar o PR, aguarde o CI do GitHub terminar. Os testes locais (Passo 2) cobrem só o que roda na sua máquina; o CI roda a suíte completa (unit_tests paralelos, system_tests, linter, etc).
 
 ```bash
 gh pr checks --watch --fail-fast
@@ -232,6 +264,17 @@ gh pr checks --watch --fail-fast
 **Pré-requisito:** Passo 12 terminou com todos os checks verdes. Se algum check estiver vermelho, pulando ou pendente, **não ofereça merge** — volte para o Passo 12.
 
 Confirme com `gh pr checks` que o estado é `pass` em todos antes de perguntar.
+
+**Reverificar rebase antes do merge:** entre o push (Passo 6) e agora, a `main` pode ter avançado (outros PRs mergeados). Cheque se a branch ainda está em cima da `main`:
+```bash
+git fetch origin
+git log --oneline HEAD..origin/main   # se trouxer commits, a main andou — precisa rebase
+```
+Se a `main` avançou:
+- Avise o usuário e rode `git rebase origin/main`.
+- Se houver conflito: liste os arquivos e aguarde resolução manual; não mergeie até resolver.
+- Após o rebase, `git push --force-with-lease` (nunca `--force` sozinho) e **volte ao Passo 12** para reconfirmar o CI sobre o novo HEAD antes de mergear.
+Se nada veio do `fetch`, a branch está atualizada — prossiga.
 
 Pergunte: "Todos os CIs passaram. Quer mergear na main agora?"
 - **Não** → encerre exibindo a URL do PR.
@@ -261,11 +304,15 @@ git remote | grep heroku
   - **Sim** → prossiga.
 
 **Verificar migrações pendentes:**
-Cheque se o diff inclui arquivos em `db/migrate/`:
+Cheque se o diff inclui arquivos em `db/migrate/`, `prisma/migrations/` ou `prisma/schema.prisma`:
 ```bash
-git diff HEAD~1..HEAD --name-only | grep "db/migrate"
+git diff HEAD~1..HEAD --name-only | grep -E "(db/migrate|prisma/migrations|prisma/schema)"
 ```
-Se houver, avise o usuário antes de prosseguir: "Este deploy inclui migrations. Elas serão rodadas após o push."
+
+Se houver, **antes do `git push heroku main`** confirme:
+- [ ] Backup do Passo 5.5 está completo e listado em `heroku pg:backups`?
+- [ ] Se release script usa `prisma db push --accept-data-loss`: migrations SQL **não vão rodar** — backfills precisam ser executados manualmente. Liste quais e quando.
+- [ ] Avise o usuário: "Este deploy inclui migrations. Em caso de problema, `heroku rollback` PODE recriar colunas/tabelas vazias — backup do Passo 5.5 é a única rede de proteção real."
 
 **Executar deploy:**
 ```bash
@@ -298,6 +345,11 @@ heroku releases --num 1
   Acione `debugging` com o log. Não encerre enquanto o app estiver em crash.
 
 ## Regras
+- Bloco 1 (análise) roda em paralelo no mesmo bloco: subagentes read-only de Segurança/Correção (`model: "opus"`, High), UX (`model: "sonnet"`, Médio) e Documentação (`model: "sonnet"`, Médio) + checks mecânicos (testes, regressão, audit, debug-scan). Consolide tudo num relatório único antes de qualquer gate
+- Correções escolhidas (🚨 + ⚠️ aceitas, incluindo docs) são implementadas por subagentes `model: "sonnet"` (Médio), nunca inline: paralelo em arquivos distintos, sequencial no mesmo arquivo
+- Bloco 2 (push → staging → PR → CI → merge → deploy) é estritamente sequencial; nenhum desses steps vira subagente
+- Mudanças não commitadas no início → sempre via `smart-commit`, nunca `git commit` manual
+- Reverificar rebase antes do merge — se a `main` avançou, rebasear, dar `--force-with-lease` e revalidar o CI antes de mergear
 - Nunca crie PR sem confirmação do usuário
 - Nunca use `--force` sozinho, sempre `--force-with-lease`
 - Changelog legível por quem não é desenvolvedor
