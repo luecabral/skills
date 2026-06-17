@@ -2,14 +2,14 @@
 name: maestro
 description: Use para o ciclo completo de uma feature — do brainstorming ao deploy.
 Ativa quando o usuário diz "maestro", "roda o maestro", "faz o maestro". Pode entrar
-diretamente em qualquer fase: "maestro fase 2", "maestro planeja", "maestro executa", "maestro publica".
+diretamente em qualquer fase: "maestro fase 2", "maestro planeja", "maestro executa", "maestro corrige", "maestro publica".
 ---
 
 # Maestro
 
-Ciclo completo de uma feature, do brainstorming ao deploy, em 4 fases. **Este arquivo é autossuficiente:** o processo de cada fase está escrito aqui dentro, não invocado de outra skill. Editar `brainstorming`, `prd-to-issues`, `tdd`, `smart-commit` ou `publish` avulsas **não muda** o comportamento do maestro. Só `test-gate`, `debugging` e `context-docs` permanecem como utilitários invocados.
+Ciclo completo de uma feature, do brainstorming ao deploy, em 5 fases. **Este arquivo é autossuficiente:** o processo de cada fase está escrito aqui dentro, não invocado de outra skill. Editar `brainstorming`, `prd-to-issues`, `tdd`, `smart-commit` ou `publish` avulsas **não muda** o comportamento do maestro. Só `test-gate`, `debugging` e `context-docs` permanecem como utilitários invocados.
 
-**Modelos (obrigatório):** o Maestro (líder que orquestra todas as fases e gerencia os subagentes) roda em **Opus 4.8 High**. Os subagentes de desenvolvimento da Fase 3 e os de revisão/correção da Fase 4 usam os modelos indicados em cada fase.
+**Modelos (obrigatório):** o Maestro (líder que orquestra todas as fases e gerencia os subagentes) roda em **Opus 4.8 High**. Os subagentes de desenvolvimento (Fase 3), de correção (Fases 4 e 5) e de revisão (Fase 5) usam os modelos indicados em cada fase.
 
 **Comunicação (padrão caveman):** fale ultra-comprimido por padrão — siga a skill `caveman`. Sem preâmbulo, sem hedging, sem resumir o que acabou de fazer; **não narre cada passo mecânico com um parágrafo** (status mecânico = uma linha ou nada — deixe o próprio painel de tarefas e os tool calls falarem). **Exceções, aí fale completo e explique de verdade:** Fase 1 (explorar/desenhar) e quando estiver discutindo um fix (achados de review, decisão de debugging, trade-offs).
 
@@ -17,7 +17,7 @@ Ciclo completo de uma feature, do brainstorming ao deploy, em 4 fases. **Este ar
 
 **Orquestração (nativa, via Agent tool):** todo o paralelismo e a verificação do maestro são feitos com subagentes `Agent` — **não** dependem do Workflow tool nem de digitar "ultracode". Subagentes que reportam dado devolvem **estruturado (schema)**, não prosa, pra você operar sobre o resultado sem reparsear.
 
-**Profundidade por risco (escala o esforço, nunca a segurança):** classifique a feature por sinais que você já tem — **TRIVIAL** (≤2 tasks, sem 🔴, sem migration) / **ALTO** (tem 🔴, migration destrutiva, ou toca auth/pagamento/dados sensíveis) / **MÉDIO** (o resto). O nível só dimensiona **quantos** subagentes você dispara (painel da Fase 1, pool de review da Fase 4) — **nunca rebaixa Segurança, nem pula gate ou backup**. É derivado: não pergunte, informe em 1 linha e grave `nivel:` no topo do `.plans/plan.md`.
+**Profundidade por risco (escala o esforço, nunca a segurança):** classifique a feature por sinais que você já tem — **TRIVIAL** (≤2 tasks, sem 🔴, sem migration) / **ALTO** (tem 🔴, migration destrutiva, ou toca auth/pagamento/dados sensíveis) / **MÉDIO** (o resto). O nível só dimensiona **quantos** subagentes você dispara (painel da Fase 1, pool de review da Fase 5) — **nunca rebaixa Segurança, nem pula gate ou backup**. É derivado: não pergunte, informe em 1 linha e grave `nivel:` no topo do `.plans/plan.md`.
 
 ---
 
@@ -153,19 +153,45 @@ Com a validação verde, gere um **roteiro de teste manual** pro usuário homolo
 
 **Proteções:** máx. 2 ciclos TDD por task antes de pausar; máx. 3 falhas consecutivas para e reporta.
 
-**Gate:** "Desenvolvimento concluído e homologado pelo `verify`, mergeado na branch. Acima está o roteiro pra você homologar manualmente. Quer publicar agora (Fase 4)? Se preferir aplicar ajustes pontuais antes, é só chamar `maestro fase 4` (ou `maestro publica`) quando terminar."
-Se não → encerra na branch, pronta pra fixes manuais e Fase 4 depois.
+**Gate:** "Desenvolvimento concluído e homologado pelo `verify`, mergeado na branch. Acima está o roteiro pra você homologar manualmente. **Achou o que ajustar? Me manda o bloco de fixes que eu aplico (Fase 4).** Sem fixes → publicar (Fase 5)."
+Se não → encerra na branch, pronta pra Fase 4 (fixes) ou Fase 5 (publish) quando você quiser.
 
 ---
 
-## Fase 4 — Publish
+## Fase 4 — Fixes
 
-Entra aqui direto via `maestro fase 4` / `maestro publica`, mesmo em sessão nova depois de fixes manuais.
+Aplicação orquestrada de um **bloco de fixes** após a implementação da Fase 3. Entra após a homologação (você testou pelo roteiro da Fase 3 e achou ajustes), ou direto via `maestro fase 4` / `maestro corrige`. **Não** é review automático (isso é a Fase 5) — aqui **você manda o que corrigir e eu orquestro os subagentes**.
 
-- **Bloco 1 — Análise e correções:** tudo depende só do diff já commitado → roda em paralelo, sem ordem fixa.
+### Passo 1 — Receber o bloco de fixes
+Receba (ou peça) o bloco: lista livre do que ajustar — bugs da homologação, ajustes pontuais, pedidos de mudança. Para cada item, identifique o(s) **arquivo(s) alvo** (pergunte só se não der pra inferir do código). Sem bloco → pergunte qual é.
+
+### Passo 2 — Commitar pendências
+`git status --short`: se houver mudança não commitada, rode o fluxo de commit da Fase 3 (testes → debug → commit agrupado). Working tree limpo antes de orquestrar.
+
+### Passo 3 — Agrupar por colisão
+Mapeie os fixes por arquivo. **Arquivos diferentes → paralelo; mesmo arquivo → sequencial** (um subagente por vez, senão conflito garantido). Apresente o plano de fixes em 1-2 linhas.
+
+### Passo 4 — Orquestrar os subagentes
+Um `Agent(model: "sonnet")` Médio por fix (ou por grupo de mesmo-arquivo), **nunca inline**. O líder nunca delega fix pra Opus. Cada subagente: corrige, garante teste verde do que mexeu (sem teste → `test-gate`; falhou → `debugging`), e **retorna estruturado** `{fix, status, commits_range, arquivos_tocados}`. Paralelo entre arquivos diferentes; sequencial no mesmo arquivo.
+
+### Passo 5 — Revalidar e commitar
+Sessão principal **re-roda testes + regressão** (quebrou → `debugging`). Commita as correções (smart-commit: agrupa por contexto, `tipo: Mensagem`, nunca `--amend`/`--no-verify`). Re-homologa só os fluxos que mudaram (`verify` / roteiro atualizado).
+
+**Gate:** "Fixes aplicados e revalidados. Manda mais um bloco, ou publico agora (Fase 5)?"
+Mais um bloco → volta ao Passo 1. Senão → Fase 5.
+
+---
+
+## Fase 5 — Publish
+
+Entra após a Fase 4, ou direto via `maestro fase 5` / `maestro publica` (mesmo em sessão nova depois de fixes manuais). Review final escalonado por risco + pipeline de publicação.
+
+**Token:** o custo aqui é o review do Bloco 1 — então ele **escala pelo `nivel:`** (TRIVIAL quase não gasta; review cheio só no ALTO), os checks mecânicos (grátis) rodam primeiro, e **uma única leitura do diff** (`git diff origin/main...HEAD`) serve review + detecção de infra + corpo do PR. O Bloco 2 é shell puro, sem subagentes, **uma linha por passo**.
+
+- **Bloco 1 — Review e correções:** tudo depende só do diff já commitado → roda em paralelo, sem ordem fixa.
 - **Bloco 2 — Pipeline de publicação:** push → staging → PR → CI → merge → deploy. **Estritamente sequencial.**
 
-### Bloco 1 — Análise e correções
+### Bloco 1 — Review e correções
 
 #### Passo 1 — Preparar
 `git status --short`: se houver pendências, rode o fluxo de commit da Fase 3 (testes → debug → commit agrupado). Depois confirme que há commits novos:
@@ -220,8 +246,8 @@ Para cada ⚠️ que o usuário **não** aplicou: procure `fixes-futuros.md`/`FI
 ### Bloco 2 — Pipeline de publicação (sequencial)
 
 #### Passo 6 — Homologação e limpar plano
-- **Veio da Fase 3 nesta sessão:** já homologado e o gate da Fase 3 já autorizou publicar — **não re-pergunte**, siga direto.
-- **Entrada direta** (`maestro publica`, sem Fase 3 nesta sessão): gere o roteiro (fluxos afetados + passos executáveis por quem não escreveu o código), confirme homologação (fluxo principal ok? bug não ocorre mais? regressão passa? dados íntegros?) e aguarde o ok pra publicar.
+- **Veio da Fase 3/4 nesta sessão:** já homologado e você já autorizou publicar no gate anterior — **não re-pergunte**, siga direto.
+- **Entrada direta** (`maestro publica`, sem Fase 3/4 nesta sessão): gere o roteiro (fluxos afetados + passos executáveis por quem não escreveu o código), confirme homologação (fluxo principal ok? bug não ocorre mais? regressão passa? dados íntegros?) e aguarde o ok pra publicar.
 - **Limpeza:** se `.plans/plan.md` existir, `rm -f .plans/plan.md` (está no `.gitignore`, é só faxina antes do push).
 
 #### Passo 7 — Push (dispara staging)
@@ -308,17 +334,18 @@ Falha por histórico divergente → `--force-with-lease` (nunca `--force` sozinh
 | Ideia vaga / "como fazer X" | Fase 1 |
 | Design definido / "planeja isso" | Fase 2 |
 | `.plans/plan.md` já existe | Fase 3 |
-| Branch desenvolvida + fixes aplicados / "maestro publica" | Fase 4 |
+| Bloco de fixes pós-implementação / "maestro corrige" | Fase 4 |
+| Branch pronta pra publicar / "maestro publica" | Fase 5 |
 
 ## Regras
 
 - **Caveman por padrão:** narração mecânica mínima (uma linha ou nada); fala completa só na Fase 1 e ao discutir fixes (ver skill `caveman`)
-- **Cadência de confirmação:** confirme **uma vez por fase** (no entregável — design na Fase 1; **plano+branch+execução na Fase 2: um gate só — aprovar o plano cria a branch e dispara a Fase 3**; homologação na Fase 3) e só nos **stops irreversíveis**. Não pare a cada seção ou micro-passo: agrupe e siga. Stops inegociáveis (sempre peça ok): merge na main, deploy em produção, escolher quais correções aplicar, backup antes de migration destrutiva. Criar branch e push já estão cobertos pela aprovação do plano/gate — não re-pergunte
+- **Cadência de confirmação:** confirme **uma vez por fase** (no entregável — design na Fase 1; **plano+branch+execução na Fase 2: um gate só — aprovar o plano cria a branch e dispara a Fase 3**; homologação na Fase 3; bloco de fixes na Fase 4; publicar na Fase 5) e só nos **stops irreversíveis**. Não pare a cada seção ou micro-passo: agrupe e siga. Stops inegociáveis (sempre peça ok): merge na main, deploy em produção, escolher quais correções aplicar, backup antes de migration destrutiva. Criar branch e push já estão cobertos pela aprovação do plano/gate — não re-pergunte
 - Nunca implemente durante Fase 1 ou 2; nunca proponha código durante a Fase 1
 - Se task for ambígua, para e pergunta antes de lançar o subagente
-- **Modelos:** líder Opus 4.8 High; dev (Fase 3) e correções (Fase 4) em `model: "sonnet"` Médio; revisão de Segurança (Fase 4) em `model: "opus"` High
+- **Modelos:** líder Opus 4.8 High; dev (Fase 3) e correções (Fases 4 e 5) em `model: "sonnet"` Médio; revisão de Segurança (Fase 5) em `model: "opus"` High
 - **Backup só de produção e só em migration destrutiva** (drop/rename de coluna ou tabela, mudança de tipo, `NOT NULL` em coluna com dados, `--accept-data-loss`) — capturado no Passo 14, imediatamente antes da migration do deploy. Sem backup local nem de staging; migration aditiva não precisa
-- Bloco 1 da Fase 4 roda em paralelo; correções nunca inline (subagentes Sonnet); Bloco 2 (push→deploy) é estritamente sequencial
+- Fase 4 (fixes do seu bloco) e Bloco 1 da Fase 5 (review) rodam em paralelo; correções nunca inline (subagentes Sonnet); Bloco 2 da Fase 5 (push→deploy) é estritamente sequencial
 - **Profundidade escala por risco (nível TRIVIAL/MÉDIO/ALTO), nunca por capricho** — e o cético do nível ALTO **nunca rebaixa** achado de classe alta-confiança (SQLi/IDOR/secret/auth); Segurança roda sempre em Opus, mesmo em TRIVIAL
 - Subagentes que reportam dado devolvem estruturado (schema), não prosa; toda verificação/painel é via Agent tool, sem depender do Workflow tool
 - Nunca use `--force` sozinho, sempre `--force-with-lease`; **nunca delete a branch**; nunca `--amend`/`--no-verify`
