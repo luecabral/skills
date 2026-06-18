@@ -11,7 +11,7 @@ Ciclo completo de uma feature, do brainstorming ao deploy, em 5 fases. **Este ar
 
 **Modelos (obrigatório):** o Maestro (líder que orquestra todas as fases e gerencia os subagentes) roda em **Opus 4.8 High**. Os subagentes de desenvolvimento (Fase 3), de correção (Fases 4 e 5) e de revisão (Fase 5) usam os modelos indicados em cada fase.
 
-**Comunicação (padrão caveman):** fale ultra-comprimido por padrão — siga a skill `caveman`. Sem preâmbulo, sem hedging, sem resumir o que acabou de fazer; **não narre cada passo mecânico com um parágrafo** (status mecânico = uma linha ou nada — deixe o próprio painel de tarefas e os tool calls falarem). **Exceções, aí fale completo e explique de verdade:** Fase 1 (explorar/desenhar) e quando estiver discutindo um fix (achados de review, decisão de debugging, trade-offs).
+**Comunicação (padrão caveman):** fale ultra-comprimido por padrão — siga a skill `caveman`. Sem preâmbulo, sem hedging, sem resumir o que acabou de fazer; **não narre cada passo mecânico com um parágrafo** (status mecânico = uma linha ou nada — deixe o painel de tarefas e os tool calls falarem). **Sua investigação é silenciosa:** resolver conflito de merge, achar EOL/CRLF, rodar git, debugar passo a passo — faça no raciocínio interno e **reporte só o resultado em uma linha** (ex: "Conflito em `_form.html.erb` resolvido: minha versão + 2 mudanças reais de origin/main; testes verdes"). **Exceções (aí fale completo):** Fase 1 (explorar/desenhar) e quando precisa **te apresentar uma decisão/trade-off pra você escolher** (alternativas de design, achados de review pra aprovar, bug com mais de um caminho). **Investigar ≠ decidir** — só o ponto de decisão vai pra tela.
 
 **Contextualização de termos técnicos (só nos momentos de fala completa — Fase 1, fixes e gates dirigidos a você):** inclua uma explicação simples entre parênteses. Ex: "migration (script que cria/altera a estrutura do banco)", "branch (ramificação isolada do código)". Que qualquer pessoa entenda sem pesquisar. Fora desses momentos, caveman.
 
@@ -262,7 +262,7 @@ Para cada ⚠️ que o usuário **não** aplicou: procure `fixes-futuros.md`/`FI
 git fetch origin && git rebase origin/main
 git push -u origin HEAD
 ```
-Conflito no rebase → liste arquivos, aguarde resolução. Histórico divergente → `--force-with-lease` (nunca `--force` sozinho). O push dispara o deploy de staging automaticamente — informe e siga sem aguardar.
+Conflito no rebase → **resolva os mecânicos você mesmo** (EOL/CRLF, whitespace, cosméticos, lado óbvio) **em silêncio** e reporte em 1 linha; **só pause e peça** se for conflito de conteúdo real (os dois lados mudaram a mesma lógica). Histórico divergente → `--force-with-lease` (nunca `--force` sozinho). O push dispara o deploy de staging automaticamente — informe e siga sem aguardar.
 
 #### Passo 8 — Abrir ou editar PR?
 `gh pr view --json number,title,state 2>/dev/null`. PR existente → "Atualizar?" (não → encerra; sim → Passo 9 modo edição). Sem PR → "Abrir agora?" (não → encerra; sim → Passo 9 modo criação). Se chamada com foco em PR e push feito, pule pro 9.
@@ -346,7 +346,7 @@ Falha por histórico divergente → `--force-with-lease` (nunca `--force` sozinh
 
 ## Regras
 
-- **Caveman por padrão:** narração mecânica mínima (uma linha ou nada); fala completa só na Fase 1 e ao discutir fixes (ver skill `caveman`)
+- **Caveman por padrão:** narração mecânica mínima (uma linha ou nada); investigação (conflito, git, debug) é **silenciosa**, só o resultado em 1 linha; fala completa só na Fase 1 e quando há uma **decisão/trade-off pra você escolher** (ver skill `caveman`)
 - **Cadência de confirmação:** confirme **uma vez por fase** (no entregável — design na Fase 1; **plano+branch+execução na Fase 2: um gate só — aprovar o plano cria a branch e dispara a Fase 3**; homologação na Fase 3; bloco de fixes na Fase 4; publicar na Fase 5) e só nos **stops irreversíveis**. Não pare a cada seção ou micro-passo: agrupe e siga. Stops inegociáveis (sempre peça ok): merge na main, deploy em produção, escolher quais correções aplicar, backup antes de migration destrutiva. Criar branch e push já estão cobertos pela aprovação do plano/gate — não re-pergunte
 - Nunca implemente durante Fase 1 ou 2; nunca proponha código durante a Fase 1
 - Se task for ambígua, para e pergunta antes de lançar o subagente
