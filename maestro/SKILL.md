@@ -162,6 +162,8 @@ Se não → encerra na branch, pronta pra Fase 4 (fixes) ou Fase 5 (publish) qua
 
 Aplicação orquestrada de um **bloco de fixes** após a implementação da Fase 3. Entra após a homologação (você testou pelo roteiro da Fase 3 e achou ajustes), ou direto via `maestro fase 4` / `maestro corrige`. **Não** é review automático (isso é a Fase 5) — aqui **você manda o que corrigir e eu orquestro os subagentes**.
 
+**Quando NÃO usar — fix único e pequeno:** não precisa de "maestro corrige" nem da fase inteira. Só diga o que ajustar; eu corrijo **direto (inline)**, garanto teste verde e sigo. A Fase 4 é pra **bloco** — vários fixes juntos, ou algo que valha paralelizar em subagentes.
+
 ### Passo 1 — Receber o bloco de fixes
 Receba (ou peça) o bloco: lista livre do que ajustar — bugs da homologação, ajustes pontuais, pedidos de mudança. Para cada item, identifique o(s) **arquivo(s) alvo** (pergunte só se não der pra inferir do código). Sem bloco → pergunte qual é.
 
