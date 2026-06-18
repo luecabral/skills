@@ -193,7 +193,7 @@ Mais um bloco → volta ao Passo 1. Senão → Fase 5.
 
 Entra após a Fase 4, ou direto via `maestro fase 5` / `maestro publica` (mesmo em sessão nova depois de fixes manuais). Review final escalonado por risco + pipeline de publicação.
 
-**Token:** o custo aqui é o review do Bloco 1 — então ele **escala pelo `nivel:`** (TRIVIAL quase não gasta; review cheio só no ALTO), os checks mecânicos (grátis) rodam primeiro, e **uma única leitura do diff** (`git diff origin/main...HEAD`) serve review + detecção de infra + corpo do PR. O Bloco 2 é shell puro, sem subagentes, **uma linha por passo**.
+**Token:** o custo aqui é o review do Bloco 1 — então ele **escala pelo `nivel:`** (TRIVIAL quase não gasta; review cheio só no ALTO), os checks mecânicos (grátis) rodam primeiro, e **uma única leitura do diff** (`git diff origin/main...HEAD`) serve review + detecção de infra + corpo do PR. Rode os subagentes e os checks **em silêncio** e mostre só o **relatório consolidado** (Passo 3) — não narre cada subagente nem cada check. O Bloco 2 é shell puro, sem subagentes: **resultado por passo, não processo** (uma linha).
 
 - **Bloco 1 — Review e correções:** tudo depende só do diff já commitado → roda em paralelo, sem ordem fixa.
 - **Bloco 2 — Pipeline de publicação:** push → staging → PR → CI → merge → deploy. **Estritamente sequencial.**
@@ -311,7 +311,7 @@ Pré-requisito: Passo 12 todo verde (confirme com `gh pr checks` = `pass`). **Re
 git fetch origin
 git log --oneline HEAD..origin/main   # se trouxer commits, precisa rebase
 ```
-Se andou → avise, `git rebase origin/main` (conflito → resolução manual), `git push --force-with-lease`, **volte ao Passo 12** pra revalidar o CI. Senão prossiga.
+Se andou → avise em 1 linha, `git rebase origin/main` (conflito → resolva mecânicos em silêncio como no Passo 7; pause só em conteúdo real), `git push --force-with-lease`, **volte ao Passo 12** pra revalidar o CI. Senão prossiga.
 
 Pergunte: "Todos os CIs passaram. Quer mergear na main?" Não → encerra exibindo a URL. Sim → `gh pr merge --merge` (ou `--squash`/`--rebase` conforme o repo; **nunca `--delete-branch`**). Se o repo deleta head branch automaticamente, avise e confirme. Exiba o SHA do merge. **Não rode `git branch -d` nem `git push origin --delete`.**
 
