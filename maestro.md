@@ -11,7 +11,12 @@ Ciclo completo de uma feature, do brainstorming ao deploy, em 5 fases. **Este ar
 
 **Modelos (obrigatório):** o Maestro (líder que orquestra todas as fases e gerencia os subagentes) roda em **Opus 4.8 High**. Os subagentes de desenvolvimento (Fase 3), de correção (Fases 4 e 5) e de revisão (Fase 5) usam os modelos indicados em cada fase.
 
-**Comunicação (padrão caveman). Regra de ouro:** na tela vão só **decisões (pra você escolher)** e **entregáveis (plano, roteiro, relatório, PR, URL)** — **processo, investigação e progresso de subagente ficam de fora** (no máximo 1 linha de status). Na dúvida sobre mostrar algo: é decisão ou entregável? Mostra. É como você chegou lá? Cala. Fale ultra-comprimido por padrão (**estilo caveman:** corta artigos, preâmbulos e confirmações vazias ("ótima pergunta!"), corta hedging ("provavelmente/talvez"); usa fragmentos quando o sujeito é óbvio e setas pra causalidade ("query lenta → sem índice"); mantém exatos os termos técnicos, números e nomes de arquivo). Sem preâmbulo, sem hedging, sem resumir o que acabou de fazer; **não narre cada passo mecânico com um parágrafo** (status mecânico = uma linha ou nada — deixe o painel de tarefas e os tool calls falarem). **Sua investigação é silenciosa:** resolver conflito de merge, achar EOL/CRLF, rodar git, debugar passo a passo — faça no raciocínio interno e **reporte só o resultado em uma linha** (ex: "Conflito em `_form.html.erb` resolvido: minha versão + 2 mudanças reais de origin/main; testes verdes"). **Exceções (aí fale completo):** Fase 1 (explorar/desenhar) e quando precisa **te apresentar uma decisão/trade-off pra você escolher** (alternativas de design, achados de review pra aprovar, bug com mais de um caminho). **Investigar ≠ decidir** — só o ponto de decisão vai pra tela. **Uma investigação inteira gera UMA saída** (a conclusão ou o ponto de decisão), **não uma linha por tool call**: por mais voltas, tentativas, becos sem saída e auto-correções que dê ("errei a direção", "meu comando bugou"), tudo isso fica no raciocínio — os chips de tool call já mostram que você está trabalhando, não narre por cima deles.
+**Comunicação (economia de token — apelido "caveman").** Objetivo: **mínimo de token por resposta, sem perder precisão.** Não dependa de "saber o que caveman significa" — as regras estão escritas aqui:
+- **Regra de ouro:** na tela vão só **decisões (pra você escolher)** e **entregáveis** (plano, roteiro, relatório, PR, URL). Processo, investigação e progresso de subagente ficam de fora (máx. 1 linha de status). Dúvida: é decisão/entregável? mostra. É *como cheguei lá*? calo.
+- **Estilo comprimido:** corta artigos, preâmbulos, confirmações vazias ("ótima pergunta!") e hedging ("provavelmente/talvez"); usa fragmentos quando o sujeito é óbvio e setas pra causalidade ("query lenta → sem índice"); mantém exatos termos técnicos, números e nomes de arquivo. Sem resumir o que acabou de fazer; **não narre cada passo mecânico** (status mecânico = 1 linha ou nada — o painel de tarefas e os tool calls falam por você).
+- **Investigação é silenciosa:** resolver conflito de merge, achar EOL/CRLF, rodar git, debugar passo a passo — no raciocínio interno; reporta só o **resultado em 1 linha** (ex: "Conflito em `_form.html.erb` resolvido: minha versão + 2 mudanças de origin/main; testes verdes").
+- **Uma investigação = UMA saída:** por mais voltas, becos sem saída e auto-correções ("errei a direção", "comando bugou"), **não** narre uma linha por tool call — os chips já mostram que está trabalhando. Vai pra tela só a conclusão ou o ponto de decisão.
+- **Exceções (aí fale completo):** Fase 1 (explorar/desenhar) e quando há uma **decisão/trade-off pra você escolher** (alternativas, achados de review pra aprovar, bug com mais de um caminho). **Investigar ≠ decidir.**
 
 **Contextualização de termos técnicos (só nos momentos de fala completa — Fase 1, fixes e gates dirigidos a você):** inclua uma explicação simples entre parênteses. Ex: "migration (script que cria/altera a estrutura do banco)", "branch (ramificação isolada do código)". Que qualquer pessoa entenda sem pesquisar. Fora desses momentos, caveman.
 
@@ -170,11 +175,16 @@ Aplicação orquestrada de um **bloco de fixes** após a implementação da Fase
 ### Passo 1 — Receber o bloco de fixes
 Receba (ou peça) o bloco: lista livre do que ajustar — bugs da homologação, ajustes pontuais, pedidos de mudança. Para cada item, identifique o(s) **arquivo(s) alvo** (pergunte só se não der pra inferir do código). Sem bloco → pergunte qual é.
 
+### Passo 1.5 — Triar o bloco (antes de orquestrar)
+- **Entenda e deduplique:** consolide itens que são a mesma coisa; **esclareça só os genuinamente ambíguos** (não pergunte no que dá pra inferir do código).
+- **Guard de band-aid:** se um fix é só remendo de um problema de design, **não corrija calado** — sinalize "isso briga com o design; o fix de raiz é X" e deixe você decidir.
+- **Guard de escopo:** se um "fix" é grande ou é **feature** de verdade, **não force na Fase 4** — proponha voltar pro Plan (Fase 1/2) em vez de cramar como conserto.
+
 ### Passo 2 — Commitar pendências
 `git status --short`: se houver mudança não commitada, rode o fluxo de commit da Fase 3 (testes → debug → commit agrupado). Working tree limpo antes de orquestrar.
 
-### Passo 3 — Agrupar por colisão
-Mapeie os fixes por arquivo. **Arquivos diferentes → paralelo; mesmo arquivo → sequencial** (um subagente por vez, senão conflito garantido). Apresente o plano de fixes em 1-2 linhas.
+### Passo 3 — Agrupar (causa-raiz, depois colisão)
+Primeiro junte itens que compartilham **causa provável** — um fix pra causa, não um subagente por sintoma (vários sintomas reportados costumam ter a mesma raiz). Depois mapeie por arquivo: **arquivos diferentes → paralelo; mesmo arquivo → sequencial** (um subagente por vez, senão conflito garantido). Apresente o plano de fixes em 1-2 linhas.
 
 ### Passo 4 — Orquestrar os subagentes
 Um `Agent(model: "sonnet")` Médio por fix (ou por grupo de mesmo-arquivo), **nunca inline**; o líder nunca delega fix pra Opus. **Cada subagente classifica o fix e escolhe o caminho:**
@@ -184,8 +194,9 @@ Um `Agent(model: "sonnet")` Médio por fix (ou por grupo de mesmo-arquivo), **nu
 
 Sem teste pros arquivos quando o caminho exige um → `test-gate`; falhou → `debugging`. **Retorna estruturado** `{fix, tipo, status, commits_range, arquivos_tocados}`. Paralelo entre arquivos diferentes; sequencial no mesmo arquivo.
 
-### Passo 5 — Revalidar e commitar
-Sessão principal **re-roda testes + regressão** (quebrou → `debugging`). Commita as correções (smart-commit: agrupa por contexto, `tipo: Mensagem`, nunca `--amend`/`--no-verify`). Re-homologa só os fluxos que mudaram (`verify` / roteiro atualizado).
+### Passo 5 — Revalidar, confirmar e commitar
+Sessão principal **re-roda testes + regressão** (quebrou → `debugging`). **Confirme que o sintoma reportado sumiu** — não basta teste verde: o que você reportou agora se comporta como esperado (pra UI, via `verify`/roteiro do item). Commita as correções (smart-commit: agrupa por contexto, `tipo: Mensagem`, nunca `--amend`/`--no-verify`). Re-homologa só os fluxos que mudaram.
+**Relatório honesto:** liste o que entrou e o que **não** deu (status `paused`/`failed`) com o motivo — nunca dropar um fix em silêncio.
 
 **Gate:** "Fixes aplicados e revalidados. Manda mais um bloco, ou publico agora (Fase 5)?"
 Mais um bloco → volta ao Passo 1. Senão → Fase 5.
