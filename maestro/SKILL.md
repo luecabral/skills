@@ -27,6 +27,8 @@ Refinamento da ideia antes de qualquer linha de código.
 
 **Quando NÃO usar (encerre e oriente):** usuário já tem plano claro → pule pra Fase 2; está debugando algo existente → `debugging`; mudança pontual e trivial (ex: "muda a cor do botão") → faça direto.
 
+**Contexto do projeto (bootstrap, 1ª vez):** se o projeto não tem `AGENTS.md`/`CLAUDE.md`/`README` descrevendo build, testes, arquitetura e convenções, **ofereça criar um antes de desenhar** — detecte comandos de build/test, a stack e os padrões do código. Esse contexto alimenta as Fases 2-5 e evita design que ignora o que já existe.
+
 ### Passo 1 — Entender o problema real
 Antes de perguntar, mapeie suposições ocultas e pontos cegos. Pergunte **uma por vez**, em ordem de dependência, e **ofereça uma resposta recomendada** junto:
 > "Isso vai persistir no banco ou só viver em sessão? Sugiro banco, porque você vai querer histórico por usuário."
@@ -37,7 +39,7 @@ Foco: o quê, para quem, critério de sucesso, restrições, casos de borda, int
 Explique que é uma análise pra identificar o que pode dar errado antes de construir. Documente:
 - **Ativos** — quais dados são sensíveis? há dinheiro envolvido?
 - **Atacantes** — usuário malicioso autenticado, externo, bot, insider
-- **Vetores** (marque os relevantes e explique cada um em linguagem simples): IDOR (acesso a dados de outro usuário), SQL injection (manipulação do banco via formulário), XSS (script malicioso no navegador de outro), CSRF (ação sem o usuário saber), race condition (dois processos simultâneos), upload malicioso, brute force, prompt injection (se houver IA). Checklist completo em REFERENCE.md.
+- **Vetores** (marque os relevantes e explique cada um em linguagem simples): IDOR (acesso a dados de outro usuário), SQL injection (manipulação do banco via formulário), XSS (script malicioso no navegador de outro), CSRF (ação sem o usuário saber), race condition (dois processos simultâneos), upload malicioso, brute force, prompt injection (se houver IA), **SSRF** (servidor forçado a chamar URL interna), **desserialização insegura**, **crypto fraca** (hash/cifra obsoleta, segredo hardcoded), **escopo de autorização ausente** (endpoint que não checa permissão/tenant). Checklist completo em REFERENCE.md.
 
 Classifique por probabilidade × impacto (🔴 Alta / 🟡 Média / 🟢 Baixa). Riscos 🔴 viram tasks explícitas na Fase 2.
 
@@ -45,7 +47,7 @@ Classifique por probabilidade × impacto (🔴 Alta / 🟡 Média / 🟢 Baixa).
 Se for algo que produtos conhecidos já resolvem (login social, carrinho, chat, agendamento, paywall), **pergunte se há referência**:
 > "Tem algum produto/tela de referência pra usar como base? (ex: 'o agendamento do Calendly'). Me manda o nome ou um print que eu adapto o design."
 
-Com referência → use como âncora nos fluxos do Passo 3. Sem → siga boas práticas e diga em que está se baseando. Pule pra features sem paralelo óbvio.
+Com referência → use como âncora nos fluxos do Passo 3. Sem referência, mas a feature pede embasamento (decisão técnica nova, padrão de mercado, comparar abordagens) → faça uma **pesquisa rápida**: várias fontes em paralelo, **verifique cada afirmação contra a fonte** (descarte o não confirmado) e **cite** de onde veio cada conclusão. Sem necessidade de pesquisa → siga boas práticas e diga em que se baseia. Pule pra features sem paralelo óbvio.
 
 ### Passo 2 — Explorar alternativas (painel de lentes)
 Não invente as abordagens sozinho (single-agent ancora na 1ª ideia). **TRIVIAL → pule, faça você mesmo** (comportamento antigo). Senão dispare **em paralelo** N subagentes read-only `Agent(model: "sonnet")` (default 3), cada um com uma **lente** distinta e o mesmo briefing (problema, critério de sucesso, restrições, 🔴 do Passo 1.5 se houve, benchmark): (1) menor superfície / mais simples; (2) mais robusto e seguro; (3) mais rápido de entregar. Cada um devolve via schema: abordagem, vantagem, risco principal, custo. Você (o juiz): se rodou o Passo 1.5, descarte quem deixa algum 🔴 sem cobertura; recomende a vencedora e **liste o que vale puxar das outras**; lentes que convergem → funda e diga. Apresente os finalistas + a recomendação e aguarde o usuário escolher.
@@ -137,6 +139,7 @@ Repita por comportamento. Nunca escreva produção sem um teste falhando antes; 
 
 **Commit (smart-commit, inline):**
 - Garanta os testes verdes (`npm test` / `npx vitest run` / `pytest` / `bundle exec rspec`). Se não houver testes pros arquivos → `test-gate`. Se falhar → `debugging`. Não commite até verde.
+- **Auto-check de segurança:** se a task tocou auth / dados / input de usuário / query / upload, releia o que mexeu contra os vetores do Passo 1.5 (IDOR, injection, SSRF, escopo de autorização, etc.) **antes de commitar** — pega o problema na fonte, não só na Fase 5.
 - Verifique docs (dual-audience: humano leigo + agente de IA): se o projeto tem `AGENTS.md` ou `docs/`, atualize o que ficou desatualizado — AGENTS.md, estrutura de pastas, regras de negócio, `docs/features/`, `docs/changelog.md`. Tom simples pro humano, caminhos/nomes reais pro técnico. Docs vão no mesmo commit, nunca "depois".
 - Agrupe arquivos por contexto lógico (banco / modelos / controllers / componentes / testes / docs / config) e gere um commit por grupo. Mensagem: `tipo: Mensagem` (verbo no presente, maiúscula inicial, sem ponto final; tipos `feat·fix·refactor·perf·docs·style·config`).
 - Commite via heredoc. Se hook falhar, corrija e crie **novo** commit. Nunca `--amend` nem `--no-verify`. Sinalize `console.log`/`debugger`/`print` esquecidos antes de commitar.
@@ -216,6 +219,8 @@ Dispare **tudo no mesmo bloco**: subagentes read-only (só reportam) + checks me
 2. **UX** — `Agent(model: "sonnet")`, Sonnet 4.6 Médio. Aplica o bloco **UX** do checklist. Devolve 🚨/⚠️.
 3. **Documentação** — `Agent(model: "sonnet")`, Sonnet 4.6 Médio. Verifica se README, docs e comentários públicos refletem o diff. Lista o desatualizado/faltando — só reporta (update vem no Passo 4).
 
+**Lente de limpeza (estilo simplify), dentro do revisor de Qualidade:** além de bug, sinalize **duplicação extraível** (reuso/DRY), **custo desnecessário** (eficiência) e **nível de abstração errado** (altitude — raso ou fundo demais). Entram como ⚠️ (qualidade), não bloqueiam.
+
 **Profundidade pelo nível** (lê `nivel:` do plan.md; entrada direta sem plano = MÉDIO; **Segurança roda sempre em Opus, em qualquer nível**):
 - **TRIVIAL** → só checks mecânicos + Segurança; pula UX/Docs se o diff não toca view/template/`.css`/`.md`.
 - **MÉDIO** → os 3 revisores acima (atual).
@@ -238,6 +243,11 @@ Dispare **tudo no mesmo bloco**: subagentes read-only (só reportam) + checks me
 
 #### Passo 3 — Consolidação e gates
 Antes de consolidar, **1 completeness critic** (`Agent`, read-only): "o review cobre todos os fluxos do design da Fase 1, as env vars novas (Passo 9) e cada 🔴 do threat modeling? o que falta?" — buracos viram itens do relatório.
+
+Filtros antes do relatório:
+- **Verificação de falso-positivo (todo 🚨, não só no ALTO):** confirme cada achado contra o código real — a guarda/validação/teste que já existe pode invalidá-lo. Não confirmou → não é 🚨.
+- **Pré-existente × introduzido:** achado que **já existia** no código tocado (não foi o diff que criou) vira ⚠️ "pré-existente" — registra, **não bloqueia**; bloqueante é só o que o diff introduziu.
+- **`REVIEW.md` do repo:** se existir, honre a calibração de severidade dele.
 Relatório **único** — review + critic + checks:
 - 🚨 BLOQUEANTE — falhas de teste/regressão, vulnerabilidades pendentes, achados críticos. Resolver antes de prosseguir.
 - ⚠️ SUGESTÃO — melhorias de review/UX, docs desatualizadas. Pergunte o que aplicar agora.
@@ -376,3 +386,4 @@ Quando os arquivos alterados **não têm teste**, antes de liberar o commit: esc
 - Nunca use `--force` sozinho, sempre `--force-with-lease`; **nunca delete a branch**; nunca `--amend`/`--no-verify`
 - CI vermelho bloqueia o encerramento; merge só com CI 100% verde
 - "O que tem mais risco" no corpo do PR nunca em branco
+- **Menos interrupção:** na 1ª vez num projeto, ofereça pré-autorizar (allowlist em `.claude/settings.json`) os comandos read-only que o maestro repete — `git status/log/diff`, `gh pr checks`, runners de teste — pra o fluxo não parar a cada prompt de permissão
