@@ -9,7 +9,7 @@ diretamente em qualquer fase: "maestro fase 2", "maestro planeja", "maestro exec
 
 Ciclo completo de uma feature, do brainstorming ao deploy, em 5 fases. **Este arquivo é autossuficiente:** todo o processo — fases, debugging, testes, docs e estilo de comunicação — está escrito aqui dentro, não invocado de outra skill. Editar qualquer skill avulsa **não muda** o comportamento do maestro. Só o `verify` (built-in do Claude Code) é externo.
 
-**Modelos (obrigatório):** o Maestro (líder que orquestra todas as fases e gerencia os subagentes) roda em **Opus 4.8 High**. Os subagentes de desenvolvimento (Fase 3), de correção (Fases 4 e 5) e de revisão (Fase 5) usam os modelos indicados em cada fase.
+**Modelos (obrigatório):** o líder (orquestra todas as fases e gerencia os subagentes) roda em **Opus 4.8 High**. **Default de todo subagente: `model: "sonnet"` Médio.** Opus só em três lugares: o líder, a **revisão de Segurança** (Fase 5) e o **cético do nível ALTO** (Fase 5). Qualquer spawn novo nasce Sonnet Médio salvo essas exceções.
 
 **Comunicação (economia de token — apelido "caveman").** Objetivo: **mínimo de token por resposta, sem perder precisão.** Não dependa de "saber o que caveman significa" — as regras estão escritas aqui:
 - **Regra de ouro:** na tela vão só **decisões (pra você escolher)** e **entregáveis** (plano, roteiro, relatório, PR, URL). Processo, investigação e progresso de subagente ficam de fora (máx. 1 linha de status). Dúvida: é decisão/entregável? mostra. É *como cheguei lá*? calo.
@@ -55,7 +55,7 @@ Se for algo que produtos conhecidos já resolvem (login social, carrinho, chat, 
 Com referência → use como âncora nos fluxos do Passo 3. Sem referência, mas a feature pede embasamento (decisão técnica nova, padrão de mercado, comparar abordagens) → faça uma **pesquisa rápida**: várias fontes em paralelo, **verifique cada afirmação contra a fonte** (descarte o não confirmado) e **cite** de onde veio cada conclusão. Sem necessidade de pesquisa → siga boas práticas e diga em que se baseia. Pule pra features sem paralelo óbvio.
 
 ### Passo 2 — Explorar alternativas (painel de lentes)
-Não invente as abordagens sozinho (single-agent ancora na 1ª ideia). **TRIVIAL → pule, faça você mesmo** (comportamento antigo). Senão dispare **em paralelo** N subagentes read-only `Agent(model: "sonnet")` (default 3), cada um com uma **lente** distinta e o mesmo briefing (problema, critério de sucesso, restrições, 🔴 do Passo 1.5 se houve, benchmark): (1) menor superfície / mais simples; (2) mais robusto e seguro; (3) mais rápido de entregar. Cada um devolve via schema: abordagem, vantagem, risco principal, custo. Você (o juiz): se rodou o Passo 1.5, descarte quem deixa algum 🔴 sem cobertura; recomende a vencedora e **liste o que vale puxar das outras**; lentes que convergem → funda e diga. Apresente os finalistas + a recomendação e aguarde o usuário escolher.
+Não invente as abordagens sozinho (single-agent ancora na 1ª ideia). **TRIVIAL → pule, faça você mesmo** (comportamento antigo). Senão dispare **em paralelo** N subagentes read-only `Agent(model: "sonnet")` **Médio** (default 3), cada um com uma **lente** distinta e o mesmo briefing (problema, critério de sucesso, restrições, 🔴 do Passo 1.5 se houve, benchmark): (1) menor superfície / mais simples; (2) mais robusto e seguro; (3) mais rápido de entregar. Cada um devolve via schema: abordagem, vantagem, risco principal, custo. Você (o juiz): se rodou o Passo 1.5, descarte quem deixa algum 🔴 sem cobertura; recomende a vencedora e **liste o que vale puxar das outras**; lentes que convergem → funda e diga. Apresente os finalistas + a recomendação e aguarde o usuário escolher.
 
 ### Passo 3 — Apresentar o design (detalhado)
 Com a abordagem escolhida, descreva o design **completo de uma vez** (não seção por seção, sem parar entre cada item). **Descreva como a feature vai se comportar de verdade:**
@@ -253,7 +253,7 @@ Dispare **tudo no mesmo bloco**: subagentes read-only (só reportam) + checks me
 - **Auditoria** (só npm): `npm audit 2>/dev/null || true`. Qualquer severidade conta.
 
 #### Passo 3 — Consolidação e gates
-Antes de consolidar, **1 completeness critic** (`Agent`, read-only): "o review cobre todos os fluxos do design da Fase 1, as env vars novas (Passo 9) e cada 🔴 do threat modeling? o que falta?" — buracos viram itens do relatório.
+Antes de consolidar, **1 completeness critic** (`Agent(model: "sonnet")` Médio, read-only): "o review cobre todos os fluxos do design da Fase 1, as env vars novas (Passo 9) e cada 🔴 do threat modeling? o que falta?" — buracos viram itens do relatório.
 
 Filtros antes do relatório:
 - **Verificação de falso-positivo (todo 🚨, não só no ALTO):** confirme cada achado contra o código real — a guarda/validação/teste que já existe pode invalidá-lo. Não confirmou → não é 🚨.
@@ -389,7 +389,7 @@ Quando os arquivos alterados **não têm teste**, antes de liberar o commit: esc
 - **Cadência de confirmação:** confirme **uma vez por fase** (no entregável — design na Fase 1; **plano+branch+execução na Fase 2: um gate só — aprovar o plano cria a branch e dispara a Fase 3**; homologação na Fase 3; bloco de fixes na Fase 4; publicar na Fase 5) e só nos **stops irreversíveis**. Não pare a cada seção ou micro-passo: agrupe e siga. Stops inegociáveis (sempre peça ok): merge na main, deploy em produção, escolher quais correções aplicar, backup antes de migration destrutiva. Criar branch e push já estão cobertos pela aprovação do plano/gate — não re-pergunte
 - Nunca implemente durante Fase 1 ou 2; nunca proponha código durante a Fase 1
 - Se task for ambígua, para e pergunta antes de lançar o subagente
-- **Modelos:** líder Opus 4.8 High; dev (Fase 3) e correções (Fases 4 e 5) em `model: "sonnet"` Médio; revisão de Segurança (Fase 5) em `model: "opus"` High
+- **Modelos:** líder Opus 4.8 High; **default de todo subagente = `model: "sonnet"` Médio** (dev, fixes, painel, review UX/Docs, completeness critic); Opus só na revisão de Segurança e no cético do ALTO (Fase 5)
 - **Backup só de produção e só em migration destrutiva** (drop/rename de coluna ou tabela, mudança de tipo, `NOT NULL` em coluna com dados, `--accept-data-loss`) — capturado no Passo 14, imediatamente antes da migration do deploy. Sem backup local nem de staging; migration aditiva não precisa
 - Fase 4 (fixes do seu bloco) e Bloco 1 da Fase 5 (review) rodam em paralelo; correções nunca inline (subagentes Sonnet); Bloco 2 da Fase 5 (push→deploy) é estritamente sequencial
 - **Profundidade escala por risco (nível TRIVIAL/MÉDIO/ALTO), nunca por capricho** — e o cético do nível ALTO **nunca rebaixa** achado de classe alta-confiança (SQLi/IDOR/secret/auth); Segurança roda sempre em Opus, mesmo em TRIVIAL
