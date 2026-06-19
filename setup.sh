@@ -1,12 +1,11 @@
 #!/bin/bash
-# Instala os git hooks que mantêm os flat .md sincronizados com <skill>/SKILL.md
-HOOKS_DIR="$(git rev-parse --show-toplevel)/.git/hooks"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# Aponta o git pros hooks versionados em .githooks/ — que, a cada commit na main,
+# sincronizam os flats, pusham pro luecabral e atualizam o clone do WSL.
+# Rode UMA vez por clone:  bash setup.sh
+#
+# (Antes este script copiava .githooks/ -> .git/hooks/, mas a cópia ficava defasada
+#  quando o hook mudava. core.hooksPath usa o versionado direto — nunca desatualiza.)
 
-for hook in post-commit post-merge; do
-  cp "$SCRIPT_DIR/.githooks/$hook" "$HOOKS_DIR/$hook"
-  chmod +x "$HOOKS_DIR/$hook"
-  echo "hook instalado: $hook"
-done
-
-echo "setup concluído"
+git -C "$(git rev-parse --show-toplevel)" config core.hooksPath .githooks
+echo "✓ core.hooksPath = .githooks (hooks versionados ativos)"
+echo "  A cada commit na main: sync Windows + push luecabral + pull WSL."
