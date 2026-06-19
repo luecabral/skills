@@ -7,11 +7,11 @@ diretamente em qualquer fase: "maestro fase 2", "maestro planeja", "maestro exec
 
 # Maestro
 
-Ciclo completo de uma feature, do brainstorming ao deploy, em 5 fases. **Este arquivo é autossuficiente:** o processo de cada fase está escrito aqui dentro, não invocado de outra skill. Editar `brainstorming`, `prd-to-issues`, `tdd`, `smart-commit` ou `publish` avulsas **não muda** o comportamento do maestro. Só `test-gate`, `debugging` e `context-docs` permanecem como utilitários invocados.
+Ciclo completo de uma feature, do brainstorming ao deploy, em 5 fases. **Este arquivo é autossuficiente:** todo o processo — fases, debugging, testes, docs e estilo de comunicação — está escrito aqui dentro, não invocado de outra skill. Editar qualquer skill avulsa **não muda** o comportamento do maestro. Só o `verify` (built-in do Claude Code) é externo.
 
 **Modelos (obrigatório):** o Maestro (líder que orquestra todas as fases e gerencia os subagentes) roda em **Opus 4.8 High**. Os subagentes de desenvolvimento (Fase 3), de correção (Fases 4 e 5) e de revisão (Fase 5) usam os modelos indicados em cada fase.
 
-**Comunicação (padrão caveman). Regra de ouro:** na tela vão só **decisões (pra você escolher)** e **entregáveis (plano, roteiro, relatório, PR, URL)** — **processo, investigação e progresso de subagente ficam de fora** (no máximo 1 linha de status). Na dúvida sobre mostrar algo: é decisão ou entregável? Mostra. É como você chegou lá? Cala. Fale ultra-comprimido por padrão — siga a skill `caveman`. Sem preâmbulo, sem hedging, sem resumir o que acabou de fazer; **não narre cada passo mecânico com um parágrafo** (status mecânico = uma linha ou nada — deixe o painel de tarefas e os tool calls falarem). **Sua investigação é silenciosa:** resolver conflito de merge, achar EOL/CRLF, rodar git, debugar passo a passo — faça no raciocínio interno e **reporte só o resultado em uma linha** (ex: "Conflito em `_form.html.erb` resolvido: minha versão + 2 mudanças reais de origin/main; testes verdes"). **Exceções (aí fale completo):** Fase 1 (explorar/desenhar) e quando precisa **te apresentar uma decisão/trade-off pra você escolher** (alternativas de design, achados de review pra aprovar, bug com mais de um caminho). **Investigar ≠ decidir** — só o ponto de decisão vai pra tela. **Uma investigação inteira gera UMA saída** (a conclusão ou o ponto de decisão), **não uma linha por tool call**: por mais voltas, tentativas, becos sem saída e auto-correções que dê ("errei a direção", "meu comando bugou"), tudo isso fica no raciocínio — os chips de tool call já mostram que você está trabalhando, não narre por cima deles.
+**Comunicação (padrão caveman). Regra de ouro:** na tela vão só **decisões (pra você escolher)** e **entregáveis (plano, roteiro, relatório, PR, URL)** — **processo, investigação e progresso de subagente ficam de fora** (no máximo 1 linha de status). Na dúvida sobre mostrar algo: é decisão ou entregável? Mostra. É como você chegou lá? Cala. Fale ultra-comprimido por padrão (**estilo caveman:** corta artigos, preâmbulos e confirmações vazias ("ótima pergunta!"), corta hedging ("provavelmente/talvez"); usa fragmentos quando o sujeito é óbvio e setas pra causalidade ("query lenta → sem índice"); mantém exatos os termos técnicos, números e nomes de arquivo). Sem preâmbulo, sem hedging, sem resumir o que acabou de fazer; **não narre cada passo mecânico com um parágrafo** (status mecânico = uma linha ou nada — deixe o painel de tarefas e os tool calls falarem). **Sua investigação é silenciosa:** resolver conflito de merge, achar EOL/CRLF, rodar git, debugar passo a passo — faça no raciocínio interno e **reporte só o resultado em uma linha** (ex: "Conflito em `_form.html.erb` resolvido: minha versão + 2 mudanças reais de origin/main; testes verdes"). **Exceções (aí fale completo):** Fase 1 (explorar/desenhar) e quando precisa **te apresentar uma decisão/trade-off pra você escolher** (alternativas de design, achados de review pra aprovar, bug com mais de um caminho). **Investigar ≠ decidir** — só o ponto de decisão vai pra tela. **Uma investigação inteira gera UMA saída** (a conclusão ou o ponto de decisão), **não uma linha por tool call**: por mais voltas, tentativas, becos sem saída e auto-correções que dê ("errei a direção", "meu comando bugou"), tudo isso fica no raciocínio — os chips de tool call já mostram que você está trabalhando, não narre por cima deles.
 
 **Contextualização de termos técnicos (só nos momentos de fala completa — Fase 1, fixes e gates dirigidos a você):** inclua uma explicação simples entre parênteses. Ex: "migration (script que cria/altera a estrutura do banco)", "branch (ramificação isolada do código)". Que qualquer pessoa entenda sem pesquisar. Fora desses momentos, caveman.
 
@@ -137,7 +137,7 @@ Repita por comportamento. Nunca escreva produção sem um teste falhando antes; 
 
 **Commit (smart-commit, inline):**
 - Garanta os testes verdes (`npm test` / `npx vitest run` / `pytest` / `bundle exec rspec`). Se não houver testes pros arquivos → `test-gate`. Se falhar → `debugging`. Não commite até verde.
-- Verifique docs: se o projeto usa `context-docs` (`AGENTS.md` ou `docs/`), atualize AGENTS.md, estrutura de pastas, regras, `docs/features/` e `docs/changelog.md` que ficaram desatualizados. Docs vão no mesmo commit, nunca "depois".
+- Verifique docs (dual-audience: humano leigo + agente de IA): se o projeto tem `AGENTS.md` ou `docs/`, atualize o que ficou desatualizado — AGENTS.md, estrutura de pastas, regras de negócio, `docs/features/`, `docs/changelog.md`. Tom simples pro humano, caminhos/nomes reais pro técnico. Docs vão no mesmo commit, nunca "depois".
 - Agrupe arquivos por contexto lógico (banco / modelos / controllers / componentes / testes / docs / config) e gere um commit por grupo. Mensagem: `tipo: Mensagem` (verbo no presente, maiúscula inicial, sem ponto final; tipos `feat·fix·refactor·perf·docs·style·config`).
 - Commite via heredoc. Se hook falhar, corrija e crie **novo** commit. Nunca `--amend` nem `--no-verify`. Sinalize `console.log`/`debugger`/`print` esquecidos antes de commitar.
 
@@ -345,9 +345,26 @@ Falha por histórico divergente → `--force-with-lease` (nunca `--force` sozinh
 | Bloco de fixes pós-implementação / "maestro corrige" | Fase 4 |
 | Branch pronta pra publicar / "maestro publica" | Fase 5 |
 
+## Utilitários (inline)
+
+Acionados por nome ao longo das fases (`→ debugging`, `→ test-gate`). Estão aqui, não em skills avulsas.
+
+### Debugging
+Sempre que algo falha (teste vermelho, CI, crash, comportamento errado). **Ache a causa raiz, nunca trate o sintoma:**
+0. **Sinal de repro** — construa um jeito rápido, determinístico e isolado de reproduzir (teste que falha, `curl`, passos mínimos, query do estado). Não avance sem ele.
+1. **Observe** — comportamento exato (não "não funciona") vs. esperado, stack trace completo, o que mudou recentemente. Leia o contexto, não só o diff.
+2. **Hipóteses** — liste ≥3 causas por probabilidade + o que confirmaria cada uma (dado inválido, estado inconsistente, race, dependência externa, lógica, ambiente).
+3. **Teste uma por vez** — minimize ao caso mais simples; `git bisect` se não sabe em qual commit surgiu.
+4. **Corrija a causa** + teste de regressão (falha sem o fix, passa com ele); confira que não quebra adjacentes.
+
+Após 3 hipóteses sem resultado → **pare e reporte o que descartou** (você pode ter contexto que eu não tenho). Remova logs de debug antes de commitar.
+
+### Test-gate
+Quando os arquivos alterados **não têm teste**, antes de liberar o commit: escreva testes do **comportamento público** — happy path, sad path (input inválido / recurso ausente), edge cases (vazio/nulo/zero, não-autenticado), **regressão** dos adjacentes, e **segurança** se tocou auth/dados/upload/controle de acesso. Um teste por comportamento, testando a interface (o quê), não a implementação (o como). Rode; **não commita até verde** (vermelho → Debugging). Sem infra de teste no projeto → ofereça configurar.
+
 ## Regras
 
-- **Caveman por padrão:** narração mecânica mínima (uma linha ou nada); investigação (conflito, git, debug) é **silenciosa**, só o resultado em 1 linha; fala completa só na Fase 1 e quando há uma **decisão/trade-off pra você escolher** (ver skill `caveman`)
+- **Caveman por padrão:** narração mecânica mínima (uma linha ou nada); investigação (conflito, git, debug) é **silenciosa**, só o resultado em 1 linha; fala completa só na Fase 1 e quando há uma **decisão/trade-off pra você escolher** (estilo caveman descrito em Comunicação)
 - **Cadência de confirmação:** confirme **uma vez por fase** (no entregável — design na Fase 1; **plano+branch+execução na Fase 2: um gate só — aprovar o plano cria a branch e dispara a Fase 3**; homologação na Fase 3; bloco de fixes na Fase 4; publicar na Fase 5) e só nos **stops irreversíveis**. Não pare a cada seção ou micro-passo: agrupe e siga. Stops inegociáveis (sempre peça ok): merge na main, deploy em produção, escolher quais correções aplicar, backup antes de migration destrutiva. Criar branch e push já estão cobertos pela aprovação do plano/gate — não re-pergunte
 - Nunca implemente durante Fase 1 ou 2; nunca proponha código durante a Fase 1
 - Se task for ambígua, para e pergunta antes de lançar o subagente
