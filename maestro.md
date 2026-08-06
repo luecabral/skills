@@ -13,10 +13,10 @@ Ciclo completo de uma feature, do brainstorming ao deploy, em 5 fases. **Este ar
 
 **NÃO ESCREVA COMENTÁRIOS.** Regra dura, vale pro líder e pra todo subagente: **zero comentário em código novo ou alterado.** A premissa é que comentário é sintoma — se o código precisa de explicação, o código está mal escrito. Em vez de comentar: nomes explícitos (variável/função/classe que diz o que é), funções curtas com uma responsabilidade, early return em vez de aninhamento, extrair condição complexa pra função com nome. Isso inclui comentário de seção, `TODO`, `FIXME`, comentário que repete o código e comentário "explicando o porquê" — o porquê vai na mensagem de commit, no corpo do PR ou nos docs, nunca no código. **Únicas exceções:** docstring/comentário de API pública quando a linguagem ou o projeto já exige (JSDoc em lib pública, docstring Python em módulo exportado), diretiva que a ferramenta lê (`# frozen_string_literal`, `eslint-disable`, `@ts-expect-error`, pragma de tipo) e comentário que **já existia** e você não tocou. Se o projeto tem convenção própria de comentário no `AGENTS.md`/`CLAUDE.md`, ela ganha — informe em 1 linha e siga.
 
-**Modelos (obrigatório):** o desenvolvimento roda sempre em **ultracode**, e o ultracode orquestra os subagentes. Regra única de escolha de modelo: **`model: "opus"` pra tarefa complexa, `model: "sonnet"` pra tarefa simples.**
+**Modelos (obrigatório):** o desenvolvimento roda sempre em **ultracode**, e o ultracode orquestra os subagentes. Regra única de escolha de modelo: **`model: "opus"` pra tarefa complexa, `model: "sonnet"` pra tarefa simples e mediana.**
 - **Complexa (Opus):** lógica não-trivial, arquitetura, migration/schema, refactor amplo, qualquer coisa que toque auth/pagamento/dados sensíveis, revisão de Segurança e o cético do nível ALTO (Fase 5), debugging que já falhou uma vez.
-- **Simples (Sonnet):** CRUD direto, texto/label/estilo, rename, ajuste de config, docs, painel de lentes da Fase 1, review de UX/Docs, completeness critic.
-- Em dúvida entre os dois → **Opus**. O líder classifica a task na hora de spawnar e não pergunta.
+- **Simples e mediana (Sonnet):** CRUD direto, texto/label/estilo, rename, ajuste de config, docs, painel de lentes da Fase 1, review de UX/Docs, completeness critic — e tudo que não é claramente complexo.
+- O líder classifica a task na hora de spawnar e não pergunta.
 
 **Comunicação (economia de token — apelido "caveman").** Objetivo: **mínimo de token por resposta, sem perder precisão.** Não dependa de "saber o que caveman significa" — as regras estão escritas aqui:
 - **Regra de ouro:** na tela vão só **decisões (pra você escolher)** e **entregáveis** (plano, roteiro, relatório, PR, URL). Processo, investigação e progresso de subagente ficam de fora (máx. 1 linha de status). Dúvida: é decisão/entregável? mostra. É *como cheguei lá*? calo.
@@ -129,12 +129,12 @@ Plano salvo → **siga direto pra Fase 3** (a execução já foi aprovada no Pas
 
 ## Fase 3 — Execute
 
-O líder orquestra; quem escreve código são os subagentes (**Opus** na task complexa, **Sonnet** na simples — ver Modelos).
+O líder orquestra; quem escreve código são os subagentes (**Opus** na task complexa, **Sonnet** na simples e mediana — ver Modelos).
 
 1. Lê `.plans/plan.md`, reconstrói o grafo de dependências. **Retomada:** se a sessão anterior parou no meio, as tasks já feitas estão marcadas (`[x]`) — pegue só as não-marcadas, descarte worktrees órfãs de tasks concluídas e recomece pelo primeiro grupo com task pendente.
 2. **Feature pequena (≤2 tasks sem interdependência de schema):** worktree + paralelismo custa mais do que rende. *Pergunte* se prefere executar inline (sem worktree), mantendo commit + validação. Default continua worktree — só pula se o usuário topar.
 3. Para cada grupo paralelo em ordem topológica:
-   - Lança um `Agent(isolation: "worktree", ...)` por task no grupo, **classificando o modelo pela complexidade da task** (`opus` complexa / `sonnet` simples — em dúvida, `opus`). Diga no prompt que a regra de **zero comentário** é obrigatória.
+   - Lança um `Agent(isolation: "worktree", ...)` por task no grupo, **classificando o modelo pela complexidade da task** (`opus` complexa / `sonnet` simples e mediana). Diga no prompt que a regra de **zero comentário** é obrigatória.
    - Cada subagente segue o **ciclo de implementação + commit** abaixo e **retorna estruturado** (schema): `{task_id, status: done|paused|failed, commits_range: "base..HEAD", arquivos_tocados, motivo}`. Acaba o palpite de "o que mergear".
    - Aguarda todos do grupo concluírem. **Antes de mergear, cheque colisão:** cruze os `arquivos_tocados` (confirme com `git diff --name-only` do `commits_range` — subagente pode esquecer de listar arquivo gerado/lockfile) entre as tasks; se duas tocaram o mesmo arquivo, mergeie uma e re-rode/ajuste a outra. Faz merge de cada worktree pelo `commits_range` devolvido (ver REFERENCE.md). Conflito: pausa, descreve, aguarda resolução humana.
 4. Atualiza os checkboxes no `.plans/plan.md` conforme as tasks completam.
@@ -198,7 +198,7 @@ Receba (ou peça) o bloco: lista livre do que ajustar — bugs da homologação,
 Primeiro junte itens que compartilham **causa provável** — um fix pra causa, não um subagente por sintoma (vários sintomas reportados costumam ter a mesma raiz). Depois mapeie por arquivo: **arquivos diferentes → paralelo; mesmo arquivo → sequencial** (um subagente por vez, senão conflito garantido). Apresente o plano de fixes em 1-2 linhas.
 
 ### Passo 4 — Orquestrar os subagentes
-Um `Agent` por fix (ou por grupo de mesmo-arquivo), **nunca inline**, com o modelo pela complexidade do fix (`opus` complexo / `sonnet` simples). **Cada subagente classifica o fix e escolhe o caminho:**
+Um `Agent` por fix (ou por grupo de mesmo-arquivo), **nunca inline**, com o modelo pela complexidade do fix (`opus` complexo / `sonnet` simples e mediano). **Cada subagente classifica o fix e escolhe o caminho:**
 - **Comportamento novo** (a feature ganhou algo que não existia) → **ciclo de implementação completo** da Fase 3 (implementa → verifica na mão → limpa). É desenvolvimento, não conserto. Costuma ser complexo → `opus`.
 - **Bug** (comportamento existe mas está errado) → primeiro **reproduza o bug na mão** (passos exatos, `curl`, estado do dado) pra ter certeza do sintoma, corrija a causa, e reexercite confirmando que o sintoma sumiu **e** que o fluxo adjacente continua ok.
 - **Ajuste trivial sem mudar comportamento** (texto, estilo, rename) → aplica e confere visualmente. `sonnet`.
@@ -273,7 +273,7 @@ Relatório **único** — review + critic + checks:
 Bloqueios: fluxo quebrado ou suíte pré-existente vermelha → `debugging`, não prossegue até resolver. Comentário no diff → remove, não pergunta. Vulnerabilidade de qualquer severidade → bloqueia (lista pacotes+CVE, roda `npm audit fix` não-breaking; remanescentes → sugere `--force` breaking, upgrade manual ou override). Debug code → pergunta remover ou seguir.
 
 #### Passo 4 — Aplicar correções escolhidas
-As que o usuário escolher (🚨 + ⚠️ aceitas, **incl. docs**) → subagentes `Agent`, modelo pela complexidade da correção (`opus` complexa / `sonnet` simples), **nunca inline**. Arquivos diferentes → paralelo; mesmo arquivo → um subagente sequencial; uma só → ainda via subagente. Depois, a sessão principal **reexercita os fluxos tocados via `verify`** (quebrou → `debugging`) e re-roda a varredura de comentário. Correções entram no commit antes do push.
+As que o usuário escolher (🚨 + ⚠️ aceitas, **incl. docs**) → subagentes `Agent`, modelo pela complexidade da correção (`opus` complexa / `sonnet` simples e mediana), **nunca inline**. Arquivos diferentes → paralelo; mesmo arquivo → um subagente sequencial; uma só → ainda via subagente. Depois, a sessão principal **reexercita os fluxos tocados via `verify`** (quebrou → `debugging`) e re-roda a varredura de comentário. Correções entram no commit antes do push.
 
 #### Passo 5 — Registrar sugestões não atendidas
 Para cada ⚠️ que o usuário **não** aplicou: procure `fixes-futuros.md`/`FIXES-FUTUROS.md`/`TODO.md` (`find . -maxdepth 3 ...`). Se achar → append `## <data>` + descrição. Se não → crie `docs/fixes-futuros.md` (ou na raiz). Informe o arquivo. Se aplicou todas ou não havia, pule.
@@ -395,7 +395,7 @@ Após 3 hipóteses sem resultado → **pare e reporte o que descartou** (você p
 - Se task for ambígua, para e pergunta antes de lançar o subagente
 - **Sem teste automatizado, nunca:** não escreva teste, não crie arquivo de teste, não altere suíte, não adicione dependência de teste, não faça TDD. A rede é `verify` + roteiro de homologação manual. Suíte que **já existe** no repo: roda como gate na Fase 5 pra não publicar quebrando, mas não é mantida nem estendida pelo maestro
 - **Zero comentário em código:** nenhum comentário novo em código novo ou alterado — se precisa de comentário pra explicar, reescreva (nome melhor, função extraída, early return). Exceções: docstring de API pública que a linguagem/projeto exige, diretiva de ferramenta (`eslint-disable`, `frozen_string_literal`, `ts-expect-error`) e comentário pré-existente não tocado. Comentário adicionado no diff é 🚨 bloqueante na Fase 5. O "porquê" vai pro commit, PR ou docs
-- **Modelos:** desenvolvimento sempre em ultracode; **`model: "opus"` pra tarefa complexa, `model: "sonnet"` pra simples**, em dúvida Opus. Complexa: lógica não-trivial, arquitetura, migration, refactor amplo, auth/pagamento/dados sensíveis, revisão de Segurança, cético do ALTO, debugging. Simples: CRUD direto, texto/estilo, rename, config, docs, painel de lentes, review de UX/Docs, completeness critic
+- **Modelos:** desenvolvimento sempre em ultracode; **`model: "opus"` pra tarefa complexa, `model: "sonnet"` pra simples e mediana**. Complexa: lógica não-trivial, arquitetura, migration, refactor amplo, auth/pagamento/dados sensíveis, revisão de Segurança, cético do ALTO, debugging. Simples e mediana: CRUD direto, texto/estilo, rename, config, docs, painel de lentes, review de UX/Docs, completeness critic — e tudo que não é claramente complexo
 - **Backup só de produção e só em migration destrutiva** (drop/rename de coluna ou tabela, mudança de tipo, `NOT NULL` em coluna com dados, `--accept-data-loss`) — capturado no Passo 14, imediatamente antes da migration do deploy. Sem backup local nem de staging; migration aditiva não precisa
 - Fase 4 (fixes do seu bloco) e Bloco 1 da Fase 5 (review) rodam em paralelo; correções nunca inline (sempre via subagente, modelo pela complexidade); Bloco 2 da Fase 5 (push→deploy) é estritamente sequencial
 - **Profundidade escala por risco (nível TRIVIAL/MÉDIO/ALTO), nunca por capricho** — e o cético do nível ALTO **nunca rebaixa** achado de classe alta-confiança (SQLi/IDOR/secret/auth); Segurança roda sempre em Opus, mesmo em TRIVIAL
