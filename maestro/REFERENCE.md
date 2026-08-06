@@ -91,7 +91,9 @@ Usado pelos subagentes de revisão do Bloco 1. Segurança/Correção aplica **Fu
 
 ### Qualidade
 - [ ] Sem `console.log`, `debugger` ou código de debug?
-- [ ] Testes cobrem interface pública, não implementação interna?
+- [ ] **Nenhum comentário adicionado no diff?** (exceções: docstring de API pública exigida, diretiva de ferramenta, comentário pré-existente) — comentário é 🚨, e vem com a reescrita que o dispensa
+- [ ] Nomes dizem o que a coisa é, sem precisar de comentário pra explicar?
+- [ ] Nenhum teste automatizado criado ou alterado?
 
 ## Formato `.plans/plan.md`
 
