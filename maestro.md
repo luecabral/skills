@@ -7,20 +7,27 @@ diretamente em qualquer fase: "maestro fase 2", "maestro planeja", "maestro exec
 
 # Maestro
 
-Ciclo completo de uma feature, do brainstorming ao deploy, em 5 fases. **Este arquivo é autossuficiente:** todo o processo — fases, debugging, testes, docs e estilo de comunicação — está escrito aqui dentro, não invocado de outra skill. Editar qualquer skill avulsa **não muda** o comportamento do maestro. Só o `verify` (built-in do Claude Code) é externo.
+Ciclo completo de uma feature, do brainstorming ao deploy, em 5 fases. **Este arquivo é autossuficiente:** todo o processo — fases, debugging, docs e estilo de comunicação — está escrito aqui dentro, não invocado de outra skill. Editar qualquer skill avulsa **não muda** o comportamento do maestro. Só o `verify` (built-in do Claude Code) é externo.
 
-**Modelos (obrigatório):** o líder (orquestra todas as fases e gerencia os subagentes) roda em **Opus 4.8 High**. **Default de todo subagente: `model: "sonnet"` Médio.** Opus só em três lugares: o líder, a **revisão de Segurança** (Fase 5) e o **cético do nível ALTO** (Fase 5). Qualquer spawn novo nasce Sonnet Médio salvo essas exceções.
+**Sem testes automatizados.** O maestro **não escreve teste, não roda suíte, não faz TDD**. A rede de segurança é o **`verify`** (sobe o app e observa o comportamento real) + o **roteiro de homologação manual** entregue ao usuário. Se um projeto já tem suíte e o CI a roda, o CI continua sendo gate (Passo 12) — mas o maestro não cria nem mantém teste.
+
+**NÃO ESCREVA COMENTÁRIOS.** Regra dura, vale pro líder e pra todo subagente: **zero comentário em código novo ou alterado.** A premissa é que comentário é sintoma — se o código precisa de explicação, o código está mal escrito. Em vez de comentar: nomes explícitos (variável/função/classe que diz o que é), funções curtas com uma responsabilidade, early return em vez de aninhamento, extrair condição complexa pra função com nome. Isso inclui comentário de seção, `TODO`, `FIXME`, comentário que repete o código e comentário "explicando o porquê" — o porquê vai na mensagem de commit, no corpo do PR ou nos docs, nunca no código. **Únicas exceções:** docstring/comentário de API pública quando a linguagem ou o projeto já exige (JSDoc em lib pública, docstring Python em módulo exportado), diretiva que a ferramenta lê (`# frozen_string_literal`, `eslint-disable`, `@ts-expect-error`, pragma de tipo) e comentário que **já existia** e você não tocou. Se o projeto tem convenção própria de comentário no `AGENTS.md`/`CLAUDE.md`, ela ganha — informe em 1 linha e siga.
+
+**Modelos (obrigatório):** o desenvolvimento roda sempre em **ultracode**, e o ultracode orquestra os subagentes. Regra única de escolha de modelo: **`model: "opus"` pra tarefa complexa, `model: "sonnet"` pra tarefa simples.**
+- **Complexa (Opus):** lógica não-trivial, arquitetura, migration/schema, refactor amplo, qualquer coisa que toque auth/pagamento/dados sensíveis, revisão de Segurança e o cético do nível ALTO (Fase 5), debugging que já falhou uma vez.
+- **Simples (Sonnet):** CRUD direto, texto/label/estilo, rename, ajuste de config, docs, painel de lentes da Fase 1, review de UX/Docs, completeness critic.
+- Em dúvida entre os dois → **Opus**. O líder classifica a task na hora de spawnar e não pergunta.
 
 **Comunicação (economia de token — apelido "caveman").** Objetivo: **mínimo de token por resposta, sem perder precisão.** Não dependa de "saber o que caveman significa" — as regras estão escritas aqui:
 - **Regra de ouro:** na tela vão só **decisões (pra você escolher)** e **entregáveis** (plano, roteiro, relatório, PR, URL). Processo, investigação e progresso de subagente ficam de fora (máx. 1 linha de status). Dúvida: é decisão/entregável? mostra. É *como cheguei lá*? calo.
 - **Estilo comprimido:** corta artigos, preâmbulos, confirmações vazias ("ótima pergunta!") e hedging ("provavelmente/talvez"); usa fragmentos quando o sujeito é óbvio e setas pra causalidade ("query lenta → sem índice"); mantém exatos termos técnicos, números e nomes de arquivo. Sem resumir o que acabou de fazer; **não narre cada passo mecânico** (status mecânico = 1 linha ou nada — o painel de tarefas e os tool calls falam por você).
-- **Investigação é silenciosa:** resolver conflito de merge, achar EOL/CRLF, rodar git, debugar passo a passo — no raciocínio interno; reporta só o **resultado em 1 linha** (ex: "Conflito em `_form.html.erb` resolvido: minha versão + 2 mudanças de origin/main; testes verdes").
+- **Investigação é silenciosa:** resolver conflito de merge, achar EOL/CRLF, rodar git, debugar passo a passo — no raciocínio interno; reporta só o **resultado em 1 linha** (ex: "Conflito em `_form.html.erb` resolvido: minha versão + 2 mudanças de origin/main; fluxo revalidado").
 - **Uma investigação = UMA saída:** por mais voltas, becos sem saída e auto-correções ("errei a direção", "comando bugou"), **não** narre uma linha por tool call — os chips já mostram que está trabalhando. Vai pra tela só a conclusão ou o ponto de decisão.
 - **Exceções (aí fale completo):** Fase 1 (explorar/desenhar) e quando há uma **decisão/trade-off pra você escolher** (alternativas, achados de review pra aprovar, bug com mais de um caminho). **Investigar ≠ decidir.**
 
 **Contextualização de termos técnicos (só nos momentos de fala completa — Fase 1, fixes e gates dirigidos a você):** inclua uma explicação simples entre parênteses. Ex: "migration (script que cria/altera a estrutura do banco)", "branch (ramificação isolada do código)". Que qualquer pessoa entenda sem pesquisar. Fora desses momentos, caveman.
 
-**Orquestração (nativa, via Agent tool):** todo o paralelismo e a verificação do maestro são feitos com subagentes `Agent` — **não** dependem do Workflow tool nem de digitar "ultracode". Subagentes que reportam dado devolvem **estruturado (schema)**, não prosa, pra você operar sobre o resultado sem reparsear. **Orquestrar é silencioso (todas as fases):** ao disparar subagentes (painel da Fase 1, dev da Fase 3, fixes da Fase 4, review da Fase 5), **não narre cada spawn/retorno** ("disparando X… rodando testes… mergeando…") — deixe o painel de tarefas mostrar o progresso e apresente só o **resultado consolidado** do grupo/lote em poucas linhas.
+**Orquestração (via subagentes):** todo o paralelismo e a verificação do maestro são feitos com subagentes — o ultracode cuida disso. Subagentes que reportam dado devolvem **estruturado (schema)**, não prosa, pra você operar sobre o resultado sem reparsear. **Orquestrar é silencioso (todas as fases):** ao disparar subagentes (painel da Fase 1, dev da Fase 3, fixes da Fase 4, review da Fase 5), **não narre cada spawn/retorno** ("disparando X… mergeando…") — deixe o painel de tarefas mostrar o progresso e apresente só o **resultado consolidado** do grupo/lote em poucas linhas.
 
 **Profundidade por risco (escala o esforço, nunca a segurança):** classifique a feature por sinais que você já tem — **TRIVIAL** (≤2 tasks, sem 🔴, sem migration) / **ALTO** (tem 🔴, migration destrutiva, ou toca auth/pagamento/dados sensíveis) / **MÉDIO** (o resto). O nível só dimensiona **quantos** subagentes você dispara (painel da Fase 1, pool de review da Fase 5) — **nunca rebaixa Segurança, nem pula gate ou backup**. É derivado: não pergunte, informe em 1 linha e grave `nivel:` no topo do `.plans/plan.md`.
 
@@ -32,7 +39,7 @@ Refinamento da ideia antes de qualquer linha de código.
 
 **Quando NÃO usar (encerre e oriente):** usuário já tem plano claro → pule pra Fase 2; está debugando algo existente → `debugging`; mudança pontual e trivial (ex: "muda a cor do botão") → faça direto.
 
-**Contexto do projeto (bootstrap, 1ª vez):** se o projeto não tem `AGENTS.md`/`CLAUDE.md`/`README` descrevendo build, testes, arquitetura e convenções, **ofereça criar um antes de desenhar** — detecte comandos de build/test, a stack e os padrões do código. Esse contexto alimenta as Fases 2-5 e evita design que ignora o que já existe.
+**Contexto do projeto (bootstrap, 1ª vez):** se o projeto não tem `AGENTS.md`/`CLAUDE.md`/`README` descrevendo build, arquitetura e convenções, **ofereça criar um antes de desenhar** — detecte como o app sobe/builda, a stack e os padrões do código. Esse contexto alimenta as Fases 2-5 e evita design que ignora o que já existe.
 
 ### Passo 1 — Entender o problema real
 Antes de perguntar, mapeie suposições ocultas e pontos cegos. Pergunte **uma por vez**, em ordem de dependência, e **ofereça uma resposta recomendada** junto:
@@ -55,7 +62,7 @@ Se for algo que produtos conhecidos já resolvem (login social, carrinho, chat, 
 Com referência → use como âncora nos fluxos do Passo 3. Sem referência, mas a feature pede embasamento (decisão técnica nova, padrão de mercado, comparar abordagens) → faça uma **pesquisa rápida**: várias fontes em paralelo, **verifique cada afirmação contra a fonte** (descarte o não confirmado) e **cite** de onde veio cada conclusão. Sem necessidade de pesquisa → siga boas práticas e diga em que se baseia. Pule pra features sem paralelo óbvio.
 
 ### Passo 2 — Explorar alternativas (painel de lentes)
-Não invente as abordagens sozinho (single-agent ancora na 1ª ideia). **TRIVIAL → pule, faça você mesmo** (comportamento antigo). Senão dispare **em paralelo** N subagentes read-only `Agent(model: "sonnet")` **Médio** (default 3), cada um com uma **lente** distinta e o mesmo briefing (problema, critério de sucesso, restrições, 🔴 do Passo 1.5 se houve, benchmark): (1) menor superfície / mais simples; (2) mais robusto e seguro; (3) mais rápido de entregar. Cada um devolve via schema: abordagem, vantagem, risco principal, custo. Você (o juiz): se rodou o Passo 1.5, descarte quem deixa algum 🔴 sem cobertura; recomende a vencedora e **liste o que vale puxar das outras**; lentes que convergem → funda e diga. Apresente os finalistas + a recomendação e aguarde o usuário escolher.
+Não invente as abordagens sozinho (single-agent ancora na 1ª ideia). **TRIVIAL → pule, faça você mesmo** (comportamento antigo). Senão dispare **em paralelo** N subagentes read-only `Agent(model: "sonnet")` (default 3 — lente é tarefa simples; feature que toca auth/pagamento/dados sensíveis → `model: "opus"`), cada um com uma **lente** distinta e o mesmo briefing (problema, critério de sucesso, restrições, 🔴 do Passo 1.5 se houve, benchmark): (1) menor superfície / mais simples; (2) mais robusto e seguro; (3) mais rápido de entregar. Cada um devolve via schema: abordagem, vantagem, risco principal, custo. Você (o juiz): se rodou o Passo 1.5, descarte quem deixa algum 🔴 sem cobertura; recomende a vencedora e **liste o que vale puxar das outras**; lentes que convergem → funda e diga. Apresente os finalistas + a recomendação e aguarde o usuário escolher.
 
 ### Passo 3 — Apresentar o design (detalhado)
 Com a abordagem escolhida, descreva o design **completo de uma vez** (não seção por seção, sem parar entre cada item). **Descreva como a feature vai se comportar de verdade:**
@@ -81,7 +88,7 @@ Plano de implementação + criação de branch antes de escrever código. Se vie
 
 ### Passo 1 — Quebrar em tasks
 Cada task deve:
-- Ser completável em 2–5 min; resultar em estado testável; max ~600 linhas (quebre se maior — calibre com `wc -l`).
+- Ser completável em 2–5 min; resultar em estado **verificável na mão** (dá pra abrir/rodar e ver funcionando); max ~600 linhas (quebre se maior — calibre com `wc -l`).
 - Verbo no infinitivo ("Criar X", "Conectar Y") + localização exata dos arquivos.
 - Ter `em_resumo:` — **explicação em uma linha para não-techs**, sem jargão, do que entrega (ex: "permite recuperar a senha pelo e-mail").
 
@@ -122,44 +129,48 @@ Plano salvo → **siga direto pra Fase 3** (a execução já foi aprovada no Pas
 
 ## Fase 3 — Execute
 
-O líder (este agente, em **Opus 4.8 High**) orquestra; quem escreve código são os subagentes em **Sonnet 4.6 Médio**.
+O líder orquestra; quem escreve código são os subagentes (**Opus** na task complexa, **Sonnet** na simples — ver Modelos).
 
 1. Lê `.plans/plan.md`, reconstrói o grafo de dependências. **Retomada:** se a sessão anterior parou no meio, as tasks já feitas estão marcadas (`[x]`) — pegue só as não-marcadas, descarte worktrees órfãs de tasks concluídas e recomece pelo primeiro grupo com task pendente.
-2. **Feature pequena (≤2 tasks sem interdependência de schema):** worktree + paralelismo custa mais do que rende. *Pergunte* se prefere executar inline (sem worktree), mantendo TDD + commit + validação. Default continua worktree — só pula se o usuário topar.
+2. **Feature pequena (≤2 tasks sem interdependência de schema):** worktree + paralelismo custa mais do que rende. *Pergunte* se prefere executar inline (sem worktree), mantendo commit + validação. Default continua worktree — só pula se o usuário topar.
 3. Para cada grupo paralelo em ordem topológica:
-   - Lança um `Agent(isolation: "worktree", model: "sonnet")` por task no grupo — **sempre `model: "sonnet"`**, esforço Médio (instrua no prompt). O líder nunca delega dev pra Opus.
-   - Cada subagente segue o **ciclo TDD + commit** abaixo e **retorna estruturado** (schema): `{task_id, status: done|paused|failed, commits_range: "base..HEAD", arquivos_tocados, motivo}`. Acaba o palpite de "o que mergear".
+   - Lança um `Agent(isolation: "worktree", ...)` por task no grupo, **classificando o modelo pela complexidade da task** (`opus` complexa / `sonnet` simples — em dúvida, `opus`). Diga no prompt que a regra de **zero comentário** é obrigatória.
+   - Cada subagente segue o **ciclo de implementação + commit** abaixo e **retorna estruturado** (schema): `{task_id, status: done|paused|failed, commits_range: "base..HEAD", arquivos_tocados, motivo}`. Acaba o palpite de "o que mergear".
    - Aguarda todos do grupo concluírem. **Antes de mergear, cheque colisão:** cruze os `arquivos_tocados` (confirme com `git diff --name-only` do `commits_range` — subagente pode esquecer de listar arquivo gerado/lockfile) entre as tasks; se duas tocaram o mesmo arquivo, mergeie uma e re-rode/ajuste a outra. Faz merge de cada worktree pelo `commits_range` devolvido (ver REFERENCE.md). Conflito: pausa, descreve, aguarda resolução humana.
 4. Atualiza os checkboxes no `.plans/plan.md` conforme as tasks completam.
 
-### O que cada subagente faz (TDD + smart-commit, inline)
+### O que cada subagente faz (implementação + smart-commit, inline)
 
-**Passo 0 — Análise prévia.** Leia os arquivos que a task vai tocar. Aplique o **teste de deleção**: "Se eu deletasse esse módulo e reescrevesse quem o usa, o resultado seria pior ou equivalente?" Pior → módulo profundo, pode testar direto. Equivalente → módulo raso, refatore antes (cada passo deixando o código funcionando).
+**Passo 0 — Análise prévia.** Leia os arquivos que a task vai tocar. Aplique o **teste de deleção**: "Se eu deletasse esse módulo e reescrevesse quem o usa, o resultado seria pior ou equivalente?" Pior → módulo profundo, siga em cima dele. Equivalente → módulo raso, refatore antes (cada passo deixando o código funcionando).
 
-**Ciclo Red-Green-Refactor:**
-- 🔴 **RED** — escreva um teste que descreve o comportamento desejado. Rode e confirme que **falha** (valida que o teste é útil).
-- 🟢 **GREEN** — escreva o **mínimo** pra passar. Sem elegância, sem antecipação.
-- 🔵 **REFACTOR** — com o teste verde, remova duplicação, melhore nomes. Rode e confirme que continua verde.
-Repita por comportamento. Nunca escreva produção sem um teste falhando antes; se o teste é difícil de escrever, a interface está errada — redesenhe.
+**Ciclo de implementação (um comportamento por vez):**
+- 🟢 **IMPLEMENTA** — escreva o **mínimo** que entrega o comportamento. Sem antecipação, sem generalizar pra caso que não existe.
+- 👀 **VERIFICA NA MÃO** — exercite o comportamento de verdade: abra a tela, chame o endpoint (`curl`), rode o comando, consulte o dado. Confirme o caminho feliz **e** o de erro do design da Fase 1. Não avance sem ter visto funcionar.
+- 🔵 **LIMPA** — remova duplicação, melhore nomes, corte aninhamento. Reexercite pra confirmar que continua funcionando.
+
+Repita por comportamento, sempre deixando o código rodando. **Sem teste automatizado em nenhum momento** — não crie arquivo de teste, não altere suíte, não adicione dependência de teste. Se algo é difícil de exercitar na mão, a interface está errada — redesenhe.
+
+**Zero comentário** (ver regra no topo): o código sai autoexplicativo por nome e estrutura. Se você sentiu vontade de comentar, extraia uma função com o nome do que o comentário diria.
 
 **Commit (smart-commit, inline):**
-- Garanta os testes verdes (`npm test` / `npx vitest run` / `pytest` / `bundle exec rspec`). Se não houver testes pros arquivos → `test-gate`. Se falhar → `debugging`. Não commite até verde.
+- Antes de commitar, confirme que o comportamento da task funciona de verdade (o 👀 do ciclo). Quebrado → `debugging`. Não commite comportamento que você não viu rodar.
+- **Varredura de comentário:** rode `git diff` do seu próprio trabalho e confirme que **nenhuma linha adicionada é comentário** (fora as exceções do topo). Achou → remova e melhore o código no lugar. Não commite com comentário novo.
 - **Auto-check de segurança:** se a task tocou auth / dados / input de usuário / query / upload, releia o que mexeu contra os vetores do Passo 1.5 (IDOR, injection, SSRF, escopo de autorização, etc.) **antes de commitar** — pega o problema na fonte, não só na Fase 5.
 - Verifique docs (dual-audience: humano leigo + agente de IA): se o projeto tem `AGENTS.md` ou `docs/`, atualize o que ficou desatualizado — AGENTS.md, estrutura de pastas, regras de negócio, `docs/features/`, `docs/changelog.md`. Tom simples pro humano, caminhos/nomes reais pro técnico. Docs vão no mesmo commit, nunca "depois".
-- Agrupe arquivos por contexto lógico (banco / modelos / controllers / componentes / testes / docs / config) e gere um commit por grupo. Mensagem: `tipo: Mensagem` (verbo no presente, maiúscula inicial, sem ponto final; tipos `feat·fix·refactor·perf·docs·style·config`).
+- Agrupe arquivos por contexto lógico (banco / modelos / controllers / componentes / docs / config) e gere um commit por grupo. Mensagem: `tipo: Mensagem` (verbo no presente, maiúscula inicial, sem ponto final; tipos `feat·fix·refactor·perf·docs·style·config`).
 - Commite via heredoc. Se hook falhar, corrija e crie **novo** commit. Nunca `--amend` nem `--no-verify`. Sinalize `console.log`/`debugger`/`print` esquecidos antes de commitar.
 
 ### Validação (fim da Fase 3, antes da homologação do usuário)
-Antes do relatório final, o líder valida o conjunto:
-- Roda a suíte de testes completa do projeto.
-- Invoca `verify` (Verify do Claude) pra **homologar todos os fluxos impactados** — não só os testes, mas o comportamento real de cada fluxo que a feature tocou (feliz + alternativos do design da Fase 1). O `verify` sobe o app e observa de verdade.
-- **Fallback (só quando o app genuinamente não sobe — lib pura, CLI, cron sem UI):** pule o `verify` e cubra com a suíte completa + o roteiro manual abaixo, anotando que a homologação foi por testes, não por observação. Se dá pra subir, o `verify` é obrigatório.
+Antes do relatório final, o líder valida o conjunto. **Sem suíte de testes — a validação é observação do comportamento real:**
+- Invoca `verify` (Verify do Claude) pra **homologar todos os fluxos impactados** — o comportamento real de cada fluxo que a feature tocou (feliz + alternativos do design da Fase 1). O `verify` sobe o app e observa de verdade. Com o TDD fora, **o `verify` é a rede de segurança principal — nunca pule se o app sobe.**
+- **Fallback (só quando o app genuinamente não sobe — lib pura, CLI, cron sem UI):** exercite cada fluxo na mão (chamada direta, `curl`, comando no console, query do estado) e registre o que observou em 1 linha por fluxo.
+- **Varredura de comentário no conjunto:** `git diff origin/main...HEAD` e confirme zero comentário adicionado (fora as exceções do topo). Achou → limpe antes de anunciar.
 - Se algum fluxo falhar → `debugging`, corrige e revalida antes de seguir.
 
-### Roteiro de teste manual (entregue ao anunciar o fim do desenvolvimento)
-Com a validação verde, gere um **roteiro de teste manual** pro usuário homologar com as próprias mãos antes de publicar. Liste cada fluxo afetado (feliz + alternativos do design da Fase 1) como passos executáveis por quem **não** escreveu o código — o que abrir, o que clicar, o resultado exato esperado em cada etapa. Inclua os estados de borda (erro, vazio, cancelamento) e a checagem de regressão dos fluxos adjacentes. Apresente esse roteiro junto do anúncio de que o desenvolvimento acabou.
+### Roteiro de homologação manual (entregue ao anunciar o fim do desenvolvimento)
+Com a validação verde, gere um **roteiro de homologação manual** pro usuário conferir com as próprias mãos antes de publicar. Sem suíte automatizada, esse roteiro é o principal registro do que foi verificado — seja específico e completo. Liste cada fluxo afetado (feliz + alternativos do design da Fase 1) como passos executáveis por quem **não** escreveu o código — o que abrir, o que clicar, o resultado exato esperado em cada etapa. Inclua os estados de borda (erro, vazio, cancelamento) e a checagem de regressão dos fluxos adjacentes. Apresente esse roteiro junto do anúncio de que o desenvolvimento acabou.
 
-**Proteções:** máx. 2 ciclos TDD por task antes de pausar; máx. 3 falhas consecutivas para e reporta.
+**Proteções:** máx. 2 ciclos de implementação por task antes de pausar; máx. 3 falhas consecutivas para e reporta.
 
 **Gate:** "Desenvolvimento concluído e homologado pelo `verify`, mergeado na branch. Acima está o roteiro pra você homologar manualmente. **Achou o que ajustar? Me manda o bloco de fixes que eu aplico (Fase 4).** Sem fixes → publicar (Fase 5)."
 Se não → encerra na branch, pronta pra Fase 4 (fixes) ou Fase 5 (publish) quando você quiser.
@@ -170,7 +181,7 @@ Se não → encerra na branch, pronta pra Fase 4 (fixes) ou Fase 5 (publish) qua
 
 Aplicação orquestrada de um **bloco de fixes** após a implementação da Fase 3. Entra após a homologação (você testou pelo roteiro da Fase 3 e achou ajustes), ou direto via `maestro fase 4` / `maestro corrige`. **Não** é review automático (isso é a Fase 5) — aqui **você manda o que corrigir e eu orquestro os subagentes**.
 
-**Quando NÃO usar — fix único e pequeno:** não precisa de "maestro corrige" nem da fase inteira. Só diga o que ajustar; eu corrijo **direto (inline)**, garanto teste verde e sigo. A Fase 4 é pra **bloco** — vários fixes juntos, ou algo que valha paralelizar em subagentes.
+**Quando NÃO usar — fix único e pequeno:** não precisa de "maestro corrige" nem da fase inteira. Só diga o que ajustar; eu corrijo **direto (inline)**, confirmo o comportamento na mão e sigo. A Fase 4 é pra **bloco** — vários fixes juntos, ou algo que valha paralelizar em subagentes.
 
 ### Passo 1 — Receber o bloco de fixes
 Receba (ou peça) o bloco: lista livre do que ajustar — bugs da homologação, ajustes pontuais, pedidos de mudança. Para cada item, identifique o(s) **arquivo(s) alvo** (pergunte só se não der pra inferir do código). Sem bloco → pergunte qual é.
@@ -181,21 +192,21 @@ Receba (ou peça) o bloco: lista livre do que ajustar — bugs da homologação,
 - **Guard de escopo:** se um "fix" é grande ou é **feature** de verdade, **não force na Fase 4** — proponha voltar pro Plan (Fase 1/2) em vez de cramar como conserto.
 
 ### Passo 2 — Commitar pendências
-`git status --short`: se houver mudança não commitada, rode o fluxo de commit da Fase 3 (testes → debug → commit agrupado). Working tree limpo antes de orquestrar.
+`git status --short`: se houver mudança não commitada, rode o fluxo de commit da Fase 3 (verifica na mão → debug → commit agrupado). Working tree limpo antes de orquestrar.
 
 ### Passo 3 — Agrupar (causa-raiz, depois colisão)
 Primeiro junte itens que compartilham **causa provável** — um fix pra causa, não um subagente por sintoma (vários sintomas reportados costumam ter a mesma raiz). Depois mapeie por arquivo: **arquivos diferentes → paralelo; mesmo arquivo → sequencial** (um subagente por vez, senão conflito garantido). Apresente o plano de fixes em 1-2 linhas.
 
 ### Passo 4 — Orquestrar os subagentes
-Um `Agent(model: "sonnet")` Médio por fix (ou por grupo de mesmo-arquivo), **nunca inline**; o líder nunca delega fix pra Opus. **Cada subagente classifica o fix e escolhe o caminho:**
-- **Comportamento novo** (a feature ganhou algo que não existia) → **ciclo TDD completo** (RED→GREEN→REFACTOR, igual Fase 3). É desenvolvimento, não conserto.
-- **Bug** (comportamento existe mas está errado) → escreva primeiro um teste que **reproduz o bug** (falha), corrija até passar — vira teste de regressão.
-- **Ajuste trivial sem mudar comportamento** (texto, estilo, rename) → só aplica e mantém os testes verdes; sem teste novo.
+Um `Agent` por fix (ou por grupo de mesmo-arquivo), **nunca inline**, com o modelo pela complexidade do fix (`opus` complexo / `sonnet` simples). **Cada subagente classifica o fix e escolhe o caminho:**
+- **Comportamento novo** (a feature ganhou algo que não existia) → **ciclo de implementação completo** da Fase 3 (implementa → verifica na mão → limpa). É desenvolvimento, não conserto. Costuma ser complexo → `opus`.
+- **Bug** (comportamento existe mas está errado) → primeiro **reproduza o bug na mão** (passos exatos, `curl`, estado do dado) pra ter certeza do sintoma, corrija a causa, e reexercite confirmando que o sintoma sumiu **e** que o fluxo adjacente continua ok.
+- **Ajuste trivial sem mudar comportamento** (texto, estilo, rename) → aplica e confere visualmente. `sonnet`.
 
-Sem teste pros arquivos quando o caminho exige um → `test-gate`; falhou → `debugging`. **Retorna estruturado** `{fix, tipo, status, commits_range, arquivos_tocados}`. Paralelo entre arquivos diferentes; sequencial no mesmo arquivo.
+Nenhum caminho escreve teste. Falhou → `debugging`. **Zero comentário** e varredura do próprio `git diff` antes de commitar. **Retorna estruturado** `{fix, tipo, status, commits_range, arquivos_tocados}`. Paralelo entre arquivos diferentes; sequencial no mesmo arquivo.
 
 ### Passo 5 — Revalidar, confirmar e commitar
-Sessão principal **re-roda testes + regressão** (quebrou → `debugging`). **Confirme que o sintoma reportado sumiu** — não basta teste verde: o que você reportou agora se comporta como esperado (pra UI, via `verify`/roteiro do item). Commita as correções (smart-commit: agrupa por contexto, `tipo: Mensagem`, nunca `--amend`/`--no-verify`). Re-homologa só os fluxos que mudaram.
+Sessão principal **reexercita os fluxos tocados + os adjacentes** via `verify` ou na mão (quebrou → `debugging`). **Confirme que o sintoma reportado sumiu** — o que você reportou agora se comporta como esperado (pra UI, via `verify`/roteiro do item). Commita as correções (smart-commit: agrupa por contexto, `tipo: Mensagem`, nunca `--amend`/`--no-verify`). Re-homologa só os fluxos que mudaram.
 **Relatório honesto:** liste o que entrou e o que **não** deu (status `paused`/`failed`) com o motivo — nunca dropar um fix em silêncio.
 
 **Gate:** "Fixes aplicados e revalidados. Manda mais um bloco, ou publico agora (Fase 5)?"
@@ -215,7 +226,7 @@ Entra após a Fase 4, ou direto via `maestro fase 5` / `maestro publica` (mesmo 
 ### Bloco 1 — Review e correções
 
 #### Passo 1 — Preparar
-`git status --short`: se houver pendências, rode o fluxo de commit da Fase 3 (testes → debug → commit agrupado). Depois confirme que há commits novos:
+`git status --short`: se houver pendências, rode o fluxo de commit da Fase 3 (verifica na mão → debug → commit agrupado). Depois confirme que há commits novos:
 ```bash
 git branch --show-current
 git log origin/$(git branch --show-current)..HEAD --oneline 2>/dev/null || git log HEAD --oneline -5
@@ -225,12 +236,12 @@ Se for `main` ou não houver commits novos, informe e encerre.
 #### Passo 2 — Análise em paralelo
 Dispare **tudo no mesmo bloco**: subagentes read-only (só reportam) + checks mecânicos na sessão principal. Aguarde todos e consolide no Passo 3.
 
-**Subagentes de revisão (read-only, modelo fixo):**
-1. **Segurança/Correção** — `Agent(model: "opus")`, Opus 4.8 High. Aplica os blocos **Funcionalidade**, **Segurança** e **Qualidade** do checklist (REFERENCE.md) sobre `git diff origin/main...HEAD`. Devolve 🚨/⚠️. Protege contra bug indo pra prod — por isso o modelo forte.
-2. **UX** — `Agent(model: "sonnet")`, Sonnet 4.6 Médio. Aplica o bloco **UX** do checklist. Devolve 🚨/⚠️.
-3. **Documentação** — `Agent(model: "sonnet")`, Sonnet 4.6 Médio. Verifica se README, docs e comentários públicos refletem o diff. Lista o desatualizado/faltando — só reporta (update vem no Passo 4).
+**Subagentes de revisão (read-only):**
+1. **Segurança/Correção** — `Agent(model: "opus")`. Tarefa complexa por definição: protege contra bug indo pra prod, e sem suíte de testes é a principal checagem de correção. Aplica os blocos **Funcionalidade**, **Segurança** e **Qualidade** do checklist (REFERENCE.md) sobre `git diff origin/main...HEAD`. Devolve 🚨/⚠️.
+2. **UX** — `Agent(model: "sonnet")`. Aplica o bloco **UX** do checklist. Devolve 🚨/⚠️.
+3. **Documentação** — `Agent(model: "sonnet")`. Verifica se README e `docs/` refletem o diff. Lista o desatualizado/faltando — só reporta (update vem no Passo 4). **Não** pede comentário no código: o que precisaria de comentário vai pra doc ou pro corpo do PR.
 
-**Lente de limpeza (estilo simplify), dentro do revisor de Qualidade:** além de bug, sinalize **duplicação extraível** (reuso/DRY), **custo desnecessário** (eficiência) e **nível de abstração errado** (altitude — raso ou fundo demais). Entram como ⚠️ (qualidade), não bloqueiam.
+**Lente de limpeza (estilo simplify), dentro do revisor de Qualidade:** além de bug, sinalize **duplicação extraível** (reuso/DRY), **custo desnecessário** (eficiência) e **nível de abstração errado** (altitude — raso ou fundo demais). Entram como ⚠️ (qualidade), não bloqueiam. **Comentário adicionado no diff é exceção:** entra como 🚨 (ver check mecânico) junto da sugestão de reescrita que dispensa o comentário.
 
 **Profundidade pelo nível** (lê `nivel:` do plan.md; entrada direta sem plano = MÉDIO; **Segurança roda sempre em Opus, em qualquer nível**):
 - **TRIVIAL** → só checks mecânicos + Segurança; pula UX/Docs se o diff não toca view/template/`.css`/`.md`.
@@ -239,34 +250,30 @@ Dispare **tudo no mesmo bloco**: subagentes read-only (só reportam) + checks me
 
 **Checks mecânicos (sessão principal, mesmo bloco):**
 - **Código de debug:** busca no diff `console.log`, `debugger`, `print(`, `puts `, `p `, `pp `, `var_dump`, `dd(`.
-- **Testes:** `npm test` / `npx vitest run` / `pytest` / `bundle exec rspec`.
-- **Regressão:** mapeia specs dos arquivos alterados (diretos + adjacentes) e roda só eles:
+- **Comentário no diff (🚨 bloqueante):** lista as linhas **adicionadas** que são comentário e não caem nas exceções do topo (docstring de API pública exigida, diretiva de ferramenta, comentário pré-existente):
   ```bash
-  git diff origin/main...HEAD --name-only
-  # Ruby/RSpec:  app/x.rb -> spec/x_spec.rb
-  git diff origin/main...HEAD --name-only | sed 's|app/||; s|\.rb$|_spec.rb|' | xargs -I{} find spec -name "$(basename {})" 2>/dev/null
-  bundle exec rspec <specs>
-  # JS/Vitest:   src/x.ts -> x.test.ts / x.spec.ts  →  npx vitest run <arquivos>
-  # Python:      x.py     -> test_x.py / tests/test_x.py  →  pytest <arquivos>
+  git diff origin/main...HEAD -U0 | grep -E "^\+" | grep -E "^\+\s*(//|#|/\*|\*|<!--|--)" | grep -vE "(frozen_string_literal|eslint-|ts-expect-error|ts-ignore|prettier-|rubocop:|noqa|type:|pragma|#!/)"
   ```
-  Adapte o mapeamento ao framework do projeto. Sem specs → informe.
+  Saída vazia → ok. Saída com linhas → 🚨: cada uma volta como fix (remover o comentário e deixar o código autoexplicativo).
+- **Fluxos (substitui a suíte):** confirme via `verify` que os fluxos do design da Fase 1 e os adjacentes continuam se comportando como esperado. Sem suíte automatizada, **essa é a checagem de regressão** — não pule.
 - **Auditoria** (só npm): `npm audit 2>/dev/null || true`. Qualquer severidade conta.
+- **Suíte pré-existente (só se o projeto já tem uma):** se o repo tem testes que você não escreveu, rode o comando do projeto **só pra não publicar quebrando o que já existia**. Vermelho → 🚨. Não crie nem conserte teste pra fazer passar: se o teste velho cobre comportamento que a feature mudou de propósito, reporte e pergunte. Sem suíte no repo → pule em silêncio.
 
 #### Passo 3 — Consolidação e gates
-Antes de consolidar, **1 completeness critic** (`Agent(model: "sonnet")` Médio, read-only): "o review cobre todos os fluxos do design da Fase 1, as env vars novas (Passo 9) e cada 🔴 do threat modeling? o que falta?" — buracos viram itens do relatório.
+Antes de consolidar, **1 completeness critic** (`Agent(model: "sonnet")`, read-only): "o review cobre todos os fluxos do design da Fase 1, as env vars novas (Passo 9) e cada 🔴 do threat modeling? o que falta?" — buracos viram itens do relatório.
 
 Filtros antes do relatório:
-- **Verificação de falso-positivo (todo 🚨, não só no ALTO):** confirme cada achado contra o código real — a guarda/validação/teste que já existe pode invalidá-lo. Não confirmou → não é 🚨.
+- **Verificação de falso-positivo (todo 🚨, não só no ALTO):** confirme cada achado contra o código real — a guarda/validação que já existe pode invalidá-lo. Não confirmou → não é 🚨. **Comentário adicionado não passa por esse filtro** — é objetivo, o grep já provou.
 - **Pré-existente × introduzido:** achado que **já existia** no código tocado (não foi o diff que criou) vira ⚠️ "pré-existente" — registra, **não bloqueia**; bloqueante é só o que o diff introduziu.
 - **`REVIEW.md` do repo:** se existir, honre a calibração de severidade dele.
 Relatório **único** — review + critic + checks:
-- 🚨 BLOQUEANTE — falhas de teste/regressão, vulnerabilidades pendentes, achados críticos. Resolver antes de prosseguir.
+- 🚨 BLOQUEANTE — fluxo quebrado, comentário adicionado no diff, suíte pré-existente vermelha, vulnerabilidades pendentes, achados críticos. Resolver antes de prosseguir.
 - ⚠️ SUGESTÃO — melhorias de review/UX, docs desatualizadas. Pergunte o que aplicar agora.
 
-Bloqueios: teste/regressão vermelho → `debugging`, não prossegue até verde. Vulnerabilidade de qualquer severidade → bloqueia (lista pacotes+CVE, roda `npm audit fix` não-breaking; remanescentes → sugere `--force` breaking, upgrade manual ou override). Debug code → pergunta remover ou seguir.
+Bloqueios: fluxo quebrado ou suíte pré-existente vermelha → `debugging`, não prossegue até resolver. Comentário no diff → remove, não pergunta. Vulnerabilidade de qualquer severidade → bloqueia (lista pacotes+CVE, roda `npm audit fix` não-breaking; remanescentes → sugere `--force` breaking, upgrade manual ou override). Debug code → pergunta remover ou seguir.
 
 #### Passo 4 — Aplicar correções escolhidas
-As que o usuário escolher (🚨 + ⚠️ aceitas, **incl. docs**) → subagentes `Agent(model: "sonnet")`, Sonnet 4.6 Médio, **nunca inline**. Arquivos diferentes → paralelo; mesmo arquivo → um subagente sequencial; uma só → ainda via subagente. Depois, a sessão principal **re-roda testes + regressão** (quebrou → `debugging`). Correções entram no commit antes do push.
+As que o usuário escolher (🚨 + ⚠️ aceitas, **incl. docs**) → subagentes `Agent`, modelo pela complexidade da correção (`opus` complexa / `sonnet` simples), **nunca inline**. Arquivos diferentes → paralelo; mesmo arquivo → um subagente sequencial; uma só → ainda via subagente. Depois, a sessão principal **reexercita os fluxos tocados via `verify`** (quebrou → `debugging`) e re-roda a varredura de comentário. Correções entram no commit antes do push.
 
 #### Passo 5 — Registrar sugestões não atendidas
 Para cada ⚠️ que o usuário **não** aplicou: procure `fixes-futuros.md`/`FIXES-FUTUROS.md`/`TODO.md` (`find . -maxdepth 3 ...`). Se achar → append `## <data>` + descrição. Se não → crie `docs/fixes-futuros.md` (ou na raiz). Informe o arquivo. Se aplicou todas ou não havia, pule.
@@ -311,7 +318,7 @@ VAR_NAME=valor_exemplo   # descrição
 ### O que tem mais risco
 [onde um erro seria mais grave]
 
-### O que testar
+### O que homologar
 - [ ] [Fluxo]: passos e resultado esperado
 - [ ] Regressão: fluxos adjacentes
 ```
@@ -323,7 +330,7 @@ Crie o PR já como **draft** (editável) e exiba título + corpo — não bloque
 Exiba a URL.
 
 #### Passo 12 — Aguardar CI
-`gh pr checks --watch --fail-fast`. Os testes locais (Passo 2) cobrem só a máquina; o CI roda a suíte completa.
+`gh pr checks --watch --fail-fast`. Os checks locais (Passo 2) cobrem só a máquina; o CI é o gate do repo — se ele roda suíte, lint ou build, vale o que ele disser.
 - Todos verdes → exiba `gh pr checks` e siga.
 - Algum falhou → não encerre: `gh run list --branch "$(git branch --show-current)" --limit 1 --json databaseId,conclusion` + `gh run view <id> --log-failed`. Apresente o check vermelho, últimas ~50 linhas do log e o link. Acione `debugging` com o log. CI vermelho bloqueia encerramento.
 
@@ -368,20 +375,17 @@ Falha por histórico divergente → `--force-with-lease` (nunca `--force` sozinh
 
 ## Utilitários (inline)
 
-Acionados por nome ao longo das fases (`→ debugging`, `→ test-gate`). Estão aqui, não em skills avulsas.
+Acionados por nome ao longo das fases (`→ debugging`). Estão aqui, não em skills avulsas.
 
 ### Debugging
-Sempre que algo falha (teste vermelho, CI, crash, comportamento errado). **Ache a causa raiz, nunca trate o sintoma:**
-0. **Sinal de repro** — construa um jeito rápido, determinístico e isolado de reproduzir (teste que falha, `curl`, passos mínimos, query do estado). Não avance sem ele.
+Sempre que algo falha (CI, crash, comportamento errado). Use `model: "opus"` se delegar — debugging é tarefa complexa. **Ache a causa raiz, nunca trate o sintoma:**
+0. **Sinal de repro** — construa um jeito rápido, determinístico e isolado de reproduzir (`curl`, passos mínimos na UI, comando no console, query do estado). **Sem criar arquivo de teste** — repro é na mão. Não avance sem ele.
 1. **Observe** — comportamento exato (não "não funciona") vs. esperado, stack trace completo, o que mudou recentemente. Leia o contexto, não só o diff.
 2. **Hipóteses** — liste ≥3 causas por probabilidade + o que confirmaria cada uma (dado inválido, estado inconsistente, race, dependência externa, lógica, ambiente).
-3. **Teste uma por vez** — minimize ao caso mais simples; `git bisect` se não sabe em qual commit surgiu.
-4. **Corrija a causa** + teste de regressão (falha sem o fix, passa com ele); confira que não quebra adjacentes.
+3. **Cheque uma por vez** — minimize ao caso mais simples; `git bisect` se não sabe em qual commit surgiu.
+4. **Corrija a causa** e confirme pelo sinal de repro: o sintoma sumiu, e os fluxos adjacentes continuam ok (`verify` ou na mão).
 
 Após 3 hipóteses sem resultado → **pare e reporte o que descartou** (você pode ter contexto que eu não tenho). Remova logs de debug antes de commitar.
-
-### Test-gate
-Quando os arquivos alterados **não têm teste**, antes de liberar o commit: escreva testes do **comportamento público** — happy path, sad path (input inválido / recurso ausente), edge cases (vazio/nulo/zero, não-autenticado), **regressão** dos adjacentes, e **segurança** se tocou auth/dados/upload/controle de acesso. Um teste por comportamento, testando a interface (o quê), não a implementação (o como). Rode; **não commita até verde** (vermelho → Debugging). Sem infra de teste no projeto → ofereça configurar.
 
 ## Regras
 
@@ -389,12 +393,14 @@ Quando os arquivos alterados **não têm teste**, antes de liberar o commit: esc
 - **Cadência de confirmação:** confirme **uma vez por fase** (no entregável — design na Fase 1; **plano+branch+execução na Fase 2: um gate só — aprovar o plano cria a branch e dispara a Fase 3**; homologação na Fase 3; bloco de fixes na Fase 4; publicar na Fase 5) e só nos **stops irreversíveis**. Não pare a cada seção ou micro-passo: agrupe e siga. Stops inegociáveis (sempre peça ok): merge na main, deploy em produção, escolher quais correções aplicar, backup antes de migration destrutiva. Criar branch e push já estão cobertos pela aprovação do plano/gate — não re-pergunte
 - Nunca implemente durante Fase 1 ou 2; nunca proponha código durante a Fase 1
 - Se task for ambígua, para e pergunta antes de lançar o subagente
-- **Modelos:** líder Opus 4.8 High; **default de todo subagente = `model: "sonnet"` Médio** (dev, fixes, painel, review UX/Docs, completeness critic); Opus só na revisão de Segurança e no cético do ALTO (Fase 5)
+- **Sem teste automatizado, nunca:** não escreva teste, não crie arquivo de teste, não altere suíte, não adicione dependência de teste, não faça TDD. A rede é `verify` + roteiro de homologação manual. Suíte que **já existe** no repo: roda como gate na Fase 5 pra não publicar quebrando, mas não é mantida nem estendida pelo maestro
+- **Zero comentário em código:** nenhum comentário novo em código novo ou alterado — se precisa de comentário pra explicar, reescreva (nome melhor, função extraída, early return). Exceções: docstring de API pública que a linguagem/projeto exige, diretiva de ferramenta (`eslint-disable`, `frozen_string_literal`, `ts-expect-error`) e comentário pré-existente não tocado. Comentário adicionado no diff é 🚨 bloqueante na Fase 5. O "porquê" vai pro commit, PR ou docs
+- **Modelos:** desenvolvimento sempre em ultracode; **`model: "opus"` pra tarefa complexa, `model: "sonnet"` pra simples**, em dúvida Opus. Complexa: lógica não-trivial, arquitetura, migration, refactor amplo, auth/pagamento/dados sensíveis, revisão de Segurança, cético do ALTO, debugging. Simples: CRUD direto, texto/estilo, rename, config, docs, painel de lentes, review de UX/Docs, completeness critic
 - **Backup só de produção e só em migration destrutiva** (drop/rename de coluna ou tabela, mudança de tipo, `NOT NULL` em coluna com dados, `--accept-data-loss`) — capturado no Passo 14, imediatamente antes da migration do deploy. Sem backup local nem de staging; migration aditiva não precisa
-- Fase 4 (fixes do seu bloco) e Bloco 1 da Fase 5 (review) rodam em paralelo; correções nunca inline (subagentes Sonnet); Bloco 2 da Fase 5 (push→deploy) é estritamente sequencial
+- Fase 4 (fixes do seu bloco) e Bloco 1 da Fase 5 (review) rodam em paralelo; correções nunca inline (sempre via subagente, modelo pela complexidade); Bloco 2 da Fase 5 (push→deploy) é estritamente sequencial
 - **Profundidade escala por risco (nível TRIVIAL/MÉDIO/ALTO), nunca por capricho** — e o cético do nível ALTO **nunca rebaixa** achado de classe alta-confiança (SQLi/IDOR/secret/auth); Segurança roda sempre em Opus, mesmo em TRIVIAL
-- Subagentes que reportam dado devolvem estruturado (schema), não prosa; toda verificação/painel é via Agent tool, sem depender do Workflow tool
+- Subagentes que reportam dado devolvem estruturado (schema), não prosa
 - Nunca use `--force` sozinho, sempre `--force-with-lease`; **nunca delete a branch**; nunca `--amend`/`--no-verify`
 - CI vermelho bloqueia o encerramento; merge só com CI 100% verde
 - "O que tem mais risco" no corpo do PR nunca em branco
-- **Menos interrupção:** na 1ª vez num projeto, ofereça pré-autorizar (allowlist em `.claude/settings.json`) os comandos read-only que o maestro repete — `git status/log/diff`, `gh pr checks`, runners de teste — pra o fluxo não parar a cada prompt de permissão
+- **Menos interrupção:** na 1ª vez num projeto, ofereça pré-autorizar (allowlist em `.claude/settings.json`) os comandos read-only que o maestro repete — `git status/log/diff`, `gh pr checks` — pra o fluxo não parar a cada prompt de permissão
