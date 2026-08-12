@@ -292,13 +292,55 @@ Para cada ⚠️ que o usuário **não** aplicou: procure `fixes-futuros.md`/`FI
 - **Entrada direta** (`maestro publica`, sem Fase 3/4 nesta sessão): gere o roteiro (fluxos afetados + passos executáveis por quem não escreveu o código), confirme homologação (fluxo principal ok? bug não ocorre mais? regressão passa? dados íntegros?) e aguarde o ok pra publicar.
 - **Limpeza:** se `.plans/plan.md` existir, `rm -f .plans/plan.md` (está no `.gitignore`, é só faxina antes do push).
 
+#### Passo 6.5 — Reorganizar os commits (antes do push)
+
+Execução em paralelo produz histórico picado: um commit por subagente, fixes da Fase 4 pendurados em cima do commit que consertam, mensagens repetidas, commit de rename separado do código que usa o nome. Antes de publicar, **reescreva o histórico local pra ele contar a história da feature em ordem lógica** — o revisor do PR lê commit por commit, e histórico limpo é o que faz um `git log` ou um `git bisect` (busca binária pelo commit que introduziu um bug) servirem pra algo depois.
+
+Só reorganize **o que ainda não foi publicado**. Working tree limpo (Passo 6) é pré-requisito.
+
+**a) Diagnóstico (silencioso):**
+```bash
+BASE=$(git merge-base origin/main HEAD)
+git log --oneline $BASE..HEAD
+git diff --stat $BASE..HEAD
+```
+**Pule o passo** (1 linha, sem perguntar) se: 1 só commit; ou já está agrupado por contexto lógico, em ordem coerente e com mensagens no padrão `tipo: Mensagem`. Não reorganize por estética quando já está bom.
+
+**b) Rede de segurança (obrigatória, antes de tocar em qualquer coisa):**
+```bash
+git tag reorg-backup-$(git rev-parse --short HEAD)
+```
+A tag é local e fica como ponto de retorno (`git reset --hard <tag>` volta tudo). Só remova depois do merge (Passo 13) dar certo.
+
+**c) Reescrever:** desfaça os commits mantendo todo o trabalho no índice e recommite agrupado:
+```bash
+git reset --soft $BASE
+git status --short
+```
+Agora **nada foi perdido** — todo o diff da branch está staged. Recommite em grupos, na ordem em que a feature se constrói: **banco/migration → modelos → lógica/serviços → controllers/endpoints → componentes/telas → config → docs**. Um commit por grupo, `git add <caminhos do grupo>` antes de cada um, mensagem `tipo: Mensagem` (verbo no presente, maiúscula inicial, sem ponto final). Regras:
+- **Fix de algo que só existe nesta branch desaparece dentro do commit que ele conserta** — não publique "feat: cria endpoint" seguido de "fix: corrige o endpoint que acabei de criar". Bug que já existia na `main` continua sendo commit próprio de `fix`.
+- **Mensagens de wip/ajuste/temp morrem aqui.** Cada commit final descreve uma mudança que faz sentido isolada.
+- **Nunca `--amend` e nunca `--no-verify`** (a regra do maestro continua valendo): a reorganização é `reset --soft` + commits novos, não reescrita de commit individual. Se um hook falhar num commit novo, corrija e commite de novo.
+- Um grupo grande demais pra uma mensagem só é sinal de que são dois commits.
+
+**d) Verificação (não negociável):** o conteúdo final tem que ser **idêntico** ao de antes da reorganização — reorganizar mexe em como o histórico está dividido, nunca no código:
+```bash
+git diff reorg-backup-<sha> HEAD --stat
+git status --short
+```
+As duas saídas **vazias**. Qualquer diferença → `git reset --hard reorg-backup-<sha>`, reporte que a reorganização foi abortada e siga pro push com o histórico original. Perder trabalho aqui é inaceitável; histórico feio é só feio.
+
+**e) Se a branch já foi publicada** (`git log origin/$(git branch --show-current)..HEAD` mostra que existe upstream, ou já tem PR aberto): reescrever exige `--force-with-lease` no Passo 7 e **desancora comentários de review já feitos no PR** (o comentário perde a linha a que se referia). Aí **pergunte antes** — "a branch já está no GitHub com PR aberto; reorganizar os commits vai exigir sobrescrever o histórico remoto e pode desancorar comentários de review. Reorganizo ou publico como está?". Sem PR aberto e sem review, siga sem perguntar.
+
+**Saída pra tela:** 1 linha mecânica, é reorganização e não decisão — ex: "Histórico reorganizado: 11 commits → 4 (banco, endpoint, tela, docs); conteúdo idêntico ao original, verificado."
+
 #### Passo 7 — Push (dispara staging)
 ```bash
 git fetch origin && git -c merge.renormalize=true rebase origin/main
 git push -u origin HEAD
 ```
 **Não faça cirurgia de EOL/CRLF manual.** Churn de fim-de-linha contra um merge-base antigo (a `main` foi normalizada depois que você ramificou) some sozinho no rebase com `merge.renormalize=true` — vá direto pro rebase, sem normalizar/converter arquivos à mão.
-Conflito no rebase → **resolva os mecânicos você mesmo** (EOL/CRLF, whitespace, cosméticos, lado óbvio) **em silêncio** e reporte em 1 linha; **só pause e peça** se for conflito de conteúdo real (os dois lados mudaram a mesma lógica). Histórico divergente → `--force-with-lease` (nunca `--force` sozinho). O push dispara o deploy de staging automaticamente — informe e siga sem aguardar.
+Conflito no rebase → **resolva os mecânicos você mesmo** (EOL/CRLF, whitespace, cosméticos, lado óbvio) **em silêncio** e reporte em 1 linha; **só pause e peça** se for conflito de conteúdo real (os dois lados mudaram a mesma lógica). Histórico divergente → `--force-with-lease` (nunca `--force` sozinho) — é o caso de uma branch já publicada que passou pela reorganização do Passo 6.5. O push dispara o deploy de staging automaticamente — informe e siga sem aguardar.
 
 #### Passo 8 — Abrir ou editar PR?
 `gh pr view --json number,title,state 2>/dev/null`. PR existente → "Atualizar?" (não → encerra; sim → Passo 9 modo edição). Sem PR → "Abrir agora?" (não → encerra; sim → Passo 9 modo criação). Se chamada com foco em PR e push feito, pule pro 9.
@@ -349,7 +391,7 @@ git log --oneline HEAD..origin/main   # se trouxer commits, precisa rebase
 ```
 Se andou → avise em 1 linha, `git rebase origin/main` (conflito → resolva mecânicos em silêncio como no Passo 7; pause só em conteúdo real), `git push --force-with-lease`, **volte ao Passo 12** pra revalidar o CI. Senão prossiga.
 
-Pergunte: "Todos os CIs passaram. Quer mergear na main?" Não → encerra exibindo a URL. Sim → `gh pr merge --merge` (ou `--squash`/`--rebase` conforme o repo; **nunca `--delete-branch`**). Se o repo deleta head branch automaticamente, avise e confirme. Exiba o SHA do merge. **Não rode `git branch -d` nem `git push origin --delete`.**
+Pergunte: "Todos os CIs passaram. Quer mergear na main?" Não → encerra exibindo a URL. Sim → `gh pr merge --merge` (ou `--squash`/`--rebase` conforme o repo; **nunca `--delete-branch`**). Se o repo deleta head branch automaticamente, avise e confirme. Exiba o SHA do merge. **Não rode `git branch -d` nem `git push origin --delete`.** Merge concluído → agora sim a tag de backup do Passo 6.5 pode sair (`git tag -d reorg-backup-<sha>`); antes disso, ela fica.
 
 #### Passo 14 — Deploy em produção (Heroku)
 Pré-requisito: merge concluído. `git remote | grep heroku`. Sem remote → informe como configurar (`heroku git:remote -a <app>`) e encerre. Com remote → "Deploy em produção agora?" (não → encerra com o SHA).
@@ -408,6 +450,7 @@ Após 3 hipóteses sem resultado → **pare e reporte o que descartou** (você p
 - Fase 4 (fixes do seu bloco) e Bloco 1 da Fase 5 (review) rodam em paralelo; correções nunca inline (sempre via subagente, modelo pela complexidade); Bloco 2 da Fase 5 (push→deploy) é estritamente sequencial
 - **Profundidade escala por risco (nível TRIVIAL/MÉDIO/ALTO), nunca por capricho** — e o cético do nível ALTO **nunca rebaixa** achado de classe alta-confiança (SQLi/IDOR/secret/auth); Segurança roda sempre em Opus, mesmo em TRIVIAL
 - Subagentes que reportam dado devolvem estruturado (schema), não prosa
+- **Reorganizar commits antes do push (Fase 5, Passo 6.5):** histórico agrupado por contexto lógico e em ordem de construção, fix de código da própria branch absorvido no commit que ele conserta, mensagens `tipo: Mensagem`. Sempre com tag de backup antes e `git diff` contra ela **vazio** depois — conteúdo idêntico, só a divisão do histórico muda. Diferença de conteúdo → aborta e publica o histórico original. Branch já publicada com PR aberto → pergunta antes (exige force-with-lease e desancora comentários de review)
 - Nunca use `--force` sozinho, sempre `--force-with-lease`; **nunca delete a branch**; nunca `--amend`/`--no-verify`
 - CI vermelho bloqueia o encerramento; merge só com CI 100% verde
 - "O que tem mais risco" no corpo do PR nunca em branco
