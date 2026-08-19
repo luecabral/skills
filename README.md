@@ -1,4 +1,4 @@
-# INKriveis Skills
+# Minhas Skills do Claude Code
 
 Skills são instruções que ensinam o Claude Code a se comportar de um jeito específico. Em vez de repetir o mesmo contexto toda vez, você chama a skill por `/nome` e ela já sabe o processo, o que checar e o que entregar.
 
