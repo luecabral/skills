@@ -1,186 +1,123 @@
 # INKriveis Skills
 
-Skills são instruções que ensinam a IA a se comportar de um jeito específico em cada etapa do desenvolvimento. Em vez de dar o mesmo contexto repetido toda vez, você invoca a skill certa e ela já sabe o que fazer, o que checar e o que entregar.
+Skills são instruções que ensinam o Claude Code a se comportar de um jeito específico. Em vez de repetir o mesmo contexto toda vez, você chama a skill por `/nome` e ela já sabe o processo, o que checar e o que entregar.
+
+Este repositório tem **duas skills**, e elas cobrem coisas diferentes: `maestro` conduz o desenvolvimento de uma feature de ponta a ponta, `linear` documenta a task no Linear.
 
 ---
 
-## Fluxo principal de desenvolvimento
+## 🎼 maestro
+
+Ciclo completo de uma feature, da ideia ao deploy, em 5 fases. **É autossuficiente** — todo o processo está escrito dentro do próprio arquivo, então editar outra skill não muda o comportamento dele.
 
 ```
 💡 IDEIA
     ↓
-/brainstorming ──── explora possibilidades, refina o problema, faz threat modeling
+Fase 1 — EXPLORE ......... entende o problema, threat modeling (mapa do que
+    ↓                      pode dar errado), benchmark, painel de alternativas
+    ↓                      em paralelo, design detalhado dos fluxos
+    ↓                      ⏸ gate: aprova o design?
     ↓
-/prd-to-issues ──── PRD mínimo + tasks em vertical slice + cria branch + salva .plans/plan.md
+Fase 2 — PLAN ............ quebra em tasks de vertical slice (cada task entrega
+    ↓                      um caminho funcionando de ponta a ponta), monta o
+    ↓                      grafo de dependências, cria a branch
+    ↓                      ⏸ gate único: aprovar = branch criada + execução começa
     ↓
-    ┌──────────────────────────────────────────┐
-    │  DESENVOLVIMENTO                         │
-    │                                          │
-    │  /ralph-loop (autônomo, issue a issue)   │
-    │    ou implementa manualmente             │
-    │       ↓                                  │
-    │  Skills ativam conforme necessário:           │
-    │  • /tdd (analisa, refatora se preciso, testa) │
-    │  • /inkrivel_design_system (UI Rails)         │
-    │  • /vibesec (auth, dados, uploads)            │
-    │  • /debugging (bug ou teste falhando)         │
-    └──────────────────────────────────────────┘
+Fase 3 — EXECUTE ......... 🔇 silêncio total. Subagentes em paralelo, um por
+    ↓                      task, cada um em worktree isolada. Nenhuma mensagem
+    ↓                      até acabar.
+    ↓                      ⏸ entrega: relatório final + roteiro de homologação
     ↓
-/smart-commit ──────┬─→ /context-docs (checklist de docs)
-                    ├─→ /test-gate (cria testes se não existirem)
-                    ├─→ roda todos os testes
-                    ├─→ /debugging (se falhar)
-                    └─→ commita quando verde
+Fase 4 — FIXES ........... você manda um bloco de ajustes, ele orquestra os
+    ↓                      subagentes (paralelo entre arquivos diferentes)
+    ↓                      ⏸ gate: mais um bloco, ou publica?
     ↓
-/publish ───────────┬─→ verifica código de debug
-                    ├─→ roda todos os testes + npm audit
-                    ├─→ revisão de código e UX (REFERENCE.md)
-                    ├─→ checklist de verificação
-                    ├─→ roteiro de teste manual
-                    ├─→ rebase com main + push (dispara staging automaticamente)
-                    ├─→ cria ou edita PR draft com changelog (opcional)
-                    ├─→ aguarda CI (gh pr checks --watch); aciona /debugging se vermelho
-                    └─→ oferece merge na main quando CI 100% verde (sem deletar branch)
-    ↓
-/review-pr ──── roteiro de teste em staging para o revisor
+Fase 5 — PUBLISH ......... review escalonado por risco → reorganiza os commits
+                           → push → PR → CI → merge → deploy
+                           ⏸ stops: quais correções aplicar, merge, deploy
 ```
 
----
+Entra direto em qualquer fase: `maestro fase 2`, `maestro planeja`, `maestro executa`, `maestro corrige`, `maestro publica`.
 
-## Skills do fluxo
+### As regras que definem o comportamento dele
 
-### 💡 brainstorming
+**Sem testes automatizados.** Não escreve teste, não roda suíte, não faz TDD. A rede de segurança é o `verify` (sobe o app e observa o comportamento real) + o roteiro de homologação manual que ele te entrega. Suíte que **já existe** no projeto roda como gate na Fase 5, só pra não publicar quebrando o que existia — mas ele não cria nem mantém teste.
 
-Refinamento de ideia antes de qualquer linha de código. Faz perguntas uma por vez em ordem de dependência e oferece uma resposta recomendada junto com cada pergunta — reduz a carga cognitiva e acelera o alinhamento.
+**Zero comentário em código.** Nenhum comentário novo, em nenhuma fase. A premissa é que comentário é sintoma: se o código precisa de explicação, o código está mal escrito — então o lugar de resolver é o nome da variável, o tamanho da função, o early return. O "porquê" vai na mensagem de commit, no corpo do PR ou nos docs. Exceções: docstring de API pública que a linguagem exige, diretiva que a ferramenta lê (`eslint-disable`, `frozen_string_literal`) e comentário que já existia. Na Fase 5 tem um check automático: comentário adicionado no diff bloqueia a publicação.
 
-Para features que envolvem dados, autenticação ou integrações externas, faz **threat modeling**: mapeia ativos, atacantes e vetores de risco antes de propor abordagens.
+**Fase 3 é silenciosa do começo ao fim.** Você aprovou o plano na Fase 2 e não vai receber mais nenhuma mensagem até o desenvolvimento acabar — nem status, nem problema encontrado, nem pergunta. Toda decisão de execução é dele. Task que trava vira `paused` com o motivo e o resto do plano continua; o que travou aparece no relatório final. Você continua vendo os chips de tarefa rodando na interface, mas nenhum texto.
 
-**Quando usar:** "como eu poderia fazer X", "quero explorar ideias de Y", "qual a melhor abordagem para Z"
+**Modelos.** Desenvolvimento sempre em ultracode, que orquestra os subagentes. `opus` para task complexa (lógica não-trivial, arquitetura, migration, auth/pagamento/dados sensíveis, revisão de segurança, debugging), `sonnet` para simples e mediana (CRUD, texto, rename, config, docs, review de UX).
 
----
+**Comunicação em duas camadas.** *Caveman* controla o quanto vai pra tela: só decisão e entregável, processo e investigação ficam de fora, status mecânico é uma linha ou nada. E como a usuária é Product Manager e não é técnica, todo termo técnico que aparece vem com uma explicação curta entre parênteses na primeira vez — termo certo e o que ele significa, mais o efeito no produto. As duas coisas convivem: resposta curta e termo explicado.
 
-### 📋 prd-to-issues
+**Profundidade por risco.** Ele classifica a feature em TRIVIAL / MÉDIO / ALTO e isso dimensiona quantos subagentes dispara. Nunca rebaixa segurança nem pula backup antes de migration destrutiva.
 
-Planejamento antes de codar. Sintetiza um **PRD mínimo** e quebra a implementação em tasks de **vertical slice** — cada task entrega um caminho completo ponta-a-ponta. Salva o plano em `.plans/plan.md` no projeto para uso do `ralph-loop`.
-
-**Quando usar:** "faz o planejamento", "cria o plano", "planeja isso"
+Detalhe completo em [`maestro/SKILL.md`](maestro/SKILL.md); checklists de review, template de plano e de brief em [`maestro/REFERENCE.md`](maestro/REFERENCE.md).
 
 ---
 
-### 🔄 ralph-loop
+## 📐 linear
 
-Desenvolvimento autônomo de issues em sequência. Lê `.plans/plan.md`, cria uma branch por issue encadeada na anterior, aplica TDD, commita via `smart-commit`, abre PR via `publish` e atualiza o status no doc.
+Transforma um brief de task em projeto documentado no Linear, mais uma issue por fluxo.
 
-**Modo Fix:** propaga uma correção em cascade por todas as branches downstream via rebase. Pausa em conflitos e aguarda resolução humana.
+- **Task → Projeto.** O brief inteiro (Oportunidade + Solução) vira a descrição, no formato do `/task`.
+- **Fluxo → Issue.** Cada `### Nome do Fluxo` do Comportamento Esperado vira uma issue, só com o título — sem template, sem corpo imposto.
+- **Campos fixos:** time `Random`, Luiza como leader, status `Para planejamento`. Não pergunta nem varia.
+- Mostra o preview no chat e só escreve no Linear depois da confirmação.
 
-**Quando usar:** "roda o ralph loop", "executa o loop", "ralph-fix \<issue\>: \<ajuste\>"
-
----
-
-### 🔒 vibesec
-
-Vasculha o código implementado pelos erros mais comuns antes que virem problema em produção. Checklist cobre: IDOR, SQL/XSS injection, autenticação e sessão, exposição de dados, secrets, uploads, rate limit, security headers, multi-tenancy, race conditions e LGPD. Cada problema vem com impacto e correção, classificado como crítico, alto ou melhoria.
-
-**Quando usar:** sempre que o código tocar em autenticação, inputs, banco de dados, APIs externas ou dados do usuário
+Só ativa com `/linear` escrito explicitamente. Detalhe em [`linear/SKILL.md`](linear/SKILL.md).
 
 ---
 
-### 🎨 inkrivel_design_system
+## Como funciona a publicação
 
-Padrões visuais do admin para a stack Rails + Tailwind CDN + Hotwire + InkDashboard Engine. Cobre container de página, escala tipográfica, grids responsivos, cards, botões, selects, breadcrumb, badges, checkboxes, tabelas e estados vazios.
+Cada skill é uma pasta com um `SKILL.md` — **é o único arquivo que você edita.** O resto é automático.
 
-**Quando usar:** ao criar ou modificar telas na área admin
+```
+maestro/SKILL.md          ← fonte da verdade, edite aqui
+      ↓ hook post-commit
+maestro.md                ← flat copy no root (o formato que o Claude Code lê)
+      ↓ hook post-commit
+~/.claude/commands/       ← Windows: fica disponível como /maestro
+      ↓ hook post-commit
+luecabral/main            ← push automático
+      ↓ hook post-commit
+WSL ~/.claude/commands    ← pull automático (é um clone git que tracka luecabral)
+```
 
----
+Ou seja: **basta commitar na main.** O hook gera o flat, sincroniza o Windows, pusha pro `luecabral` e atualiza o clone do WSL, nessa ordem. Se algum passo falhar (sem rede, WSL desligado), ele avisa na saída do commit e diz o comando pra rodar depois.
 
-### 🧪 tdd
+**Nunca edite `~/.claude/commands/` direto** — é destino, sobrescrito a cada commit.
 
-Antes de escrever qualquer teste, analisa os módulos que a task vai tocar e aplica o **teste de deleção** para identificar código raso ou acoplado. Se encontrar, refatora primeiro — confirmando com o usuário — até a interface estar limpa. Só então entra no ciclo **Red-Green-Refactor** vertical slice por vertical slice.
+Sessão do Claude Code que já estava aberta continua com a versão antiga carregada. Precisa abrir sessão nova pra pegar a mudança.
 
-Você não precisa saber que o código precisa de refatoração: o TDD descobre por você.
+### Primeira vez num clone novo
 
-**Quando usar:** "faz com TDD", "quero usar TDD aqui", "desenvolve orientado a testes"
+```bash
+bash setup.sh
+```
 
----
+Aponta o git pros hooks versionados em `.githooks/` (via `core.hooksPath`, então o hook nunca fica defasado). Roda uma vez por clone.
 
-### 🧪 test-gate
+### Criar uma skill nova
 
-Gate de qualidade antes do commit: infere o que foi implementado via Git, identifica os cenários relevantes e escreve os testes (happy path, sad path, edge cases, regressão). Roda os testes e só libera o commit quando verdes.
-
-**Quando usar:** "escreve os testes", ou automaticamente via `smart-commit`
-
----
-
-### 🐛 debugging
-
-Processo para encontrar a causa raiz — nunca tratar sintoma. Constrói um sinal de feedback rápido e determinístico antes de investigar. Fases: observar → hipóteses → testar (com minimização e `git bisect`) → corrigir com regression test obrigatório.
-
-**Quando usar:** quando algo não funciona, quando um teste falha, comportamento inesperado
-
----
-
-### 💾 smart-commit
-
-Fluxo completo de commit: verifica docs → cria/roda testes → aciona `debugging` se falhar → commita quando verde. Gera mensagens semânticas inferindo o contexto do diff. Agrupa arquivos por contexto lógico e executa commits diretamente.
-
-**Quando usar:** "faz o commit", "salva isso", "commita"
+1. Crie a pasta `<skill>/` com um `SKILL.md` dentro, com frontmatter `name` e `description` — a `description` é o que decide quando a skill ativa, então seja explícito (inclusive sobre quando **não** ativar).
+2. Commite. O hook cria o flat e propaga.
 
 ---
 
-### 🚀 publish
+## Remotos
 
-Fluxo unificado de publicação: verifica debug → roda testes + `npm audit` → revisão de código e UX → checklist de verificação → roteiro de teste manual → rebase + push (dispara staging automaticamente) → cria ou edita PR draft com changelog → aguarda CI no GitHub (`gh pr checks --watch`) e aciona `/debugging` se falhar → oferece merge na main quando todos os checks ficam verdes, sem deletar a branch. Remove `.plans/plan.md` antes do push quando parte de um `ralph-loop`.
+- `luecabral` → https://github.com/luecabral/skills — **fonte da verdade.** É pra onde o hook pusha e de onde o WSL puxa.
+- `origin` → https://github.com/rsv-ink/skills — organização.
 
-**Quando usar:** "faz o push", "sobe a branch", "abre o PR", "cria o PR"
+Sem branches, sem PRs: direto na main.
 
----
-
-### 🧭 review-pr
-
-Lê o PR de outra pessoa e traduz o que precisa ser testado em roteiro de ações concretas: onde clicar, o que preencher, o que deve aparecer. Executável por qualquer pessoa, técnica ou não.
-
-**Quando usar:** ao receber um PR para revisar no GitHub
+A skill `maestro` fica **só no `luecabral`**, nunca no `origin`. O hook já respeita isso — ele pusha exclusivamente pro `luecabral`. Push pro `origin` é manual e deliberado.
 
 ---
 
-### 📝 context-docs
+## Fora deste repositório
 
-Documentação dual-audience: legível para humanos e usada como contexto por agentes de IA. Estrutura: `AGENTS.md` + `docs/features/` + `docs/flows/` + `docs/changelog.md`.
-
-**Quando usar:** "documenta isso", "cria o AGENTS.md", "registra essa feature"
-
----
-
-## Skills independentes
-
----
-
-### 🚨 incident-response
-
-Planejamento e resposta a incidentes em produção. **Preparação** (antes de ir para prod — alertas, playbooks, backups, LGPD) e **resposta ativa** (durante o incidente — triagem, contenção, preservação de evidências, post-mortem).
-
-**Quando usar:** antes do primeiro deploy em produção, ou quando um incidente estiver ativo
-
----
-
-### 🔐 security-audit
-
-Auditoria de segurança automatizada no projeto atual. Analisa controles de acesso, autenticação, validação de inputs, headers, secrets, dependências e mais. Gera relatório acionável com severidade e correções específicas.
-
-**Quando usar:** "faz uma auditoria de segurança", antes de lançamentos importantes
-
----
-
-### 🗿 caveman
-
-Modo de comunicação ultra-comprimido (~75% menos tokens). Corta artigos, preâmbulos, hedging e confirmações vazias. Mantém precisão técnica total. Persiste pelo resto da conversa até "para o caveman".
-
-**Quando usar:** "caveman", "responde curto", "sem enrolação"
-
----
-
-### ✍️ write-a-skill
-
-Cria novas skills com estrutura correta: trigger claro na descrição, processo com passos concretos, abaixo de 100 linhas. Apresenta o rascunho para confirmação antes de salvar.
-
-**Quando usar:** "cria uma skill para X", "quero uma skill que faça Y"
+A skill `caveman` (modo de comunicação comprimido) continua ativa no WSL, mas vive em `~/.agents/skills/caveman`, exposta via symlink em `~/.claude/skills/`. Não é versionada aqui. As regras de comunicação comprimida que o maestro usa estão escritas dentro do próprio maestro, então ele não depende dessa skill pra funcionar.
