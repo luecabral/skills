@@ -107,14 +107,13 @@ Aponta o git pros hooks versionados em `.githooks/` (via `core.hooksPath`, entã
 
 ---
 
-## Remotos
+## Remoto
 
-- `luecabral` → https://github.com/luecabral/skills — **fonte da verdade.** É pra onde o hook pusha e de onde o WSL puxa.
-- `origin` → https://github.com/rsv-ink/skills — organização.
+- `luecabral` → https://github.com/luecabral/skills — **único remoto e fonte da verdade.** É pra onde o hook pusha e de onde o WSL puxa.
 
-Sem branches, sem PRs: direto na main.
+Sem branches, sem PRs: direto na main. Nada de push manual — o hook cuida.
 
-A skill `maestro` fica **só no `luecabral`**, nunca no `origin`. O hook já respeita isso — ele pusha exclusivamente pro `luecabral`. Push pro `origin` é manual e deliberado.
+O `rsv-ink/skills`, que era o repositório da organização, **foi excluído.** Não há mais destino secundário e nenhuma skill daqui é publicada em outro lugar.
 
 ---
 

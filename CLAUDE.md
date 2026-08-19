@@ -1,6 +1,6 @@
 # Skills Repo
 
-Repositório de skills (slash commands) globais do Claude Code.
+Repositório de skills (slash commands) globais do Claude Code. Skills atuais: `maestro` e `linear`.
 
 ## Estrutura
 
@@ -13,22 +13,36 @@ Repositório de skills (slash commands) globais do Claude Code.
 ## Como editar uma skill
 
 1. Edite `<skill>/SKILL.md`
-2. Commit — o hook `post-commit` faz automaticamente:
+2. Commit — o hook `post-commit` faz tudo, nesta ordem:
    - `SKILL.md` → `<skill>.md` (flat copy no root do repo)
-   - `<skill>.md` → `~/.claude/commands/<skill>.md` (disponibiliza globalmente)
-3. Push para os dois remotos: `git push origin main && git push luecabral main`
+   - `<skill>.md` → `~/.claude/commands/<skill>.md` (disponibiliza no Windows)
+   - `git push luecabral` (único remoto)
+   - `git pull` no clone do WSL (`~/.claude/commands`)
+3. Nada de push manual. Se algum passo falhar (sem rede, WSL desligado), o hook avisa na saída do commit e informa o comando pra rodar depois.
 
-**Nunca edite `~/.claude/commands/` diretamente** — é um diretório simples sem git, sobrescrito pelo hook a cada commit.
+O flat `.md` é regenerado **depois** do commit, então ele fica pendente no working tree — commite junto no próximo commit (`chore: flat copy do <skill>`).
+
+**Nunca edite `~/.claude/commands/` diretamente** — é destino, sobrescrito pelo hook a cada commit.
+
+Sessão do Claude Code já aberta continua com a versão antiga da skill carregada. Precisa abrir sessão nova.
 
 ## Como criar uma skill nova
 
-Use a skill `write-a-skill` ou:
-1. Crie a pasta `<skill>/` com `SKILL.md`
+1. Crie a pasta `<skill>/` com `SKILL.md`, com frontmatter `name` e `description` (a `description` decide quando a skill ativa — seja explícito, inclusive sobre quando **não** ativar)
 2. O hook cria o flat `.md` automaticamente no commit
 
-## Remotes
+## Primeira vez num clone novo
 
-- `origin` → https://github.com/rsv-ink/skills (organização)
-- `luecabral` → https://github.com/luecabral/skills (fork pessoal)
+```bash
+bash setup.sh
+```
 
-Sempre push para os dois. Sem branches, sem PRs — direto na main.
+Aponta o git pros hooks versionados em `.githooks/` via `core.hooksPath`. Roda uma vez por clone.
+
+## Remoto
+
+- `luecabral` → https://github.com/luecabral/skills — **único remoto.**
+
+Sem branches, sem PRs — direto na main.
+
+O `rsv-ink/skills` (organização) **foi excluído** e não deve ser recriado como destino. Se um clone antigo ainda tiver o remoto `origin` apontando pra lá, remova: `git remote remove origin`, e reaponte o branch com `git branch --set-upstream-to=luecabral/main main`.
