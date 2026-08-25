@@ -26,10 +26,29 @@ Somente quando a Luiza escrever `/linear`. Sem o comando, não ativar — mesmo 
 ## O processo
 
 1. **Leia o brief que ela trouxe.** Pode vir já no formato `/task` ou como brain dump. Extraia tudo que der.
-2. **Complete a documentação do projeto** no formato do `/task` (template abaixo). Se faltar informação, marque com `> [a definir: o que falta]` e siga. Não invente dados nem regras de negócio.
-3. **Monte o preview e confirme.** Mostre no chat: nome do projeto e a descrição completa. Só crie no Linear depois de ela confirmar.
-4. **Crie o projeto** com `save_project`: `name`, `description` (no formato `/task`), `setTeams: ["Random"]`, `lead: "me"` (Luiza) e `state: "Para planejamento"`. Time, leader e status são sempre esses.
-5. **Devolva o link.** O identificador/URL do projeto criado.
+2. **Rascunhe a documentação** no formato do `/task` (template abaixo) e **mapeie as lacunas** — o que o template pede e o brief não respondeu. Não invente nada pra tapar buraco.
+3. **Pergunte o que falta (obrigatório, antes do preview).** Nunca vá direto pro preview com lacuna em aberto. Veja a seção abaixo.
+4. **Monte o preview e confirme.** Mostre no chat: nome do projeto e a descrição completa, já com as respostas dela incorporadas. Só crie no Linear depois de ela confirmar.
+5. **Crie o projeto** com `save_project`: `name`, `description` (no formato `/task`), `setTeams: ["Random"]`, `lead: "me"` (Luiza) e `state: "Para planejamento"`. Time, leader e status são sempre esses.
+6. **Devolva o link.** O identificador/URL do projeto criado.
+
+## Perguntar o que falta (Passo 3)
+
+O brief quase nunca chega completo, e projeto com lacuna escondida vira retrabalho depois. **Sempre passe por aqui**, mesmo que pareça que dá pra inferir.
+
+**Primeiro mostre o placar das lacunas** — lista curta do que ficou em aberto, pra ela ver o tamanho do buraco antes de responder ("Faltam 4 coisas pra fechar o brief: o critério de sucesso, o que acontece quando o pagamento falha, quem pode aprovar, e o nome do projeto").
+
+**Depois pergunte uma por vez,** em ordem de dependência (o que destrava as outras primeiro), e **ofereça uma resposta recomendada junto com cada pergunta**:
+
+> "O que acontece se o pagamento falhar no meio do fluxo? Sugiro voltar pro carrinho com o item preservado e uma mensagem explicando o erro, porque perder o carrinho é o que mais gera abandono."
+
+Ela responde num "sim" quando concorda, e é isso que faz a conversa andar rápido. Ela é Product Manager e não é técnica: pergunte em linguagem de produto (o que o usuário vê, o que o sistema faz, quem pode o quê), e se um termo técnico for inevitável, explique curto entre parênteses.
+
+**O que conta como lacuna:** seção do template vazia ou genérica (Oportunidade que não é um problema, Contexto sem tela nem perfil, Consequências sem impacto), Hipótese sem resultado esperado, Impacto Almejado sem nada mensurável, fluxo sem caminho de erro/vazio/cancelamento, regra de negócio insinuada mas não declarada ("só quem tem permissão" — quem?), e o nome do projeto se ela não deu um.
+
+**O que NÃO perguntar:** o que dá pra inferir do brief sem chutar; time, leader e status (são fixos); detalhe de implementação (banco, biblioteca, arquitetura) — isso não é dela e não entra no brief.
+
+**Se ela deixar algo em aberto de propósito** ("não sei ainda", "decide depois", "deixa em branco"), aí sim entra `> [a definir: o que falta]` na descrição, e você segue. O marcador é resultado de uma escolha dela, não atalho pra não perguntar.
 
 ## Formato da descrição do projeto (template do /task)
 
@@ -82,6 +101,6 @@ Nenhuma outra ferramenta de escrita. **Não** chame `save_issue`, `save_mileston
 - **Só com /linear.** Não ativar por inferência de contexto.
 - **Só o projeto.** Nada de issue, milestone ou sub-issue — mesmo que o brief tenha vários fluxos. Vários fluxos = várias seções na descrição, não vários itens no Linear.
 - **Confirme antes de criar.** Nunca chame `save_project` sem o preview aprovado por ela. É ação que escreve no workspace do Linear.
-- **Não invente.** Sem dados nem regras de negócio que ela não trouxe ou confirmou. Toda lacuna vira `> [a definir: ...]`.
+- **Não invente, pergunte.** Sem dados nem regras de negócio que ela não trouxe ou confirmou. Lacuna vira **pergunta antes do preview** (Passo 3); só o que ela escolher deixar em aberto vira `> [a definir: ...]`.
 - **Projeto sempre no time `Random`,** com Luiza como leader (`lead: "me"`) e status `Para planejamento` (`state`). Não pergunte nem varie esses três.
 - **Português do Brasil**, tom objetivo e claro. Nada de travessão (—) no conteúdo do brief; use vírgula, ponto ou parênteses.
