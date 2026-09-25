@@ -29,8 +29,8 @@ Somente quando a Luiza escrever `/linear`. Sem o comando, não ativar — mesmo 
 2. **Rascunhe a documentação** no formato do `/task` (template abaixo) e **mapeie as lacunas** — o que o template pede e o brief não respondeu. Não invente nada pra tapar buraco.
 3. **Pergunte o que falta (obrigatório, antes do preview).** Nunca vá direto pro preview com lacuna em aberto. Veja a seção abaixo.
 4. **Monte o preview e confirme.** Mostre no chat: nome do projeto e a descrição completa, já com as respostas dela incorporadas. Só crie no Linear depois de ela confirmar.
-5. **Crie o projeto** com `save_project`: `name`, `description` (no formato `/task`), `setTeams: ["Random"]`, `lead: "me"` (Luiza) e `state: "Para planejamento"`. Time, leader e status são sempre esses.
-6. **Devolva o link.** O identificador/URL do projeto criado.
+5. **Crie o projeto** com `save_project`: `name`, `description` (no formato `/task`), `setTeams: ["Random"]`, `state: "Para planejamento"`, `priority: 3` (Média) e `lead: null`. Time, status, prioridade e a ausência de líder são sempre esses.
+6. **Devolva o link.** O identificador/URL do projeto criado, e uma linha avisando que ela não ficou como líder — se quiser acompanhar, é só se inscrever (Subscribe) no projeto pela interface do Linear.
 
 ## Perguntar o que falta (Passo 3)
 
@@ -46,7 +46,7 @@ Ela responde num "sim" quando concorda, e é isso que faz a conversa andar rápi
 
 **O que conta como lacuna:** seção do template vazia ou genérica (Oportunidade que não é um problema, Contexto sem tela nem perfil, Consequências sem impacto), Hipótese sem resultado esperado, Impacto Almejado sem nada mensurável, fluxo sem caminho de erro/vazio/cancelamento, regra de negócio insinuada mas não declarada ("só quem tem permissão" — quem?), e o nome do projeto se ela não deu um.
 
-**O que NÃO perguntar:** o que dá pra inferir do brief sem chutar; time, leader e status (são fixos); detalhe de implementação (banco, biblioteca, arquitetura) — isso não é dela e não entra no brief.
+**O que NÃO perguntar:** o que dá pra inferir do brief sem chutar; time, líder, status e prioridade (são fixos); detalhe de implementação (banco, biblioteca, arquitetura) — isso não é dela e não entra no brief.
 
 **Se ela deixar algo em aberto de propósito** ("não sei ainda", "decide depois", "deixa em branco"), aí sim entra `> [a definir: o que falta]` na descrição, e você segue. O marcador é resultado de uma escolha dela, não atalho pra não perguntar.
 
@@ -92,7 +92,7 @@ Regras rápidas das seções: **Oportunidade** é o problema numa frase, não a 
 ## Ferramentas do Linear
 
 - `list_projects` — checar se já existe projeto com o mesmo nome antes de criar, pra evitar duplicata.
-- `save_project` — cria o projeto. Campos fixos: `setTeams: ["Random"]`, `lead: "me"` (Luiza) e `state: "Para planejamento"`. Além desses: `name` e `description` (markdown, com quebras de linha e caracteres literais, sem escapar). Opcional: `summary` (resumo curto até 255 chars), `priority` (0=None, 1=Urgent, 2=High, 3=Medium, 4=Low).
+- `save_project` — cria o projeto. Campos fixos: `setTeams: ["Random"]`, `state: "Para planejamento"`, `priority: 3` (Média) e `lead: null`. Além desses: `name` e `description` (markdown, com quebras de linha e caracteres literais, sem escapar). Opcional: `summary` (resumo curto até 255 chars). Escala de prioridade, pra referência: 0=None, 1=Urgent, 2=High, 3=Medium, 4=Low — sempre 3.
 
 Nenhuma outra ferramenta de escrita. **Não** chame `save_issue`, `save_milestone` nem equivalentes.
 
@@ -102,5 +102,6 @@ Nenhuma outra ferramenta de escrita. **Não** chame `save_issue`, `save_mileston
 - **Só o projeto.** Nada de issue, milestone ou sub-issue — mesmo que o brief tenha vários fluxos. Vários fluxos = várias seções na descrição, não vários itens no Linear.
 - **Confirme antes de criar.** Nunca chame `save_project` sem o preview aprovado por ela. É ação que escreve no workspace do Linear.
 - **Não invente, pergunte.** Sem dados nem regras de negócio que ela não trouxe ou confirmou. Lacuna vira **pergunta antes do preview** (Passo 3); só o que ela escolher deixar em aberto vira `> [a definir: ...]`.
-- **Projeto sempre no time `Random`,** com Luiza como leader (`lead: "me"`) e status `Para planejamento` (`state`). Não pergunte nem varie esses três.
+- **Projeto sempre no time `Random`,** com status `Para planejamento` (`state`) e prioridade **Média** (`priority: 3`). Não pergunte nem varie esses três.
+- **Nunca ponha a Luiza como líder.** `lead: null`, sempre — e não invente outra pessoa como líder no lugar dela. Ela acompanha o projeto, não lidera. O `save_project` **não tem campo de membro nem de subscriber**, então não tente `addMembers`, `members` ou equivalente: não existe. Quem se inscreve pra acompanhar é ela, pela interface.
 - **Português do Brasil**, tom objetivo e claro. Nada de travessão (—) no conteúdo do brief; use vírgula, ponto ou parênteses.
