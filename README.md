@@ -2,7 +2,7 @@
 
 Skills são instruções que ensinam o Claude Code a se comportar de um jeito específico. Em vez de repetir o mesmo contexto toda vez, você chama a skill por `/nome` e ela já sabe o processo, o que checar e o que entregar.
 
-Este repositório tem **duas skills**, e elas cobrem coisas diferentes: `maestro` conduz o desenvolvimento de uma feature de ponta a ponta, `linear` documenta a task no Linear.
+Este repositório tem **três skills**, cobrindo coisas diferentes: `maestro` conduz o desenvolvimento de uma feature de ponta a ponta, `linear` documenta a task no Linear, e `revisao-local` revisa código que você acabou de escrever, sem precisar de PR.
 
 ---
 
@@ -84,6 +84,21 @@ Transforma um brief de task num projeto documentado no Linear. **Só o projeto**
 - Mostra o preview no chat e só escreve no Linear depois da confirmação.
 
 Só ativa com `/linear` escrito explicitamente. Detalhe em [`linear/SKILL.md`](linear/SKILL.md).
+
+---
+
+## 🔍 revisao-local
+
+Revisa o código que você acabou de escrever, **sem precisar de PR nem de GitHub** — trabalha sobre o diff local (mudanças não commitadas, ou commitadas contra a `main`).
+
+O que a torna diferente de um review genérico é o **checklist de padrões recorrentes**, extraído da análise dos últimos 100 PRs mergeados do majestic_monolith (371 comentários inline, ~76 bugs reais catalogados). Ele cobre:
+
+- **Bugs que mais escapam** — concorrência e race condition, dados legados de produção (o vetor nº 1), cobertura incompleta entre caminhos irmãos, falha silenciosa, ordenação e paginação, callbacks em operação em lote, retry e idempotência, segurança (IDOR, CSV injection), regex sobre texto livre.
+- **Convenções do projeto** — specs, reuso antes de reimplementar, lugar da lógica, N+1 e teto de queries.
+- **Gates de PR** — drift de `schema.rb`, migrations, swagger, config de produção.
+- **Calibragem de falso-positivo** — o que o time já refutou, pra não gerar apontamento ruim.
+
+Detalhe em [`revisao-local/SKILL.md`](revisao-local/SKILL.md).
 
 ---
 

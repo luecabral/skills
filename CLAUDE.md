@@ -1,6 +1,6 @@
 # Skills Repo
 
-Repositório de skills (slash commands) globais do Claude Code. Skills atuais: `maestro` e `linear`.
+Repositório de skills (slash commands) globais do Claude Code. Skills atuais: `maestro`, `linear` e `revisao-local`.
 
 ## Estrutura
 
