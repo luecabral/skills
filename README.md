@@ -8,32 +8,42 @@ Este repositório tem **duas skills**, e elas cobrem coisas diferentes: `maestro
 
 ## 🎼 maestro
 
-Ciclo completo de uma feature, da ideia ao deploy, em 5 fases. **É autossuficiente** — todo o processo está escrito dentro do próprio arquivo, então editar outra skill não muda o comportamento dele.
+Ciclo completo de uma feature, da ideia ao deploy, em 4 fases. **É autossuficiente** — todo o processo está escrito dentro do próprio arquivo, então editar outra skill não muda o comportamento dele.
+
+O desenho tem três premissas: a **ideação é o investimento principal**, uma **aprovação só libera todo o desenvolvimento**, e ele **para antes do push** — nada vai pro GitHub sem você homologar com as mãos.
 
 ```
 💡 IDEIA
     ↓
-Fase 1 — EXPLORE ......... entende o problema, threat modeling (mapa do que
-    ↓                      pode dar errado), benchmark, painel de alternativas
-    ↓                      em paralelo, design detalhado dos fluxos
+Fase 1 — EXPLORE ......... pesquisa de mercado (melhores práticas, principais
+    ↓                      erros, projetos open source), decisões de base
+    ↓                      (regras de negócio, stack, arquitetura, dados),
+    ↓                      threat modeling, benchmark, painel de alternativas,
+    ↓                      design detalhado dos fluxos
     ↓                      ⏸ gate: aprova o design?
     ↓
-Fase 2 — PLAN ............ quebra em tasks de vertical slice (cada task entrega
-    ↓                      um caminho funcionando de ponta a ponta), monta o
-    ↓                      grafo de dependências, cria a branch
-    ↓                      ⏸ gate único: aprovar = branch criada + execução começa
+Fase 2 — PLAN ............ tasks de vertical slice agrupadas em FASES DA
+    ↓                      ENTREGA, cada fase com mapa de modelo por task,
+    ↓                      validação e rollback; lista dos pontos onde sua
+    ↓                      opinião pesa, resolvidos antes do gate
+    ↓                      ⏸ GATE ÚNICO: aprovar a documentação libera todo
+    ↓                        o desenvolvimento. Último ponto de opinião.
     ↓
-Fase 3 — EXECUTE ......... 🔇 silêncio total. Subagentes em paralelo, um por
-    ↓                      task, cada um em worktree isolada. Nenhuma mensagem
-    ↓                      até acabar.
-    ↓                      ⏸ entrega: relatório final + roteiro de homologação
+Fase 3 — EXECUTE ......... 🔇 autônoma. Percorre as fases da entrega:
+    ↓                      implementa, valida, revisa o diff da fase e
+    ↓                      corrige sozinho o que for relevante.
+    ↓                      Só duas linhas na tela:
+    ↓                        Iniciando fase 4 (3 de 8)
+    ↓                        * Task 6 (7 completas de 12)
+    ↓                      🛑 PARA ANTES DO PUSH — tudo commitado na branch
+    ↓                      local, nada no GitHub
+    ↓                      ⏸ entrega: relatório + roteiro de homologação
     ↓
-Fase 4 — FIXES ........... você manda um bloco de ajustes, ele orquestra os
-    ↓                      subagentes (paralelo entre arquivos diferentes)
-    ↓                      ⏸ gate: mais um bloco, ou publica?
+    ├─→ BLOCO DE FIXES ... achou algo homologando? manda o bloco, ele
+    ↓                      orquestra os subagentes e volta pro mesmo ponto
     ↓
-Fase 5 — PUBLISH ......... review escalonado por risco → reorganiza os commits
-                           → push → PR → CI → merge → deploy
+Fase 4 — PUBLISH ......... só quando você mandar: review final → reorganiza
+                           os commits → push → UM PR → CI → merge → deploy
                            ⏸ stops: quais correções aplicar, merge, deploy
 ```
 
@@ -41,13 +51,19 @@ Entra direto em qualquer fase: `maestro fase 2`, `maestro planeja`, `maestro exe
 
 ### As regras que definem o comportamento dele
 
-**Sem testes automatizados.** Não escreve teste, não roda suíte, não faz TDD. A rede de segurança é o `verify` (sobe o app e observa o comportamento real) + o roteiro de homologação manual que ele te entrega. Suíte que **já existe** no projeto roda como gate na Fase 5, só pra não publicar quebrando o que existia — mas ele não cria nem mantém teste.
+**A ideação é onde você entra.** Fase 1 e 2 são longas de propósito: é o único momento em que você decide. O plano lista separado **os pontos onde sua opinião pesa** (no máximo 5) e resolve todos antes do gate — o que não for decidido ali vira decisão dele durante a execução, sem você poder opinar.
 
-**Zero comentário em código.** Nenhum comentário novo, em nenhuma fase. A premissa é que comentário é sintoma: se o código precisa de explicação, o código está mal escrito — então o lugar de resolver é o nome da variável, o tamanho da função, o early return. O "porquê" vai na mensagem de commit, no corpo do PR ou nos docs. Exceções: docstring de API pública que a linguagem exige, diretiva que a ferramenta lê (`eslint-disable`, `frozen_string_literal`) e comentário que já existia. Na Fase 5 tem um check automático: comentário adicionado no diff bloqueia a publicação.
+**Uma aprovação libera tudo, e ela para antes do push.** Aprovada a documentação, ele desenvolve as N fases da entrega sozinho e não pergunta nada no meio. Quando acaba, está tudo commitado **na branch local**: sem push, sem PR, sem CI, sem deploy. A regra escrita no arquivo é que a aprovação da Fase 2 cobre *desenvolver*, nunca *publicar*.
 
-**Fase 3 é silenciosa do começo ao fim.** Você aprovou o plano na Fase 2 e não vai receber mais nenhuma mensagem até o desenvolvimento acabar — nem status, nem problema encontrado, nem pergunta. Toda decisão de execução é dele. Task que trava vira `paused` com o motivo e o resto do plano continua; o que travou aparece no relatório final. Você continua vendo os chips de tarefa rodando na interface, mas nenhum texto.
+**Review por fase, não só no fim.** Cada fase da entrega é revisada assim que fecha (segurança sempre em Opus), e ele corrige sozinho o que for claramente relevante. O que for discutível vira sugestão no relatório final, não pergunta no meio. Revisar a cada fase é o que impede um erro da fase 1 contaminar as sete seguintes.
 
-**Modelos.** Desenvolvimento sempre em ultracode, que orquestra os subagentes. `opus` para task complexa (lógica não-trivial, arquitetura, migration, auth/pagamento/dados sensíveis, revisão de segurança, debugging), `sonnet` para simples e mediana (CRUD, texto, rename, config, docs, review de UX).
+**Um PR só.** A feature inteira vai num único PR, no fim. Nunca um PR por fase, por task ou por bloco de fixes — fase da entrega vira seção do corpo do PR.
+
+**Sem testes automatizados.** Não escreve teste, não roda suíte, não faz TDD. A rede de segurança é o `verify` (sobe o app e observa o comportamento real) + o roteiro de homologação manual que ele te entrega. Suíte que **já existe** no projeto roda como gate na Fase 4, só pra não publicar quebrando o que existia — mas ele não cria nem mantém teste.
+
+**Zero comentário em código.** Nenhum comentário novo, em nenhuma fase. A premissa é que comentário é sintoma: se o código precisa de explicação, o código está mal escrito — então o lugar de resolver é o nome da variável, o tamanho da função, o early return. O "porquê" vai na mensagem de commit, no corpo do PR ou nos docs. Exceções: docstring de API pública que a linguagem exige, diretiva que a ferramenta lê (`eslint-disable`, `frozen_string_literal`) e comentário que já existia. O review tem um check automático: comentário adicionado no diff bloqueia.
+
+**Modelos.** Desenvolvimento sempre em ultracode, que orquestra os subagentes. `opus` para task complexa (lógica não-trivial, arquitetura, migration, auth/pagamento/dados sensíveis, revisão de segurança, debugging), `sonnet` para simples e mediana (CRUD, texto, rename, config, docs, review de UX). O modelo de cada task fica no plano, decidido na Fase 2.
 
 **Comunicação em duas camadas.** *Caveman* controla o quanto vai pra tela: só decisão e entregável, processo e investigação ficam de fora, status mecânico é uma linha ou nada. E como a usuária é Product Manager e não é técnica, todo termo técnico que aparece vem com uma explicação curta entre parênteses na primeira vez — termo certo e o que ele significa, mais o efeito no produto. As duas coisas convivem: resposta curta e termo explicado.
 
@@ -59,11 +75,12 @@ Detalhe completo em [`maestro/SKILL.md`](maestro/SKILL.md); checklists de review
 
 ## 📐 linear
 
-Transforma um brief de task em projeto documentado no Linear, mais uma issue por fluxo.
+Transforma um brief de task num projeto documentado no Linear. **Só o projeto** — nada de issue, milestone ou sub-issue.
 
 - **Task → Projeto.** O brief inteiro (Oportunidade + Solução) vira a descrição, no formato do `/task`.
-- **Fluxo → Issue.** Cada `### Nome do Fluxo` do Comportamento Esperado vira uma issue, só com o título — sem template, sem corpo imposto.
-- **Campos fixos:** time `Random`, Luiza como leader, status `Para planejamento`. Não pergunta nem varia.
+- **Fluxo → seção da descrição.** Cada `### Nome do Fluxo` do Comportamento Esperado fica dentro do projeto, com seus passos e regras de negócio. Não vira item separado.
+- **Pergunta o que falta antes do preview.** Mostra o placar das lacunas e vai uma pergunta por vez, cada uma com uma resposta recomendada junto. `[a definir]` só sobra no que você escolher deixar em aberto.
+- **Campos fixos:** time `Random`, status `Para planejamento`, prioridade Média, **sem líder**. Não pergunta nem varia.
 - Mostra o preview no chat e só escreve no Linear depois da confirmação.
 
 Só ativa com `/linear` escrito explicitamente. Detalhe em [`linear/SKILL.md`](linear/SKILL.md).
