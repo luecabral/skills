@@ -1,20 +1,28 @@
 ---
 name: maestro
-description: Use para o ciclo completo de uma feature — do brainstorming ao deploy.
+description: Use para o ciclo completo de uma feature — da ideia ao deploy.
 Ativa quando o usuário diz "maestro", "roda o maestro", "faz o maestro". Pode entrar
 diretamente em qualquer fase: "maestro fase 2", "maestro planeja", "maestro executa", "maestro corrige", "maestro publica".
 ---
 
 # Maestro
 
-Ciclo completo de uma feature, do brainstorming ao deploy, em 5 fases. **Este arquivo é autossuficiente:** todo o processo — fases, debugging, docs e estilo de comunicação — está escrito aqui dentro, não invocado de outra skill. Editar qualquer skill avulsa **não muda** o comportamento do maestro. Só o `verify` (built-in do Claude Code) é externo.
+Ciclo completo de uma feature, da ideia ao deploy, em 4 fases. O desenho tem três premissas que valem mais que qualquer passo isolado:
+
+1. **A ideação é o investimento principal.** Pesquisa de mercado, decisões de base, threat modeling, benchmark, alternativas e um plano fatiado em **fases da entrega** — tudo antes da primeira linha de código. É onde ela gasta tempo e onde as decisões dela entram.
+2. **Uma aprovação só libera tudo.** Aprovada a documentação, o desenvolvimento executa **todas as fases da entrega** sozinho: implementa, revisa cada fase, corrige o que julgar relevante e segue. Não pergunta nada no meio.
+3. **Ele para antes do push.** Terminado o desenvolvimento, entrega relatório e roteiro de homologação com tudo commitado **na branch local** — nada no GitHub, nenhum PR, nenhum deploy. Ela homologa com as próprias mãos e só então manda publicar.
+
+**Um PR só.** Não importa quantas fases ou tasks o plano tenha: a publicação gera **um único PR**, no fim. Nunca um PR por task, por fase ou por grupo.
+
+**Este arquivo é autossuficiente:** todo o processo — fases, debugging, docs e estilo de comunicação — está escrito aqui dentro, não invocado de outra skill. Editar qualquer skill avulsa **não muda** o comportamento do maestro. Só o `verify` (built-in do Claude Code) é externo.
 
 **Sem testes automatizados.** O maestro **não escreve teste, não roda suíte, não faz TDD**. A rede de segurança é o **`verify`** (sobe o app e observa o comportamento real) + o **roteiro de homologação manual** entregue ao usuário. Se um projeto já tem suíte e o CI a roda, o CI continua sendo gate (Passo 12) — mas o maestro não cria nem mantém teste.
 
 **NÃO ESCREVA COMENTÁRIOS.** Regra dura, vale pro líder e pra todo subagente: **zero comentário em código novo ou alterado.** A premissa é que comentário é sintoma — se o código precisa de explicação, o código está mal escrito. Em vez de comentar: nomes explícitos (variável/função/classe que diz o que é), funções curtas com uma responsabilidade, early return em vez de aninhamento, extrair condição complexa pra função com nome. Isso inclui comentário de seção, `TODO`, `FIXME`, comentário que repete o código e comentário "explicando o porquê" — o porquê vai na mensagem de commit, no corpo do PR ou nos docs, nunca no código. **Únicas exceções:** docstring/comentário de API pública quando a linguagem ou o projeto já exige (JSDoc em lib pública, docstring Python em módulo exportado), diretiva que a ferramenta lê (`# frozen_string_literal`, `eslint-disable`, `@ts-expect-error`, pragma de tipo) e comentário que **já existia** e você não tocou. Se o projeto tem convenção própria de comentário no `AGENTS.md`/`CLAUDE.md`, ela ganha — informe em 1 linha e siga.
 
 **Modelos (obrigatório):** o desenvolvimento roda sempre em **ultracode**, e o ultracode orquestra os subagentes. Regra única de escolha de modelo: **`model: "opus"` pra tarefa complexa, `model: "sonnet"` pra tarefa simples e mediana.**
-- **Complexa (Opus):** lógica não-trivial, arquitetura, migration/schema, refactor amplo, qualquer coisa que toque auth/pagamento/dados sensíveis, revisão de Segurança e o cético do nível ALTO (Fase 5), debugging que já falhou uma vez.
+- **Complexa (Opus):** lógica não-trivial, arquitetura, migration/schema, refactor amplo, qualquer coisa que toque auth/pagamento/dados sensíveis, revisão de Segurança e o cético do nível ALTO (Fase 4), debugging que já falhou uma vez.
 - **Simples e mediana (Sonnet):** CRUD direto, texto/label/estilo, rename, ajuste de config, docs, painel de lentes da Fase 1, review de UX/Docs, completeness critic — e tudo que não é claramente complexo.
 - O líder classifica a task na hora de spawnar e não pergunta.
 
@@ -35,19 +43,42 @@ Ciclo completo de uma feature, do brainstorming ao deploy, em 5 fases. **Este ar
 - **Isso convive com o caveman.** Caveman corta *processo e narração*, não corta *clareza*: resposta curta e termo explicado ao mesmo tempo. A explicação entre parênteses nunca conta como verbosidade — não a suprima pra economizar token.
 - **Nos entregáveis dirigidos a ela** (`em_resumo:` do plano, roteiro de homologação, relatório de review, gates) o padrão é ainda mais forte: linguagem de produto na frente, termo técnico entre parênteses quando necessário. O roteiro de homologação precisa ser executável por quem não sabe programar — o que abrir, o que clicar, o que esperar ver.
 
-**Orquestração (via subagentes):** todo o paralelismo e a verificação do maestro são feitos com subagentes — o ultracode cuida disso. Subagentes que reportam dado devolvem **estruturado (schema)**, não prosa, pra você operar sobre o resultado sem reparsear. **Orquestrar é silencioso (todas as fases):** ao disparar subagentes (painel da Fase 1, dev da Fase 3, fixes da Fase 4, review da Fase 5), **não narre cada spawn/retorno** ("disparando X… mergeando…") — deixe o painel de tarefas mostrar o progresso e apresente só o **resultado consolidado** do grupo/lote em poucas linhas. **Na Fase 3 nem isso:** lá o consolidado por grupo também não vai pra tela — a única saída durante a execução é a linha de início de task, e o resto sai no relatório final.
+**Orquestração (via subagentes):** todo o paralelismo e a verificação do maestro são feitos com subagentes — o ultracode cuida disso. Subagentes que reportam dado devolvem **estruturado (schema)**, não prosa, pra você operar sobre o resultado sem reparsear. **Orquestrar é silencioso (todas as fases):** ao disparar subagentes (painel da Fase 1, dev da Fase 3, fixes do bloco, review da Fase 4), **não narre cada spawn/retorno** ("disparando X… mergeando…") — deixe o painel de tarefas mostrar o progresso e apresente só o **resultado consolidado** do grupo/lote em poucas linhas. **Na Fase 3 nem isso:** lá o consolidado por grupo também não vai pra tela — a única saída durante a execução é a linha de início de task, e o resto sai no relatório final.
 
-**Profundidade por risco (escala o esforço, nunca a segurança):** classifique a feature por sinais que você já tem — **TRIVIAL** (≤2 tasks, sem 🔴, sem migration) / **ALTO** (tem 🔴, migration destrutiva, ou toca auth/pagamento/dados sensíveis) / **MÉDIO** (o resto). O nível só dimensiona **quantos** subagentes você dispara (painel da Fase 1, pool de review da Fase 5) — **nunca rebaixa Segurança, nem pula gate ou backup**. É derivado: não pergunte, informe em 1 linha e grave `nivel:` no topo do `.plans/plan.md`.
+**Profundidade por risco (escala o esforço, nunca a segurança):** classifique a feature por sinais que você já tem — **TRIVIAL** (≤2 tasks, sem 🔴, sem migration) / **ALTO** (tem 🔴, migration destrutiva, ou toca auth/pagamento/dados sensíveis) / **MÉDIO** (o resto). O nível só dimensiona **quantos** subagentes você dispara (painel da Fase 1, pool de review da Fase 4) — **nunca rebaixa Segurança, nem pula gate ou backup**. É derivado: não pergunte, informe em 1 linha e grave `nivel:` no topo do `.plans/plan.md`.
 
 ---
 
 ## Fase 1 — Explore
 
-Refinamento da ideia antes de qualquer linha de código.
+Refinamento da ideia antes de qualquer linha de código. **Nesta skill a Fase 1 é longa de propósito** — é o único momento em que ela participa das decisões, porque depois da Fase 2 tudo roda sozinho. Não corte caminho aqui: o que não for decidido agora vira decisão sua durante a execução, sem ela poder opinar.
 
 **Quando NÃO usar (encerre e oriente):** usuário já tem plano claro → pule pra Fase 2; está debugando algo existente → `debugging`; mudança pontual e trivial (ex: "muda a cor do botão") → faça direto.
 
-**Contexto do projeto (bootstrap, 1ª vez):** se o projeto não tem `AGENTS.md`/`CLAUDE.md`/`README` descrevendo build, arquitetura e convenções, **ofereça criar um antes de desenhar** — detecte como o app sobe/builda, a stack e os padrões do código. Esse contexto alimenta as Fases 2-5 e evita design que ignora o que já existe.
+**Contexto do projeto (bootstrap, 1ª vez):** se o projeto não tem `AGENTS.md`/`CLAUDE.md`/`README` descrevendo build, arquitetura e convenções, **ofereça criar um antes de desenhar** — detecte como o app sobe/builda, a stack e os padrões do código. Esse contexto alimenta as fases seguintes e evita design que ignora o que já existe.
+
+### Passo 0 — Pesquisa de mercado
+
+Antes de opinar sobre como construir, descubra como o mundo já resolveu. Dispare **em paralelo** subagentes read-only `Agent(model: "sonnet")`, um por frente, e consolide:
+
+- **Melhores práticas** — o padrão consolidado pra esse tipo de feature, e por que virou padrão.
+- **Principais erros** — onde as implementações costumam quebrar, o que dá errado em produção, armadilha conhecida.
+- **Projetos open source** — o que já existe resolvendo isso. Nome, o que dá pra aproveitar (biblioteca pronta, padrão de modelagem, decisão de arquitetura), e o que **não** serve.
+
+**Verifique cada afirmação contra a fonte** e descarte o que não confirmar — pesquisa que vira invenção é pior que não pesquisar. **Cite de onde veio cada conclusão.** Entregue em bloco único: o que o mercado faz, o que costuma dar errado, o que dá pra reaproveitar. Sem parede de texto — o que muda a decisão, e só.
+
+Feature sem paralelo no mercado (regra de negócio interna, integração proprietária) → diga isso em 1 linha e pule.
+
+### Passo 0.5 — Decisões de base
+
+Antes do design, feche o que condiciona todo o resto. Apresente cada uma como **decisão com recomendação**, não como pergunta aberta:
+
+- **Regras de negócio** — as condições e restrições que governam a feature. Aqui é o terreno dela: levante todas, inclusive as que ela não mencionou mas o problema implica.
+- **Stack** — o que usar, e se alguma coisa nova precisa entrar no projeto. Recomende o que já existe no código; dependência nova exige justificativa explícita.
+- **Arquitetura** — onde a feature mora, como conversa com o que já existe, o que é serviço/modelo/componente.
+- **Dados** — o que é persistido, em que forma, o que é derivado, o que é temporário. Migration destrutiva aparece aqui, não na hora do deploy.
+
+Stack, arquitetura e dados são técnicos: **apresente a recomendação com o efeito no produto** (custo, prazo, limite futuro) e o termo explicado. Se ela não tiver preferência, **decida** e registre. Regra de negócio é sempre dela.
 
 ### Passo 1 — Entender o problema real
 Antes de perguntar, mapeie suposições ocultas e pontos cegos. Pergunte **uma por vez**, em ordem de dependência, e **ofereça uma resposta recomendada** junto:
@@ -119,43 +150,84 @@ Para cada task declare `depends_on: [ids]`. Calcule grupos paralelos via topolog
 
 **Valide o grafo antes de seguir** (raciocínio sobre o que você já tem; sem pergunta, saída de 1 linha "grafo ok"): sem ciclo em `depends_on`; nenhum `depends_on` apontando pra id inexistente; **duas tasks do mesmo grupo não tocam o mesmo arquivo** (colisão = conflito de merge garantido → serialize uma via `depends_on`). Não reabra ~600 linhas nem 🔴→task (já são regra acima). Dimensione a largura dos grupos ao cap de paralelismo (~16 subagentes); se capar, diga quantos rodam vs. o pico.
 
-### Passo 3 — Aprovar (gate único: plano → branch → execução)
-Apresente o plano ao usuário pelos **`em_resumo`** (uma linha por task, sem jargão) + o **nome de branch proposto** (`tipo/descricao-em-kebab-case`; tipos: `feat` nova funcionalidade, `fix` correção, `refactor` melhoria interna, `chore` manutenção — explique cada um). O detalhe técnico (arquivos, `depends_on`, `✓ Pronto quando`) **não vai pra conversa** — fica pro `plan.md` (Passo 4). **Uma única aprovação cobre plano + nome + início da execução** — deixe explícito no gate:
-> "Se aprovar, eu crio a branch, salvo o plano e **já começo a executar** (Fase 3) com subagentes em paralelo. (Se preferir só salvar na branch sem executar agora, me avise.)"
+### Passo 2.5 — Agrupar em fases da entrega
+
+Grupo paralelo é unidade técnica; **fase da entrega é unidade de valor.** Junte os grupos em fases, cada uma sendo um pedaço da feature que já faz sentido sozinho (ex: "1. Cadastro e persistência", "2. Tela de listagem", "3. Notificação por e-mail"). Tipicamente 2 a 8 fases. A fase é a unidade de review durante a execução e o que aparece no contador de progresso.
+
+Para **cada fase**, registre no plano:
+- **Nome e o que entrega** — uma linha em linguagem de produto.
+- **Tasks que a compõem**, cada uma com **contexto** (por que existe), **escopo** (o que toca, o que não toca) e **definição de pronto** (o `✓ Pronto quando`, observável).
+- **Mapa de modelo e esforço** — `opus` ou `sonnet` por task (ver Modelos), com o porquê em três palavras. Fica no plano, não é escolhido na hora.
+- **Validação da fase** — como confirmar que funcionou de verdade: qual fluxo exercitar, o que tem que acontecer. Sem teste automatizado (ver regra no topo).
+- **Rollback da fase** — como desfazer se der errado: `git revert` do range, flag desligada, migration reversa. Fase com migration destrutiva diz isso aqui, em letras garrafais.
+
+### Passo 2.7 — Pontos onde a opinião dela pesa
+
+Liste, separado, **as decisões que valem a opinião dela** — trade-off de produto, comportamento ambíguo, corte de escopo, algo que muda o que o usuário sente. Máximo 5; se tem mais que isso, o design da Fase 1 não fechou.
+
+**Resolva todos agora, antes do gate.** Depois da aprovação ninguém volta pra perguntar: o que não for decidido aqui vira decisão sua durante a execução. Deixe isso explícito ao apresentar a lista.
+
+### Passo 3 — Aprovar (gate único: documentação → branch → execução autônoma)
+
+**Este é o único gate até o fim do desenvolvimento.** Apresente:
+- O plano pelos **`em_resumo`** (uma linha por task, sem jargão), agrupado pelas **fases da entrega**.
+- As **decisões de base** do Passo 0.5 já fechadas (regras de negócio, stack, arquitetura, dados).
+- Os **pontos de opinião** do Passo 2.7, já resolvidos.
+- O **nome de branch proposto** (`tipo/descricao-em-kebab-case`; tipos: `feat` nova funcionalidade, `fix` correção, `refactor` melhoria interna, `chore` manutenção — explique cada um).
+
+O detalhe técnico (arquivos, `depends_on`, mapa de modelo) **não vai pra conversa** — fica no `plan.md`.
+
+Deixe o alcance da aprovação explícito, sem ambiguidade:
+> "Se aprovar, eu crio a branch e **desenvolvo as N fases inteiras sozinho** — implemento, reviso cada fase e corrijo o que achar relevante, sem te perguntar nada no meio. Você vê só o início de cada fase e de cada task. **Eu paro antes do push:** no fim entrego o relatório e o roteiro de homologação com tudo commitado na branch local, nada no GitHub. Aí você testa com as mãos e me diz se publico."
 
 Após o ok:
 ```bash
 git fetch origin && git checkout main && git pull origin main && git checkout -b <nome>
 ```
 
+**Uma branch só, pra tudo.** Todas as fases commitam nela. Nada de branch por fase.
+
 ### Passo 4 — Salvar plano e seguir
-Salve em `.plans/plan.md` na raiz (formato em REFERENCE.md), com o `nivel:` no cabeçalho (ver Profundidade por risco). Sobrescreva se existir. Garanta `.plans/` no `.gitignore`.
+Salve em `.plans/plan.md` na raiz (formato em REFERENCE.md), com o `nivel:` no cabeçalho (ver Profundidade por risco), as **fases da entrega**, o **mapa de modelo por task** e a **validação e rollback de cada fase**. Sobrescreva se existir. Garanta `.plans/` no `.gitignore`.
 
 Plano salvo → **siga direto pra Fase 3** (a execução já foi aprovada no Passo 3; **sem novo gate**). Só pare na branch se o usuário pediu o opt-out de não executar agora.
 
 ---
 
-## Fase 3 — Execute
+## Fase 3 — Execute (autônoma, fase por fase, até antes do push)
 
 O líder orquestra; quem escreve código são os subagentes (**Opus** na task complexa, **Sonnet** na simples e mediana — ver Modelos).
 
-### 🔇 Silêncio total na Fase 3 (regra que vence todas as outras desta fase)
+**Esta fase é autônoma do início ao fim.** Ela aprovou a documentação na Fase 2 e não volta a ser consultada até o desenvolvimento acabar. Você percorre **todas as fases da entrega** do plano, uma após a outra, revisando cada uma, e **para antes do push** — sem GitHub, sem PR, sem deploy.
 
-A execução do plano roda **sem mandar nenhuma mensagem**, com **uma única exceção**: a linha de início de task (abaixo). Fora ela, tudo espera o relatório final.
+### 🔇 Silêncio na Fase 3 (regra que vence todas as outras desta fase)
 
-**A ÚNICA coisa que vai pra tela durante a execução — a linha de início de task.** Quando uma task começa, e só nesse momento, uma linha neste formato exato:
+A execução roda **sem mandar mensagem**, com **duas exceções**: a linha de início de fase e a linha de início de task. Fora elas, tudo espera o relatório final.
+
+**Exceção 1 — linha de início de fase da entrega.** Quando uma fase começa:
+
+```
+Iniciando fase 4 (3 de 8)
+```
+
+- O número é a fase do plano. O contador entre parênteses é **quantas fases já concluíram, do total** — começando a fase 4 com 3 fechadas, sai `(3 de 8)`.
+- Uma linha, sem o nome da fase, sem o que ela entrega, sem o que vem depois.
+- **Só ao iniciar. Nada ao concluir** — o fechamento aparece no contador da fase seguinte.
+- A última fase fecha no relatório final, não numa linha própria.
+
+**Exceção 2 — linha de início de task.** Quando uma task começa, e só nesse momento:
 
 ```
 * Task 6 (7 completas de 12)
 ```
 
-- O número é o `id` da task no `.plans/plan.md`. O contador é **quantas já concluíram** (não quantas começaram) **de quantas o plano tem no total.**
+- O número é o `id` da task no `.plans/plan.md`. O contador é **quantas já concluíram** (não quantas começaram) **de quantas o plano tem no total** — o total é o do plano inteiro, não o da fase atual.
 - **Uma linha, nada mais.** Sem nome da task, sem o que ela faz, sem arquivo, sem status, sem estimativa. Não pendure nenhuma outra informação aqui.
 - **Só no início. Nada quando a task termina** — o fim dela aparece no contador da próxima linha. Dobrar pra "iniciou/concluiu" é exatamente o ruído que ela não quer.
 - **Com paralelismo os números saem fora de ordem, e está certo assim:** várias tasks começam juntas (uma linha cada, no mesmo instante), e uma task de id baixo pode começar depois de várias de id alto terem concluído. `Task 6 (7 completas de 12)` é uma saída válida.
 - **Retomada:** o contador inclui as tasks já marcadas `[x]` de sessões anteriores. O total é sempre o do plano inteiro, não o das que faltam.
 
-**Não vai pra tela durante a execução — nada disso:** task concluída, subagente disparado ou retornado, grupo mergeado, qualquer outro formato de progresso, problema encontrado, erro, tentativa que falhou, decisão de implementação, conflito de merge, arquivo criado, dúvida, pedido de confirmação, "quer que eu…", "encontrei um problema em…", aviso de que algo demorou, resumo parcial. O painel de tarefas e os tool calls já mostram que está trabalhando — isso, mais a linha de início de task, **é tudo que ela quer ver enquanto roda.**
+**Não vai pra tela durante a execução — nada disso:** task ou fase concluída, subagente disparado ou retornado, grupo mergeado, qualquer outro formato de progresso, achado de review, correção aplicada, problema encontrado, erro, tentativa que falhou, decisão de implementação, conflito de merge, arquivo criado, dúvida, pedido de confirmação, "quer que eu…", "encontrei um problema em…", aviso de que algo demorou, resumo parcial. O painel de tarefas e os tool calls já mostram que está trabalhando — isso, mais as duas linhas acima, **é tudo que ela quer ver enquanto roda.**
 
 **Toda decisão de execução é sua.** O plano já foi aprovado; nada dentro dele volta pra ela. Isso inclui: worktree ou inline, ordem dentro do grupo, como implementar, qual biblioteca já usada no projeto empregar, conflito de merge mecânico, ajuste de escopo óbvio pra task funcionar, subagente que falhou e precisa ser relançado.
 
@@ -163,7 +235,22 @@ A execução do plano roda **sem mandar nenhuma mensagem**, com **uma única exc
 
 **Fim antecipado (encerra a fase, não interrompe no meio):** se **nenhuma** task restante puder avançar — tudo depende do que travou, ou o repositório está inutilizável (branch quebrada, credencial ausente, dependência que não instala). Aí a fase **termina** e você entrega o relatório final ali, explicando o que impediu de continuar. Não é uma interrupção no meio: é o fim antecipado, e continua sendo uma única mensagem.
 
-**Silêncio vale só pra execução.** O gate do fim da Fase 3 (relatório + roteiro + "achou o que ajustar?") acontece normalmente, e as Fases 1, 2, 4 e 5 mantêm as regras de comunicação delas.
+**Silêncio vale só pra execução.** O gate do fim da Fase 3 (relatório + roteiro + "publico?") acontece normalmente, e as Fases 1, 2 e 4 mantêm as regras de comunicação delas.
+
+### O loop por fase da entrega
+
+Para **cada fase** do plano, em ordem:
+
+1. **Anuncie a fase** (linha de início de fase, acima).
+2. **Execute as tasks da fase** pelo grafo de dependências, do jeito descrito abaixo — grupos paralelos, um subagente por task, merge, checkbox no `plan.md`.
+3. **Valide a fase** pela **validação registrada no plano** (Passo 2.5): exercite o fluxo via `verify`, ou na mão se o app não sobe. Não deu certo → `debugging`, corrige, revalida. Ainda não deu → marque a fase como parcial, registre o motivo e **siga pra próxima fase que não depende dela**.
+4. **Revise a fase** — subagentes read-only sobre o diff **da fase** (`git diff <base da fase>..HEAD`), com a mesma profundidade do review final (Segurança sempre em `opus`; UX e Docs conforme o diff; escala pelo `nivel:`). Inclui a **varredura de comentário**, que é bloqueante.
+5. **Corrija o que for relevante, sozinha.** Achado 🚨 → corrige na hora, via subagente, e revalida. Achado ⚠️ → aplique quando for barato e claramente melhor; quando for discutível, **não aplique** e leve pro relatório final como sugestão. Não pergunte qual aplicar — isso é decisão sua nesta skill.
+6. **Fase fechada → próxima.** Sem mensagem de fechamento.
+
+Revisar por fase, e não só no fim, é o que impede um erro da fase 1 de contaminar as sete seguintes.
+
+### A execução em si
 
 1. Lê `.plans/plan.md`, reconstrói o grafo de dependências. **Retomada:** se a sessão anterior parou no meio, as tasks já feitas estão marcadas (`[x]`) — pegue só as não-marcadas, descarte worktrees órfãs de tasks concluídas e recomece pelo primeiro grupo com task pendente.
 2. **Feature pequena (≤2 tasks sem interdependência de schema):** worktree + paralelismo custa mais do que rende — **decida você** (default worktree; inline quando o custo do isolamento claramente não se paga), mantendo commit + validação. Não pergunte.
@@ -189,7 +276,7 @@ Repita por comportamento, sempre deixando o código rodando. **Sem teste automat
 **Commit (smart-commit, inline):**
 - Antes de commitar, confirme que o comportamento da task funciona de verdade (o 👀 do ciclo). Quebrado → `debugging`. Não commite comportamento que você não viu rodar.
 - **Varredura de comentário:** rode `git diff` do seu próprio trabalho e confirme que **nenhuma linha adicionada é comentário** (fora as exceções do topo). Achou → remova e melhore o código no lugar. Não commite com comentário novo.
-- **Auto-check de segurança:** se a task tocou auth / dados / input de usuário / query / upload, releia o que mexeu contra os vetores do Passo 1.5 (IDOR, injection, SSRF, escopo de autorização, etc.) **antes de commitar** — pega o problema na fonte, não só na Fase 5.
+- **Auto-check de segurança:** se a task tocou auth / dados / input de usuário / query / upload, releia o que mexeu contra os vetores do Passo 1.5 (IDOR, injection, SSRF, escopo de autorização, etc.) **antes de commitar** — pega o problema na fonte, não só no review final.
 - Verifique docs (dual-audience: humano leigo + agente de IA): se o projeto tem `AGENTS.md` ou `docs/`, atualize o que ficou desatualizado — AGENTS.md, estrutura de pastas, regras de negócio, `docs/features/`, `docs/changelog.md`. Tom simples pro humano, caminhos/nomes reais pro técnico. Docs vão no mesmo commit, nunca "depois".
 - Agrupe arquivos por contexto lógico (banco / modelos / controllers / componentes / docs / config) e gere um commit por grupo. Mensagem: `tipo: Mensagem` (verbo no presente, maiúscula inicial, sem ponto final; tipos `feat·fix·refactor·perf·docs·style·config`).
 - Commite via heredoc. Se hook falhar, corrija e crie **novo** commit. Nunca `--amend` nem `--no-verify`. Sinalize `console.log`/`debugger`/`print` esquecidos antes de commitar.
@@ -206,24 +293,31 @@ Com a validação verde, gere um **roteiro de homologação manual** pro usuári
 
 **Proteções:** máx. 2 ciclos de implementação por task; máx. 3 falhas consecutivas na mesma task. Estourou → marca a task `paused`/`failed` com o motivo e **segue pras tasks que não dependem dela** (nunca vira mensagem no meio da execução — vai pro relatório final).
 
-### Relatório final (a ÚNICA mensagem da Fase 3)
-Toda a execução converge aqui. Uma mensagem só, entregue quando o desenvolvimento acaba:
-- **O que ficou pronto** — em linguagem de produto, uma linha por task (os `em_resumo` do plano), não lista de arquivo.
-- **O que não entrou** — cada task `paused`/`failed` com o motivo em uma frase e o que você precisa decidir pra destravar. **Nunca dropar em silêncio**; se travou, aparece aqui.
+### Relatório final (a mensagem que fecha a Fase 3)
+Toda a execução converge aqui, quando a última fase da entrega termina:
+- **O que ficou pronto** — em linguagem de produto, agrupado pelas fases da entrega, uma linha por task (os `em_resumo` do plano). Não lista de arquivo.
+- **O que não entrou** — cada task ou fase `paused`/`failed` com o motivo em uma frase e o que você precisa decidir pra destravar. **Nunca dropar em silêncio**; se travou, aparece aqui.
+- **O que o review pegou e eu corrigi** — resumo em 2-3 linhas do que os revisores de cada fase acharam e você já resolveu. Não é lista de achado: é "o que quase foi pra produção errado".
+- **Sugestões que eu não apliquei** — os ⚠️ discutíveis, com uma linha cada, pra ela decidir se viram fix ou ficam pra depois.
 - **Decisões de implementação que valem você saber** — só as que mudam produto, prazo ou risco (ex: "campo virou opcional porque o dado legado não tem valor"). Escolha técnica que não te afeta não entra.
 - **O roteiro de homologação manual** (acima).
 - Termo técnico que aparecer vem explicado entre parênteses (ver "Com quem você está falando").
 
-**Gate:** "Desenvolvimento concluído e homologado pelo `verify`, mergeado na branch. Acima está o roteiro pra você homologar manualmente. **Achou o que ajustar? Me manda o bloco de fixes que eu aplico (Fase 4).** Sem fixes → publicar (Fase 5)."
-Se não → encerra na branch, pronta pra Fase 4 (fixes) ou Fase 5 (publish) quando você quiser.
+### 🛑 Parada obrigatória antes do push
+
+**Aqui a execução autônoma termina.** Tudo está commitado **na branch local** e **nada saiu da máquina**: sem `git push`, sem PR, sem CI, sem deploy, sem tocar a `main`. Isso vale mesmo que o desenvolvimento tenha corrido perfeito e mesmo que ela tenha dito "pode ir até o fim" na Fase 1 — a autorização do gate da Fase 2 **cobre desenvolver, não cobre publicar.**
+
+**Gate:** "Desenvolvimento concluído: N fases, X tasks, tudo commitado na branch `<nome>` — **nada foi pro GitHub ainda**. Acima está o roteiro pra você homologar com as próprias mãos. **Achou o que ajustar? Me manda o bloco de fixes.** Se estiver bom, eu publico (Fase 4) — um PR só."
+
+Ela pedir fixes → aplique o bloco (mesmo processo da execução: subagentes, modelo por complexidade, revalidação) e volte a este gate. Ela mandar publicar → Fase 4.
 
 ---
 
-## Fase 4 — Fixes
+## Bloco de fixes (pós-homologação, quando ela pedir)
 
-Aplicação orquestrada de um **bloco de fixes** após a implementação da Fase 3. Entra após a homologação (você testou pelo roteiro da Fase 3 e achou ajustes), ou direto via `maestro fase 4` / `maestro corrige`. **Não** é review automático (isso é a Fase 5) — aqui **você manda o que corrigir e eu orquestro os subagentes**.
+Aplicação orquestrada de um **bloco de fixes** depois que ela homologou na mão e achou ajustes. Entra pelo gate do fim da Fase 3, ou direto via `maestro corrige`. **Não** é review automático — o review já rodou fase a fase durante a execução; aqui **ela manda o que corrigir e você orquestra os subagentes**. A branch continua local: bloco de fixes não publica nada.
 
-**Quando NÃO usar — fix único e pequeno:** não precisa de "maestro corrige" nem da fase inteira. Só diga o que ajustar; eu corrijo **direto (inline)**, confirmo o comportamento na mão e sigo. A Fase 4 é pra **bloco** — vários fixes juntos, ou algo que valha paralelizar em subagentes.
+**Quando NÃO usar — fix único e pequeno:** não precisa de "maestro corrige" nem da fase inteira. Só diga o que ajustar; eu corrijo **direto (inline)**, confirmo o comportamento na mão e sigo. O bloco é pra **vários fixes juntos** — vários fixes juntos, ou algo que valha paralelizar em subagentes.
 
 ### Passo 1 — Receber o bloco de fixes
 Receba (ou peça) o bloco: lista livre do que ajustar — bugs da homologação, ajustes pontuais, pedidos de mudança. Para cada item, identifique o(s) **arquivo(s) alvo** (pergunte só se não der pra inferir do código). Sem bloco → pergunte qual é.
@@ -231,7 +325,7 @@ Receba (ou peça) o bloco: lista livre do que ajustar — bugs da homologação,
 ### Passo 1.5 — Triar o bloco (antes de orquestrar)
 - **Entenda e deduplique:** consolide itens que são a mesma coisa; **esclareça só os genuinamente ambíguos** (não pergunte no que dá pra inferir do código).
 - **Guard de band-aid:** se um fix é só remendo de um problema de design, **não corrija calado** — sinalize "isso briga com o design; o fix de raiz é X" e deixe você decidir.
-- **Guard de escopo:** se um "fix" é grande ou é **feature** de verdade, **não force na Fase 4** — proponha voltar pro Plan (Fase 1/2) em vez de cramar como conserto.
+- **Guard de escopo:** se um "fix" é grande ou é **feature** de verdade, **não force como fix** — proponha voltar pro Plan (Fase 1/2) em vez de cramar como conserto.
 
 ### Passo 2 — Commitar pendências
 `git status --short`: se houver mudança não commitada, rode o fluxo de commit da Fase 3 (verifica na mão → debug → commit agrupado). Working tree limpo antes de orquestrar.
@@ -251,14 +345,14 @@ Nenhum caminho escreve teste. Falhou → `debugging`. **Zero comentário** e var
 Sessão principal **reexercita os fluxos tocados + os adjacentes** via `verify` ou na mão (quebrou → `debugging`). **Confirme que o sintoma reportado sumiu** — o que você reportou agora se comporta como esperado (pra UI, via `verify`/roteiro do item). Commita as correções (smart-commit: agrupa por contexto, `tipo: Mensagem`, nunca `--amend`/`--no-verify`). Re-homologa só os fluxos que mudaram.
 **Relatório honesto:** liste o que entrou e o que **não** deu (status `paused`/`failed`) com o motivo — nunca dropar um fix em silêncio.
 
-**Gate:** "Fixes aplicados e revalidados. Manda mais um bloco, ou publico agora (Fase 5)?"
-Mais um bloco → volta ao Passo 1. Senão → Fase 5.
+**Gate:** "Fixes aplicados e revalidados, tudo ainda local. Manda mais um bloco, ou publico agora (Fase 4)?"
+Mais um bloco → volta ao Passo 1. Senão → Fase 4 (Publish).
 
 ---
 
-## Fase 5 — Publish
+## Fase 4 — Publish (um PR só)
 
-Entra após a Fase 4, ou direto via `maestro fase 5` / `maestro publica` (mesmo em sessão nova depois de fixes manuais). Review final escalonado por risco + pipeline de publicação.
+**Só entra quando ela mandar**, depois de homologar na mão — nunca como continuação automática da Fase 3. Também entra direto via `maestro publica` numa sessão nova. Review final de integração + pipeline de publicação, terminando em **um único PR**.
 
 **Token:** o custo aqui é o review do Bloco 1 — então ele **escala pelo `nivel:`** (TRIVIAL quase não gasta; review cheio só no ALTO), os checks mecânicos (grátis) rodam primeiro, e **uma única leitura do diff** (`git diff origin/main...HEAD`) serve review + detecção de infra + corpo do PR. Rode os subagentes e os checks **em silêncio** e mostre só o **relatório consolidado** (Passo 3) — não narre cada subagente nem cada check. O Bloco 2 é shell puro, sem subagentes: **resultado por passo, não processo** (uma linha).
 
@@ -377,8 +471,10 @@ git push -u origin HEAD
 **Não faça cirurgia de EOL/CRLF manual.** Churn de fim-de-linha contra um merge-base antigo (a `main` foi normalizada depois que você ramificou) some sozinho no rebase com `merge.renormalize=true` — vá direto pro rebase, sem normalizar/converter arquivos à mão.
 Conflito no rebase → **resolva os mecânicos você mesmo** (EOL/CRLF, whitespace, cosméticos, lado óbvio) **em silêncio** e reporte em 1 linha; **só pause e peça** se for conflito de conteúdo real (os dois lados mudaram a mesma lógica). Histórico divergente → `--force-with-lease` (nunca `--force` sozinho) — é o caso de uma branch já publicada que passou pela reorganização do Passo 6.5. O push dispara o deploy de staging automaticamente — informe e siga sem aguardar.
 
-#### Passo 8 — Abrir ou editar PR?
-`gh pr view --json number,title,state 2>/dev/null`. PR existente → "Atualizar?" (não → encerra; sim → Passo 9 modo edição). Sem PR → "Abrir agora?" (não → encerra; sim → Passo 9 modo criação). Se chamada com foco em PR e push feito, pule pro 9.
+#### Passo 8 — Abrir ou editar o PR (um só)
+`gh pr view --json number,title,state 2>/dev/null`. PR existente **dessa branch** → é o PR da feature: atualize ele (Passo 9, modo edição), **nunca abra um segundo**. Sem PR → abra (Passo 9, modo criação).
+
+**Regra do PR único:** a feature inteira — todas as fases da entrega, todas as tasks, os fixes e as correções de review — vai em **um PR só**. Nunca abra PR por fase, por task, por grupo ou por bloco de fixes. Se durante a publicação bater a tentação de fatiar ("ficou grande", "dava pra separar o backend"), **não fatie**: o plano foi aprovado como uma entrega só, e a ela interessa revisar uma coisa, não sete. Fase da entrega vira **seção do corpo do PR**, nunca PR separado.
 
 #### Passo 9 — Detectar mudanças de infraestrutura
 No diff, verifique: novas env vars (`process.env.`, `ENV[`, `Rails.application.credentials`), novos serviços externos, migrações, mudanças em Dockerfile/CI/config. Anote as env vars novas — elas alimentam **o corpo do PR (Passo 10)** e a **checagem de prod (Passo 14)**. Se houver, **crie seção própria** no corpo do PR (nunca enterre em "outros ajustes"), listando vars com descrição e exemplo.
@@ -454,8 +550,8 @@ Falha por histórico divergente → `--force-with-lease` (nunca `--force` sozinh
 | Ideia vaga / "como fazer X" | Fase 1 |
 | Design definido / "planeja isso" | Fase 2 |
 | `.plans/plan.md` já existe | Fase 3 |
-| Bloco de fixes pós-implementação / "maestro corrige" | Fase 4 |
-| Branch pronta pra publicar / "maestro publica" | Fase 5 |
+| Bloco de fixes pós-homologação / "maestro corrige" | Bloco de fixes |
+| Homologada, pronta pra publicar / "maestro publica" | Fase 4 |
 
 ## Utilitários (inline)
 
@@ -475,18 +571,20 @@ Após 3 hipóteses sem resultado → **pare e reporte o que descartou** (você p
 
 - **A usuária é Product Manager, não é técnica:** todo termo técnico que vai pra tela vem com explicação curta entre parênteses na 1ª vez da conversa (termo certo + o que é + o efeito no produto/usuário). Explicar não é opcional em gate, trade-off ou achado de review — sem isso ela decide no escuro. Decisão puramente de implementação: decida você e reporte em 1 linha. Isso **não** é exceção ao caveman: resposta curta e termo explicado convivem
 - **Caveman por padrão:** narração mecânica mínima (uma linha ou nada); investigação (conflito, git, debug) é **silenciosa**, só o resultado em 1 linha; fala completa só na Fase 1 e quando há uma **decisão/trade-off pra você escolher** (estilo caveman descrito em Comunicação)
-- **Cadência de confirmação:** confirme **uma vez por fase** (no entregável — design na Fase 1; **plano+branch+execução na Fase 2: um gate só — aprovar o plano cria a branch e dispara a Fase 3**; **na Fase 3 nenhuma confirmação — a fase roda em silêncio, tirando a linha de início de task, e só fala no relatório final**; bloco de fixes na Fase 4; publicar na Fase 5) e só nos **stops irreversíveis**. Não pare a cada seção ou micro-passo: agrupe e siga. Stops inegociáveis (sempre peça ok): merge na main, deploy em produção, escolher quais correções aplicar, backup antes de migration destrutiva. Criar branch e push já estão cobertos pela aprovação do plano/gate — não re-pergunte
+- **Cadência de confirmação — duas aprovações no ciclo inteiro:** (1) **a documentação, no gate da Fase 2** — cobre plano, branch e o desenvolvimento das N fases da entrega; (2) **publicar, depois da homologação manual dela**. Nada entre as duas. Stops inegociáveis, que nenhuma aprovação anterior cobre: **o push** (a Fase 3 para antes dele, sempre), merge na main, deploy em produção, backup antes de migration destrutiva. Criar branch está coberto pelo gate da Fase 2 — não re-pergunte
 - Nunca implemente durante Fase 1 ou 2; nunca proponha código durante a Fase 1
-- **Fase 3 roda em silêncio:** entre a aprovação do plano e o fim do desenvolvimento a única saída é **uma linha por task que começa**, no formato exato `* Task <id> (<concluídas> de <total>)` — sem nome da task, sem nada ao concluir, e com os números saindo fora de ordem quando há paralelismo (é esperado). Nenhum status, problema encontrado ou pergunta. Toda decisão de execução é do líder; task que trava vira `paused`/`failed` e o resto do plano continua. Tudo (inclusive o que travou e por quê) sai no **relatório final**. Só encerra antes se **nenhuma** task restante puder avançar — e mesmo aí a saída é o relatório, não uma interrupção
+- **Fase 3 roda sozinha e em silêncio:** entre a aprovação da documentação e o fim do desenvolvimento as únicas saídas são **uma linha ao iniciar cada fase da entrega** (`Iniciando fase 4 (3 de 8)` — concluídas de total) e **uma linha ao iniciar cada task** (`* Task 6 (7 completas de 12)`). Nada ao concluir, nenhum status, nenhum achado de review, nenhuma pergunta. Ela revisa e corrige cada fase por conta própria; o que for discutível vira sugestão no relatório final, não pergunta no meio. Task que trava vira `paused`/`failed` e o resto continua. Tudo sai no **relatório final**
+- **A Fase 3 para antes do push, sem exceção:** terminado o desenvolvimento, está tudo commitado na branch local e **nada saiu da máquina** — sem push, sem PR, sem CI, sem deploy. A autorização do gate da Fase 2 cobre **desenvolver**, não cobre **publicar**. Só a homologação manual dela libera a Fase 4
+- **Um PR só:** a feature inteira vai num único PR, no fim. Nunca PR por fase da entrega, por task, por grupo ou por bloco de fixes. Fase vira seção do corpo do PR
 - Task ambígua **na Fase 2** (antes do plano ser aprovado) → pergunte. Ambiguidade que só aparece durante a Fase 3 → decida você e registre no relatório final; se mudar o comportamento do produto, marque a task `paused` e leve pro relatório em vez de perguntar no meio
-- **Sem teste automatizado, nunca:** não escreva teste, não crie arquivo de teste, não altere suíte, não adicione dependência de teste, não faça TDD. A rede é `verify` + roteiro de homologação manual. Suíte que **já existe** no repo: roda como gate na Fase 5 pra não publicar quebrando, mas não é mantida nem estendida pelo maestro
-- **Zero comentário em código:** nenhum comentário novo em código novo ou alterado — se precisa de comentário pra explicar, reescreva (nome melhor, função extraída, early return). Exceções: docstring de API pública que a linguagem/projeto exige, diretiva de ferramenta (`eslint-disable`, `frozen_string_literal`, `ts-expect-error`) e comentário pré-existente não tocado. Comentário adicionado no diff é 🚨 bloqueante na Fase 5. O "porquê" vai pro commit, PR ou docs
+- **Sem teste automatizado, nunca:** não escreva teste, não crie arquivo de teste, não altere suíte, não adicione dependência de teste, não faça TDD. A rede é `verify` + roteiro de homologação manual. Suíte que **já existe** no repo: roda como gate na Fase 4 pra não publicar quebrando, mas não é mantida nem estendida pelo maestro
+- **Zero comentário em código:** nenhum comentário novo em código novo ou alterado — se precisa de comentário pra explicar, reescreva (nome melhor, função extraída, early return). Exceções: docstring de API pública que a linguagem/projeto exige, diretiva de ferramenta (`eslint-disable`, `frozen_string_literal`, `ts-expect-error`) e comentário pré-existente não tocado. Comentário adicionado no diff é 🚨 bloqueante no review. O "porquê" vai pro commit, PR ou docs
 - **Modelos:** desenvolvimento sempre em ultracode; **`model: "opus"` pra tarefa complexa, `model: "sonnet"` pra simples e mediana**. Complexa: lógica não-trivial, arquitetura, migration, refactor amplo, auth/pagamento/dados sensíveis, revisão de Segurança, cético do ALTO, debugging. Simples e mediana: CRUD direto, texto/estilo, rename, config, docs, painel de lentes, review de UX/Docs, completeness critic — e tudo que não é claramente complexo
 - **Backup só de produção e só em migration destrutiva** (drop/rename de coluna ou tabela, mudança de tipo, `NOT NULL` em coluna com dados, `--accept-data-loss`) — capturado no Passo 14, imediatamente antes da migration do deploy. Sem backup local nem de staging; migration aditiva não precisa
-- Fase 4 (fixes do seu bloco) e Bloco 1 da Fase 5 (review) rodam em paralelo; correções nunca inline (sempre via subagente, modelo pela complexidade); Bloco 2 da Fase 5 (push→deploy) é estritamente sequencial
+- O bloco de fixes e o review da Fase 4 rodam em paralelo; correções nunca inline (sempre via subagente, modelo pela complexidade); o pipeline de publicação da Fase 4 (push→deploy) é estritamente sequencial
 - **Profundidade escala por risco (nível TRIVIAL/MÉDIO/ALTO), nunca por capricho** — e o cético do nível ALTO **nunca rebaixa** achado de classe alta-confiança (SQLi/IDOR/secret/auth); Segurança roda sempre em Opus, mesmo em TRIVIAL
 - Subagentes que reportam dado devolvem estruturado (schema), não prosa
-- **Reorganizar commits antes do push (Fase 5, Passo 6.5):** histórico agrupado por contexto lógico e em ordem de construção, fix de código da própria branch absorvido no commit que ele conserta, mensagens `tipo: Mensagem`. Sempre com tag de backup antes e `git diff` contra ela **vazio** depois — conteúdo idêntico, só a divisão do histórico muda. Diferença de conteúdo → aborta e publica o histórico original. Branch já publicada com PR aberto → pergunta antes (exige force-with-lease e desancora comentários de review)
+- **Reorganizar commits antes do push (Fase 4, Passo 6.5):** histórico agrupado por contexto lógico e em ordem de construção, fix de código da própria branch absorvido no commit que ele conserta, mensagens `tipo: Mensagem`. Sempre com tag de backup antes e `git diff` contra ela **vazio** depois — conteúdo idêntico, só a divisão do histórico muda. Diferença de conteúdo → aborta e publica o histórico original. Branch já publicada com PR aberto → pergunta antes (exige force-with-lease e desancora comentários de review)
 - Nunca use `--force` sozinho, sempre `--force-with-lease`; **nunca delete a branch**; nunca `--amend`/`--no-verify`
 - CI vermelho bloqueia o encerramento; merge só com CI 100% verde
 - "O que tem mais risco" no corpo do PR nunca em branco
