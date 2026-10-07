@@ -39,6 +39,8 @@ bash setup.sh
 
 Aponta o git pros hooks versionados em `.githooks/` via `core.hooksPath`. Roda uma vez por clone.
 
+**Trocando de máquina?** O runbook completo está em [`SETUP.md`](SETUP.md) — inclui o que o clone não traz: hooks do WSL, `settings.json` com as 143 permissões, MCP e a pasta de memória.
+
 ## Remoto
 
 - `luecabral` → https://github.com/luecabral/skills — **único remoto.**

@@ -126,6 +126,8 @@ Sessão do Claude Code que já estava aberta continua com a versão antiga carre
 
 ### Primeira vez num clone novo
 
+Trocando de máquina? O runbook completo está em [`SETUP.md`](SETUP.md) — ele cobre o que o clone **não** traz: hooks do WSL, as 143 permissões do `settings.json`, MCP e a pasta de memória.
+
 ```bash
 bash setup.sh
 ```
