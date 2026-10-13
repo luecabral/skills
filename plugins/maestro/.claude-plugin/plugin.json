@@ -1,0 +1,8 @@
+{
+  "name": "maestro",
+  "description": "Ciclo completo de uma feature, da ideia ao deploy, em 4 fases. Chame com /maestro.",
+  "author": {
+    "name": "Luiza Cabral"
+  },
+  "repository": "https://github.com/luecabral/skills"
+}

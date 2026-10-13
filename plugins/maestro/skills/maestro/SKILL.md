@@ -1,8 +1,9 @@
 ---
 name: maestro
-description: Use para o ciclo completo de uma feature — da ideia ao deploy.
-Ativa quando o usuário diz "maestro", "roda o maestro", "faz o maestro". Pode entrar
-diretamente em qualquer fase: "maestro fase 2", "maestro planeja", "maestro executa", "maestro corrige", "maestro publica".
+description: >
+  Use para o ciclo completo de uma feature — da ideia ao deploy.
+  Ativa quando o usuário diz "maestro", "roda o maestro", "faz o maestro". Pode entrar
+  diretamente em qualquer fase: "maestro fase 2", "maestro planeja", "maestro executa", "maestro corrige", "maestro publica".
 ---
 
 # Maestro
@@ -16,6 +17,8 @@ Ciclo completo de uma feature, da ideia ao deploy, em 4 fases. O desenho tem tr�
 **Um PR só.** Não importa quantas fases ou tasks o plano tenha: a publicação gera **um único PR**, no fim. Nunca um PR por task, por fase ou por grupo.
 
 **Este arquivo é autossuficiente:** todo o processo — fases, debugging, docs e estilo de comunicação — está escrito aqui dentro, não invocado de outra skill. Editar qualquer skill avulsa **não muda** o comportamento do maestro. Só o `verify` (built-in do Claude Code) é externo.
+
+**Arquivo de apoio:** checklists, templates e formatos citados como `REFERENCE.md` ficam em `${CLAUDE_SKILL_DIR}/REFERENCE.md`.
 
 **Sem testes automatizados.** O maestro **não escreve teste, não roda suíte, não faz TDD**. A rede de segurança é o **`verify`** (sobe o app e observa o comportamento real) + o **roteiro de homologação manual** entregue ao usuário. Se um projeto já tem suíte e o CI a roda, o CI continua sendo gate (Passo 12) — mas o maestro não cria nem mantém teste.
 

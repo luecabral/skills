@@ -1,49 +1,21 @@
 #!/bin/bash
+# A cada commit na main, pusha pro luecabral. É do GitHub que os plugins
+# chegam pra quem instalou o marketplace (com auto-update ligado).
 REPO_ROOT="$(git rev-parse --show-toplevel)"
-COMMANDS_DIR="$HOME/.claude/commands"
 
-# 1. Copia SKILL.md de cada skill para o flat .md no root do repo
-for skill_file in "$REPO_ROOT"/*/SKILL.md; do
-  skill_dir="$(dirname "$skill_file")"
-  skill_name="$(basename "$skill_dir")"
-  cp "$skill_file" "$REPO_ROOT/${skill_name}.md"
-done
-
-# 2. Sincroniza todos os flat .md para ~/.claude/commands/ (lado Windows)
-if [ -d "$COMMANDS_DIR" ]; then
-  for md_file in "$REPO_ROOT"/*.md; do
-    filename="$(basename "$md_file")"
-    cp "$md_file" "$COMMANDS_DIR/$filename"
-  done
-  echo "✓ sincronizado com $COMMANDS_DIR"
-else
-  echo "⚠ diretório $COMMANDS_DIR não encontrado — sync pulado"
-fi
-
-# --- Propagação automática (só na main, fora de rebase/merge) ---
 GIT_DIR_PATH="$(git -C "$REPO_ROOT" rev-parse --git-dir)"
 CUR_BRANCH="$(git -C "$REPO_ROOT" rev-parse --abbrev-ref HEAD)"
 if [ -d "$GIT_DIR_PATH/rebase-merge" ] || [ -d "$GIT_DIR_PATH/rebase-apply" ] || [ -f "$GIT_DIR_PATH/MERGE_HEAD" ]; then
-  echo "↺ rebase/merge em andamento — propagação adiada"
+  echo "↺ rebase/merge em andamento — push adiado"
   exit 0
 fi
 if [ "$CUR_BRANCH" != "main" ]; then
-  echo "↺ branch '$CUR_BRANCH' (não-main) — propagação só na main"
+  echo "↺ branch '$CUR_BRANCH' (não-main) — push só na main"
   exit 0
 fi
 
-# 3. Push pro luecabral (fonte da verdade; NUNCA pro origin/rsv-ink)
 if GIT_TERMINAL_PROMPT=0 git -C "$REPO_ROOT" push luecabral HEAD:main --quiet 2>/dev/null; then
   echo "✓ push luecabral"
 else
   echo "⚠ push luecabral falhou (sem rede/credencial?) — rode 'git push luecabral main' depois"
-fi
-
-# 4. Atualiza o WSL (clone de ~/.claude/commands que tracka luecabral/main)
-if command -v wsl.exe >/dev/null 2>&1; then
-  if wsl.exe -e bash -lc 'GIT_TERMINAL_PROMPT=0 git -C ~/.claude/commands pull --ff-only luecabral main --quiet' 2>/dev/null; then
-    echo "✓ WSL atualizado"
-  else
-    echo "⚠ WSL não atualizado (desligado ou com mudança local) — rode 'git -C ~/.claude/commands pull --ff-only luecabral main' no WSL"
-  fi
 fi

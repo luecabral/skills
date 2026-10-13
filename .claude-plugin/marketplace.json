@@ -1,0 +1,19 @@
+{
+  "name": "luecabral",
+  "description": "Skills da Luiza para o Claude Code",
+  "owner": {
+    "name": "Luiza Cabral"
+  },
+  "plugins": [
+    {
+      "name": "maestro",
+      "source": "./plugins/maestro",
+      "description": "Ciclo completo de uma feature, da ideia ao deploy, em 4 fases"
+    },
+    {
+      "name": "linear",
+      "source": "./plugins/linear",
+      "description": "Cria um projeto no Linear a partir de um brief de task"
+    }
+  ]
+}

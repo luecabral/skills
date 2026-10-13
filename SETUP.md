@@ -13,18 +13,20 @@ Dois sistemas operacionais na mesma máquina, com papéis diferentes:
 - **Windows** é onde o repositório vive e onde as skills são editadas.
 - **WSL (Ubuntu)** é onde você realmente desenvolve, e onde o Claude Code roda de verdade.
 
+As skills chegam ao Claude Code como **plugins**, instalados a partir do GitHub — não mais por cópia de arquivo.
+
 ```
 WINDOWS
   C:\Users\luiza.cabral\projects\skills        ← o repositório. Edita aqui.
         │  (hook post-commit, a cada commit na main)
-        ├─ gera <skill>.md na raiz do repo
-        ├─ copia os .md pra C:\Users\luiza.cabral\.claude\commands\   ← Claude Code do Windows
-        ├─ git push luecabral
-        └─ dispara git pull no WSL
+        └─ git push luecabral
                               │
-WSL                           ▼
-  /home/luizacabral/.claude/commands/          ← clone git de luecabral/main.
-                                                  É o que o Claude Code do WSL lê.
+GITHUB                        ▼
+  luecabral/skills                             ← marketplace "luecabral"
+                              │
+                              ▼  (auto-update ao abrir sessão)
+QUALQUER CLAUDE CODE (Windows, WSL, Mac, colegas)
+  ~/.claude/plugins/                           ← cache dos plugins instalados
   /home/luizacabral/.claude/hooks/             ← 2 hooks, NÃO versionados
   /home/luizacabral/.claude/settings.json      ← permissões e preferências, NÃO versionado
   /home/luizacabral/.claude.json               ← servidores MCP, NÃO versionado
@@ -32,7 +34,7 @@ WSL                           ▼
   /home/luizacabral/.claude/skills/            ← symlinks pro .agents (só caveman ativo)
 ```
 
-**Regra de ouro:** a fonte da verdade é sempre `<skill>/SKILL.md` no repositório do Windows. Todo o resto é destino gerado. Nunca edite `~/.claude/commands/` à mão — o hook sobrescreve.
+**Regra de ouro:** a fonte da verdade é sempre `plugins/<skill>/skills/<skill>/SKILL.md` no repositório. Nunca edite `~/.claude/plugins/` à mão — é cache, sobrescrito a cada atualização.
 
 ---
 
@@ -40,10 +42,10 @@ WSL                           ▼
 
 | Item | Onde |
 |---|---|
-| As duas skills | `maestro/`, `linear/` |
-| Checklists e templates do maestro | `maestro/REFERENCE.md` |
-| Flats gerados | `<skill>.md` na raiz |
-| O hook de propagação | `.githooks/post-commit` e `.githooks/post-merge` |
+| As duas skills, como plugins | `plugins/maestro/`, `plugins/linear/` |
+| Catálogo do marketplace | `.claude-plugin/marketplace.json` |
+| Checklists e templates do maestro | `plugins/maestro/skills/maestro/REFERENCE.md` |
+| O hook de push | `.githooks/post-commit` |
 | Ativador do hook | `setup.sh` |
 | Normalização de fim de linha | `.gitattributes` (`*.md text eol=lf`) |
 | Instruções do repo | `CLAUDE.md`, `README.md`, este arquivo |
@@ -113,16 +115,21 @@ cd ~/projects/skills && bash setup.sh
 ```
 O `setup.sh` aponta o git pros hooks versionados (`core.hooksPath=.githooks`). **Sem isso nada propaga.**
 
-**2. Clone o repositório no WSL, no lugar certo:**
-```bash
-git clone https://github.com/luecabral/skills.git ~/.claude/commands
+**2. Instale os plugins** — no Claude Code do Windows **e** no do WSL, numa sessão de cada:
 ```
-```bash
-cd ~/.claude/commands && git remote rename origin luecabral
+/plugin marketplace add luecabral/skills
 ```
-O diretório `~/.claude/commands` **é** o clone — não é uma cópia dentro dele. O remoto precisa se chamar `luecabral`, porque é esse nome que o hook do Windows usa no `git pull`.
+```
+/plugin install maestro@luecabral
+```
+```
+/plugin install linear@luecabral
+```
+Depois ligue o auto-update: `/plugin` → **Marketplaces** → `luecabral` → **Enable auto-update**. Sem isso, a máquina só recebe mudança com `/plugin marketplace update luecabral`.
 
-**3. Confira os caminhos do hook.** O `.githooks/post-commit` usa `$HOME/.claude/commands` no Windows e chama `wsl.exe ... ~/.claude/commands`. Se o nome de usuário mudar, o `$HOME` resolve sozinho — mas confira.
+Se a máquina não tiver chave SSH do GitHub, exporte `CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1` antes, senão a atualização em segundo plano falha.
+
+**3. Se existir um `~/.claude/commands` antigo** (do esquema de cópia anterior), apague o `maestro.md` e o `linear.md` de lá. Um comando solto com o mesmo nome toma o `/maestro` do plugin.
 
 **4. Restaure os arquivos não versionados** (seção 3), dentro do WSL:
 ```bash
@@ -144,13 +151,7 @@ mkdir -p ~/.agents/skills ~/.claude/skills && cp -r /caminho/backup/caveman ~/.a
 ```bash
 cd ~/projects/skills && git commit --allow-empty -m "chore: testa o hook"
 ```
-Tem que sair isto, as três linhas:
-```
-✓ sincronizado com C:\Users\<voce>\.claude\commands
-✓ push luecabral
-✓ WSL atualizado
-```
-Se faltar alguma, o próprio hook diz qual comando rodar.
+Tem que sair `✓ push luecabral`. Se não sair, o próprio hook diz qual comando rodar.
 
 **8. Abra uma sessão nova** e confirme que `/maestro` e `/linear` aparecem.
 
@@ -158,9 +159,9 @@ Se faltar alguma, o próprio hook diz qual comando rodar.
 
 ## 5. Armadilhas conhecidas
 
-- **O hook nunca apaga.** Ele copia `*.md` pro destino, mas não remove o que saiu do repo. Skill deletada continua aparecendo no `~/.claude/commands` do Windows até você apagar à mão. No WSL isso não acontece, porque lá é clone git.
-- **O flat fica pendente depois do commit.** O hook regenera `<skill>.md` **depois** que o commit fecha, então ele aparece como modificado logo em seguida. Commite junto no próximo (`chore: flat copy do <skill>`).
-- **Sessão aberta não recarrega skill.** Qualquer mudança só vale em sessão nova.
-- **Não edite `~/.claude/commands/` direto.** É destino. No Windows o hook sobrescreve; no WSL o `git pull` reclama de arquivo não rastreado e trava a propagação.
+- **Não coloque `version` nos `plugin.json`.** Sem ela, cada commit é versão nova. Com ela, ninguém recebe nada até o número mudar.
+- **Frontmatter quebrado some em silêncio.** Se o YAML do `SKILL.md` não parsear, a skill carrega sem nome e sem descrição. Rode `claude plugin validate .` antes de commitar.
+- **Sessão aberta não recarrega skill.** Qualquer mudança só vale em sessão nova (ou com `/reload-plugins`).
+- **Não edite `~/.claude/plugins/` direto.** É cache, sobrescrito a cada atualização.
 - **`.gitattributes` força `eol=lf` nos `.md`.** Ao trazer arquivo do WSL pro repo, copie de dentro do WSL pra não introduzir CRLF.
 - **O remoto `rsv-ink` foi excluído.** Clone antigo que ainda tenha `origin` apontando pra lá: `git remote remove origin` e depois `git branch --set-upstream-to=luecabral/main main`.
