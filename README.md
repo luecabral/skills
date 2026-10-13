@@ -69,7 +69,7 @@ Entra direto em qualquer fase: `maestro fase 2`, `maestro planeja`, `maestro exe
 
 **Profundidade por risco.** Ele classifica a feature em TRIVIAL / MÉDIO / ALTO e isso dimensiona quantos subagentes dispara. Nunca rebaixa segurança nem pula backup antes de migration destrutiva.
 
-Detalhe completo em [`maestro/SKILL.md`](maestro/SKILL.md); checklists de review, template de plano e de brief em [`maestro/REFERENCE.md`](maestro/REFERENCE.md).
+Detalhe completo em [`maestro/SKILL.md`](maestro/SKILL.md); checklists de review, template de plano e de brief em [`maestro/references/REFERENCE.md`](maestro/REFERENCE.md).
 
 ---
 

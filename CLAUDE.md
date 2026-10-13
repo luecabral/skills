@@ -26,14 +26,25 @@ O flat `.md` é regenerado **depois** do commit, então ele fica pendente no wor
 
 Sessão do Claude Code já aberta continua com a versão antiga da skill carregada. Precisa abrir sessão nova.
 
-## Atualizar o maestro (repo pessoal + marketplace da INK)
+## Atualizar maestro e linear (repo pessoal + marketplace da INK)
 
-O maestro vive em dois lugares: aqui (fonte da verdade) e no marketplace da empresa, `rsv-ink/ink-claude-marketplace`, como plugin `maestro@ink`. Quando a Luiza pedir pra atualizar o maestro:
+As duas skills também estão no marketplace da empresa, `rsv-ink/ink-claude-marketplace` (clone em `../ink-claude-marketplace`), no formato de plugin de lá — sem flat nem command:
 
-1. **Repo pessoal — sempre, sem perguntar.** Edite `maestro/SKILL.md` (e `maestro/REFERENCE.md` se for o caso), copie pro flat (`cp maestro/SKILL.md maestro.md`) e commite na main. O hook pusha pro `luecabral`.
-2. **INK — só com confirmação.** Pergunte: "Atualizo também no marketplace da INK?". Só se ela disser sim, rode `bash scripts/publicar-maestro-ink.sh`. O script copia os arquivos, sobe a versão (patch) no `plugin.json` e no `marketplace.json` da INK, abre o PR e mergeia. Sem subir a versão, ninguém na empresa recebe a mudança.
+| Aqui (pessoal) | Na INK | Relação |
+|---|---|---|
+| `maestro/` → `/maestro` | `plugins/maestro/` → `maestro@ink` | mesma skill: `SKILL.md` e `references/` são copiados |
+| `linear/` → `/linear` | `plugins/linear-projeto/` → `linear-projeto@ink` | variante: texto genérico, pergunta o time em vez de fixar `Random`. O nome evita conflito com o plugin `linear` (MCP) de lá |
 
-O texto do maestro é genérico ("o usuário"), porque é publicado pra empresa. Não reintroduza "a Luiza" ou "ela" se referindo a quem usa.
+Quando a Luiza pedir pra atualizar o maestro ou o linear:
+
+1. **Repo pessoal — sempre, sem perguntar.** Edite `<skill>/SKILL.md` (e `maestro/references/` se for o caso), copie pro flat (`cp <skill>/SKILL.md <skill>.md`) e commite na main. O hook pusha pro `luecabral` e atualiza `~/.claude/commands`.
+2. **INK — só com confirmação.** Pergunte: "Atualizo também no marketplace da INK?". Só se ela disser sim:
+   - **maestro:** `bash scripts/publicar-ink.sh maestro` — copia, sobe a versão, abre o PR e mergeia.
+   - **linear:** atualize o clone da INK (`git -C ../ink-claude-marketplace pull`), replique a mudança à mão em `plugins/linear-projeto/skills/linear-projeto/SKILL.md` mantendo as diferenças da variante, e rode `bash scripts/publicar-ink.sh linear-projeto`.
+
+Na INK os plugins têm `version` fixa: sem subir, ninguém recebe a mudança. O script sobe o patch no `plugin.json` e no `marketplace.json`.
+
+O texto do maestro é genérico ("o usuário"), porque é o mesmo arquivo publicado pra empresa. Não reintroduza "a Luiza" ou "ela" se referindo a quem usa. O `linear` pessoal pode falar dela; o `linear-projeto` não.
 
 ## Como criar uma skill nova
 

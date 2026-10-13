@@ -18,6 +18,8 @@ Ciclo completo de uma feature, da ideia ao deploy, em 4 fases. O desenho tem tr�
 
 **Este arquivo é autossuficiente:** todo o processo — fases, debugging, docs e estilo de comunicação — está escrito aqui dentro, não invocado de outra skill. Editar qualquer skill avulsa **não muda** o comportamento do maestro. Só o `verify` (built-in do Claude Code) é externo.
 
+Checklists de review, template de plano e de brief e o algoritmo de grupos paralelos ficam em [`references/REFERENCE.md`](./references/REFERENCE.md), ao lado deste arquivo.
+
 **Sem testes automatizados.** O maestro **não escreve teste, não roda suíte, não faz TDD**. A rede de segurança é o **`verify`** (sobe o app e observa o comportamento real) + o **roteiro de homologação manual** entregue ao usuário. Se um projeto já tem suíte e o CI a roda, o CI continua sendo gate (Passo 12) — mas o maestro não cria nem mantém teste.
 
 **NÃO ESCREVA COMENTÁRIOS.** Regra dura, vale pro líder e pra todo subagente: **zero comentário em código novo ou alterado.** A premissa é que comentário é sintoma — se o código precisa de explicação, o código está mal escrito. Em vez de comentar: nomes explícitos (variável/função/classe que diz o que é), funções curtas com uma responsabilidade, early return em vez de aninhamento, extrair condição complexa pra função com nome. Isso inclui comentário de seção, `TODO`, `FIXME`, comentário que repete o código e comentário "explicando o porquê" — o porquê vai na mensagem de commit, no corpo do PR ou nos docs, nunca no código. **Únicas exceções:** docstring/comentário de API pública quando a linguagem ou o projeto já exige (JSDoc em lib pública, docstring Python em módulo exportado), diretiva que a ferramenta lê (`# frozen_string_literal`, `eslint-disable`, `@ts-expect-error`, pragma de tipo) e comentário que **já existia** e você não tocou. Se o projeto tem convenção própria de comentário no `AGENTS.md`/`CLAUDE.md`, ela ganha — informe em 1 linha e siga.
@@ -91,7 +93,7 @@ Foco: o quê, para quem, critério de sucesso, restrições, casos de borda, int
 Explique que é uma análise pra identificar o que pode dar errado antes de construir. Documente:
 - **Ativos** — quais dados são sensíveis? há dinheiro envolvido?
 - **Atacantes** — usuário malicioso autenticado, externo, bot, insider
-- **Vetores** (marque os relevantes e explique cada um em linguagem simples): IDOR (acesso a dados de outro usuário), SQL injection (manipulação do banco via formulário), XSS (script malicioso no navegador de outro), CSRF (ação sem o usuário saber), race condition (dois processos simultâneos), upload malicioso, brute force, prompt injection (se houver IA), **SSRF** (servidor forçado a chamar URL interna), **desserialização insegura**, **crypto fraca** (hash/cifra obsoleta, segredo hardcoded), **escopo de autorização ausente** (endpoint que não checa permissão/tenant). Checklist completo em REFERENCE.md.
+- **Vetores** (marque os relevantes e explique cada um em linguagem simples): IDOR (acesso a dados de outro usuário), SQL injection (manipulação do banco via formulário), XSS (script malicioso no navegador de outro), CSRF (ação sem o usuário saber), race condition (dois processos simultâneos), upload malicioso, brute force, prompt injection (se houver IA), **SSRF** (servidor forçado a chamar URL interna), **desserialização insegura**, **crypto fraca** (hash/cifra obsoleta, segredo hardcoded), **escopo de autorização ausente** (endpoint que não checa permissão/tenant). Checklist completo em references/REFERENCE.md.
 
 Classifique por probabilidade × impacto (🔴 Alta / 🟡 Média / 🟢 Baixa). Riscos 🔴 viram tasks explícitas na Fase 2.
 
@@ -115,7 +117,7 @@ Com a abordagem escolhida, descreva o design **completo de uma vez** (não seç�
 Com benchmark do Passo 1.7, referencie-o em cada fluxo.
 
 ### Passo 4 — Resumo final
-Apresente o resumo do design (problema, solução, benchmark, escopo, fluxos, comportamentos, regras de negócio, fora do escopo, critério de sucesso, riscos). Template em REFERENCE.md.
+Apresente o resumo do design (problema, solução, benchmark, escopo, fluxos, comportamentos, regras de negócio, fora do escopo, critério de sucesso, riscos). Template em references/REFERENCE.md.
 
 **Gate:** "Design definido. Quer que eu crie o plano com grafo de dependências (Fase 2)?"
 Se não → encerra sem implementar nada.
@@ -147,7 +149,7 @@ Critério por task:
 ```
 
 ### Passo 2 — Dependências e grupos paralelos
-Para cada task declare `depends_on: [ids]`. Calcule grupos paralelos via topological sort (ver REFERENCE.md). Apresente: "X tasks em Y grupos, Z em paralelo no pico".
+Para cada task declare `depends_on: [ids]`. Calcule grupos paralelos via topological sort (ver references/REFERENCE.md). Apresente: "X tasks em Y grupos, Z em paralelo no pico".
 
 **Valide o grafo antes de seguir** (raciocínio sobre o que você já tem; sem pergunta, saída de 1 linha "grafo ok"): sem ciclo em `depends_on`; nenhum `depends_on` apontando pra id inexistente; **duas tasks do mesmo grupo não tocam o mesmo arquivo** (colisão = conflito de merge garantido → serialize uma via `depends_on`). Não reabra ~600 linhas nem 🔴→task (já são regra acima). Dimensione a largura dos grupos ao cap de paralelismo (~16 subagentes); se capar, diga quantos rodam vs. o pico.
 
@@ -189,7 +191,7 @@ git fetch origin && git checkout main && git pull origin main && git checkout -b
 **Uma branch só, pra tudo.** Todas as fases commitam nela. Nada de branch por fase.
 
 ### Passo 4 — Salvar plano e seguir
-Salve em `.plans/plan.md` na raiz (formato em REFERENCE.md), com o `nivel:` no cabeçalho (ver Profundidade por risco), as **fases da entrega**, o **mapa de modelo por task** e a **validação e rollback de cada fase**. Sobrescreva se existir. Garanta `.plans/` no `.gitignore`.
+Salve em `.plans/plan.md` na raiz (formato em references/REFERENCE.md), com o `nivel:` no cabeçalho (ver Profundidade por risco), as **fases da entrega**, o **mapa de modelo por task** e a **validação e rollback de cada fase**. Sobrescreva se existir. Garanta `.plans/` no `.gitignore`.
 
 Plano salvo → **siga direto pra Fase 3** (a execução já foi aprovada no Passo 3; **sem novo gate**). Só pare na branch se o usuário pediu o opt-out de não executar agora.
 
@@ -258,7 +260,7 @@ Revisar por fase, e não só no fim, é o que impede um erro da fase 1 de contam
 3. Para cada grupo paralelo em ordem topológica:
    - Lança um `Agent(isolation: "worktree", ...)` por task no grupo, **classificando o modelo pela complexidade da task** (`opus` complexa / `sonnet` simples e mediana). Diga no prompt que a regra de **zero comentário** é obrigatória.
    - Cada subagente segue o **ciclo de implementação + commit** abaixo e **retorna estruturado** (schema): `{task_id, status: done|paused|failed, commits_range: "base..HEAD", arquivos_tocados, motivo}`. Acaba o palpite de "o que mergear".
-   - Aguarda todos do grupo concluírem. **Antes de mergear, cheque colisão:** cruze os `arquivos_tocados` (confirme com `git diff --name-only` do `commits_range` — subagente pode esquecer de listar arquivo gerado/lockfile) entre as tasks; se duas tocaram o mesmo arquivo, mergeie uma e re-rode/ajuste a outra. Faz merge de cada worktree pelo `commits_range` devolvido (ver REFERENCE.md). **Conflito: resolva você.** Mecânico (EOL/CRLF, whitespace, import, lado óbvio) → resolve em silêncio. Conflito de conteúdo real (as duas tasks mudaram a mesma lógica) → mergeie a task de que as outras dependem, marque a outra como `paused` com o motivo, siga o resto do plano e leve o caso pro relatório final. **Não pare pra perguntar.**
+   - Aguarda todos do grupo concluírem. **Antes de mergear, cheque colisão:** cruze os `arquivos_tocados` (confirme com `git diff --name-only` do `commits_range` — subagente pode esquecer de listar arquivo gerado/lockfile) entre as tasks; se duas tocaram o mesmo arquivo, mergeie uma e re-rode/ajuste a outra. Faz merge de cada worktree pelo `commits_range` devolvido (ver references/REFERENCE.md). **Conflito: resolva você.** Mecânico (EOL/CRLF, whitespace, import, lado óbvio) → resolve em silêncio. Conflito de conteúdo real (as duas tasks mudaram a mesma lógica) → mergeie a task de que as outras dependem, marque a outra como `paused` com o motivo, siga o resto do plano e leve o caso pro relatório final. **Não pare pra perguntar.**
 4. Atualiza os checkboxes no `.plans/plan.md` conforme as tasks completam.
 
 ### O que cada subagente faz (implementação + smart-commit, inline)
@@ -374,7 +376,7 @@ Se for `main` ou não houver commits novos, informe e encerre.
 Dispare **tudo no mesmo bloco**: subagentes read-only (só reportam) + checks mecânicos na sessão principal. Aguarde todos e consolide no Passo 3.
 
 **Subagentes de revisão (read-only):**
-1. **Segurança/Correção** — `Agent(model: "opus")`. Tarefa complexa por definição: protege contra bug indo pra prod, e sem suíte de testes é a principal checagem de correção. Aplica os blocos **Funcionalidade**, **Segurança** e **Qualidade** do checklist (REFERENCE.md) sobre `git diff origin/main...HEAD`. Devolve 🚨/⚠️.
+1. **Segurança/Correção** — `Agent(model: "opus")`. Tarefa complexa por definição: protege contra bug indo pra prod, e sem suíte de testes é a principal checagem de correção. Aplica os blocos **Funcionalidade**, **Segurança** e **Qualidade** do checklist (references/REFERENCE.md) sobre `git diff origin/main...HEAD`. Devolve 🚨/⚠️.
 2. **UX** — `Agent(model: "sonnet")`. Aplica o bloco **UX** do checklist. Devolve 🚨/⚠️.
 3. **Documentação** — `Agent(model: "sonnet")`. Verifica se README e `docs/` refletem o diff. Lista o desatualizado/faltando — só reporta (update vem no Passo 4). **Não** pede comentário no código: o que precisaria de comentário vai pra doc ou pro corpo do PR.
 

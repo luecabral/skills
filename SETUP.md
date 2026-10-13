@@ -41,10 +41,11 @@ WSL                           ▼
 | Item | Onde |
 |---|---|
 | As duas skills | `maestro/`, `linear/` |
-| Checklists e templates do maestro | `maestro/REFERENCE.md` |
+| Checklists e templates do maestro | `maestro/references/REFERENCE.md` |
 | Flats gerados | `<skill>.md` na raiz |
 | O hook de propagação | `.githooks/post-commit` e `.githooks/post-merge` |
 | Ativador do hook | `setup.sh` |
+| Publicação no marketplace da INK | `scripts/publicar-ink.sh` (ver `CLAUDE.md`) |
 | Normalização de fim de linha | `.gitattributes` (`*.md text eol=lf`) |
 | Instruções do repo | `CLAUDE.md`, `README.md`, este arquivo |
 
