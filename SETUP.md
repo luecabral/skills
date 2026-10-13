@@ -40,7 +40,7 @@ WSL                           ▼
 
 | Item | Onde |
 |---|---|
-| As três skills | `maestro/`, `linear/`, `revisao-local/` |
+| As duas skills | `maestro/`, `linear/` |
 | Checklists e templates do maestro | `maestro/REFERENCE.md` |
 | Flats gerados | `<skill>.md` na raiz |
 | O hook de propagação | `.githooks/post-commit` e `.githooks/post-merge` |
@@ -152,7 +152,7 @@ Tem que sair isto, as três linhas:
 ```
 Se faltar alguma, o próprio hook diz qual comando rodar.
 
-**8. Abra uma sessão nova** e confirme que `/maestro`, `/linear` e `/revisao-local` aparecem.
+**8. Abra uma sessão nova** e confirme que `/maestro` e `/linear` aparecem.
 
 ---
 
