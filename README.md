@@ -69,7 +69,7 @@ Entra direto em qualquer fase: `maestro fase 2`, `maestro planeja`, `maestro exe
 
 **Profundidade por risco.** Ele classifica a feature em TRIVIAL / MÉDIO / ALTO e isso dimensiona quantos subagentes dispara. Nunca rebaixa segurança nem pula backup antes de migration destrutiva.
 
-Detalhe completo em [`SKILL.md`](plugins/maestro/skills/maestro/SKILL.md); checklists de review, template de plano e de brief em [`REFERENCE.md`](plugins/maestro/skills/maestro/REFERENCE.md).
+Detalhe completo em [`maestro/SKILL.md`](maestro/SKILL.md); checklists de review, template de plano e de brief em [`maestro/REFERENCE.md`](maestro/REFERENCE.md).
 
 ---
 
@@ -83,58 +83,31 @@ Transforma um brief de task num projeto documentado no Linear. **Só o projeto**
 - **Campos fixos:** time `Random`, status `Para planejamento`, prioridade Média, **sem líder**. Não pergunta nem varia.
 - Mostra o preview no chat e só escreve no Linear depois da confirmação.
 
-Só ativa com `/linear` escrito explicitamente. Detalhe em [`SKILL.md`](plugins/linear/skills/linear/SKILL.md).
-
----
-
-## Como instalar
-
-As duas skills são distribuídas como **plugins do Claude Code**, num marketplace que é este próprio repositório. Cada pessoa faz isto **uma vez**, numa sessão do Claude Code:
-
-```
-/plugin marketplace add luecabral/skills
-/plugin install maestro@luecabral
-/plugin install linear@luecabral
-```
-
-Depois, em `/plugin` → **Marketplaces** → `luecabral` → **Enable auto-update**. Com isso ligado, toda mudança que entra na `main` chega sozinha: o Claude Code confere o marketplace ao abrir uma sessão e baixa a versão nova. Ninguém precisa pedir atualização.
-
-Os comandos ficam `/maestro` e `/linear`. O nome completo, `/maestro:maestro` e `/linear:linear`, também funciona e serve de desempate se outro comando tiver o mesmo nome.
-
-Sem o auto-update ligado, a pessoa só recebe mudanças quando roda `/plugin marketplace update luecabral`.
-
-Quem não tiver chave SSH do GitHub configurada precisa da variável `CLAUDE_CODE_PLUGIN_PREFER_HTTPS=1` no ambiente, senão a atualização em segundo plano falha.
+Só ativa com `/linear` escrito explicitamente. Detalhe em [`linear/SKILL.md`](linear/SKILL.md).
 
 ---
 
 ## Como funciona a publicação
 
-Cada skill é um plugin dentro de `plugins/`. O `SKILL.md` é **o único arquivo que você edita.**
+Cada skill é uma pasta com um `SKILL.md` — **é o único arquivo que você edita.** O resto é automático.
 
 ```
-.claude-plugin/marketplace.json            ← catálogo: lista os plugins do repo
-plugins/maestro/.claude-plugin/plugin.json ← metadados do plugin
-plugins/maestro/skills/maestro/SKILL.md    ← fonte da verdade, edite aqui
-plugins/maestro/skills/maestro/REFERENCE.md
-plugins/linear/.claude-plugin/plugin.json
-plugins/linear/skills/linear/SKILL.md      ← fonte da verdade, edite aqui
-      ↓ commit na main → hook post-commit pusha pro luecabral
-      ↓ auto-update de cada pessoa puxa a mudança
+maestro/SKILL.md          ← fonte da verdade, edite aqui
+      ↓ hook post-commit
+maestro.md                ← flat copy no root (o formato que o Claude Code lê)
+      ↓ hook post-commit
+~/.claude/commands/       ← Windows: fica disponível como /maestro
+      ↓ hook post-commit
+luecabral/main            ← push automático
+      ↓ hook post-commit
+WSL ~/.claude/commands    ← pull automático (é um clone git que tracka luecabral)
 ```
 
-Ou seja: **basta commitar na main.** O hook pusha, e quem tem o auto-update ligado recebe na próxima sessão que abrir.
+Ou seja: **basta commitar na main.** O hook gera o flat, sincroniza o Windows, pusha pro `luecabral` e atualiza o clone do WSL, nessa ordem. Se algum passo falhar (sem rede, WSL desligado), ele avisa na saída do commit e diz o comando pra rodar depois.
 
-Os `plugin.json` **não têm `version` de propósito.** Sem ela, cada commit conta como versão nova. Se um dia alguém colocar `"version": "1.0.0"`, as pessoas ficam presas nessa versão até o número mudar.
+**Nunca edite `~/.claude/commands/` direto** — é destino, sobrescrito a cada commit.
 
-Sessão do Claude Code que já estava aberta continua com a versão antiga carregada. Precisa abrir sessão nova (ou rodar `/reload-plugins`).
-
-Antes de commitar mudança de estrutura, valide:
-
-```bash
-claude plugin validate .
-```
-
-O único aviso esperado é o de `version` ausente.
+Sessão do Claude Code que já estava aberta continua com a versão antiga carregada. Precisa abrir sessão nova pra pegar a mudança.
 
 ### Primeira vez num clone novo
 
@@ -148,15 +121,14 @@ Aponta o git pros hooks versionados em `.githooks/` (via `core.hooksPath`, entã
 
 ### Criar uma skill nova
 
-1. Crie `plugins/<skill>/.claude-plugin/plugin.json` (copie o do `linear` e troque `name` e `description`) e `plugins/<skill>/skills/<skill>/SKILL.md`, com frontmatter `name` e `description` — a `description` é o que decide quando a skill ativa, então seja explícito (inclusive sobre quando **não** ativar).
-2. Adicione a entrada em `.claude-plugin/marketplace.json`, com o mesmo `name` do `plugin.json`.
-3. Rode `claude plugin validate .` e commite. Quem já tem o marketplace vê o plugin novo em `/plugin`, mas precisa instalar uma vez.
+1. Crie a pasta `<skill>/` com um `SKILL.md` dentro, com frontmatter `name` e `description` — a `description` é o que decide quando a skill ativa, então seja explícito (inclusive sobre quando **não** ativar).
+2. Commite. O hook cria o flat e propaga.
 
 ---
 
 ## Remoto
 
-- `luecabral` → https://github.com/luecabral/skills — **único remoto e fonte da verdade.** É pra onde o hook pusha e de onde os plugins são instalados e atualizados.
+- `luecabral` → https://github.com/luecabral/skills — **único remoto e fonte da verdade.** É pra onde o hook pusha e de onde o WSL puxa.
 
 Sem branches, sem PRs: direto na main. Nada de push manual — o hook cuida.
 

@@ -1,8 +1,0 @@
-{
-  "name": "linear",
-  "description": "Cria um projeto no Linear a partir de um brief de task. Chame com /linear.",
-  "author": {
-    "name": "Luiza Cabral"
-  },
-  "repository": "https://github.com/luecabral/skills"
-}

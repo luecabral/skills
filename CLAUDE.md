@@ -1,42 +1,35 @@
 # Skills Repo
 
-Marketplace de plugins do Claude Code. Plugins atuais: `maestro` e `linear`, cada um com uma skill de mesmo nome (`/maestro`, `/linear`).
+Repositório de skills (slash commands) globais do Claude Code. Skills atuais: `maestro` e `linear`.
 
 ## Estrutura
 
 ```
-.claude-plugin/marketplace.json           ← catálogo do marketplace (name: luecabral)
-plugins/<skill>/.claude-plugin/plugin.json ← metadados do plugin, SEM "version"
-plugins/<skill>/skills/<skill>/SKILL.md    ← fonte da verdade, edite aqui
+<skill>/SKILL.md      ← fonte da verdade, edite aqui
+<skill>.md            ← flat copy gerada pelo hook, não edite diretamente
+~/.claude/commands/   ← destino final, sincronizado pelo hook
 ```
 
 ## Como editar uma skill
 
-1. Edite `plugins/<skill>/skills/<skill>/SKILL.md`
-2. Commit na main — o hook `post-commit` pusha pro `luecabral`. Nada de push manual.
-3. Quem instalou o plugin com auto-update ligado recebe a mudança na próxima sessão.
+1. Edite `<skill>/SKILL.md`
+2. Commit — o hook `post-commit` faz tudo, nesta ordem:
+   - `SKILL.md` → `<skill>.md` (flat copy no root do repo)
+   - `<skill>.md` → `~/.claude/commands/<skill>.md` (disponibiliza no Windows)
+   - `git push luecabral` (único remoto)
+   - `git pull` no clone do WSL (`~/.claude/commands`)
+3. Nada de push manual. Se algum passo falhar (sem rede, WSL desligado), o hook avisa na saída do commit e informa o comando pra rodar depois.
 
-**Nunca adicione `version` nos `plugin.json` nem no `marketplace.json`.** Sem ela, cada commit vira versão nova e o auto-update entrega. Com ela, ninguém recebe nada até o número mudar.
+O flat `.md` é regenerado **depois** do commit, então ele fica pendente no working tree — commite junto no próximo commit (`chore: flat copy do <skill>`).
 
-Frontmatter de `SKILL.md` precisa ser YAML válido: `description` com mais de uma linha usa `>` e todas as linhas indentadas. Valide sempre com `claude plugin validate .` — o único aviso esperado é o de `version` ausente.
+**Nunca edite `~/.claude/commands/` diretamente** — é destino, sobrescrito pelo hook a cada commit.
 
-Sessão do Claude Code já aberta continua com a versão antiga. Precisa abrir sessão nova ou rodar `/reload-plugins`.
+Sessão do Claude Code já aberta continua com a versão antiga da skill carregada. Precisa abrir sessão nova.
 
 ## Como criar uma skill nova
 
-1. Crie `plugins/<skill>/.claude-plugin/plugin.json` e `plugins/<skill>/skills/<skill>/SKILL.md` (frontmatter `name` e `description` — a `description` decide quando a skill ativa; seja explícito, inclusive sobre quando **não** ativar)
-2. Adicione a entrada em `.claude-plugin/marketplace.json` com o mesmo `name` do `plugin.json`
-3. Valide e commite
-
-## Instalação (cada pessoa, uma vez)
-
-```
-/plugin marketplace add luecabral/skills
-/plugin install maestro@luecabral
-/plugin install linear@luecabral
-```
-
-E ligar o auto-update em `/plugin` → Marketplaces → `luecabral` → Enable auto-update.
+1. Crie a pasta `<skill>/` com `SKILL.md`, com frontmatter `name` e `description` (a `description` decide quando a skill ativa — seja explícito, inclusive sobre quando **não** ativar)
+2. O hook cria o flat `.md` automaticamente no commit
 
 ## Primeira vez num clone novo
 
