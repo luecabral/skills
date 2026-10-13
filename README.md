@@ -132,7 +132,7 @@ Aponta o git pros hooks versionados em `.githooks/` (via `core.hooksPath`, entã
 
 Sem branches, sem PRs: direto na main. Nada de push manual — o hook cuida.
 
-O `rsv-ink/skills`, que era o repositório da organização, **foi excluído.** Não há mais destino secundário e nenhuma skill daqui é publicada em outro lugar.
+O `rsv-ink/skills`, que era o repositório da organização, **foi excluído.** O `maestro` e uma variante genérica do `linear` (`linear-projeto`, em `org/`) são publicados na biblioteca de skills da organização no claude.ai, a partir dos zips de `scripts/empacotar-org.sh`.
 
 ---
 
