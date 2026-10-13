@@ -9,11 +9,11 @@ for skill_file in "$REPO_ROOT"/*/SKILL.md; do
   cp "$skill_file" "$REPO_ROOT/${skill_name}.md"
 done
 
-# 2. Sincroniza todos os flat .md para ~/.claude/commands/
+# 2. Sincroniza os flats das skills para ~/.claude/commands/
 if [ -d "$COMMANDS_DIR" ]; then
-  for md_file in "$REPO_ROOT"/*.md; do
-    filename="$(basename "$md_file")"
-    cp "$md_file" "$COMMANDS_DIR/$filename"
+  for skill_file in "$REPO_ROOT"/*/SKILL.md; do
+    skill_name="$(basename "$(dirname "$skill_file")")"
+    cp "$REPO_ROOT/${skill_name}.md" "$COMMANDS_DIR/${skill_name}.md"
   done
   echo "✓ sincronizado com $COMMANDS_DIR"
 else
