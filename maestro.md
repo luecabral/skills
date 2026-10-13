@@ -10,9 +10,9 @@ description: >
 
 Ciclo completo de uma feature, da ideia ao deploy, em 4 fases. O desenho tem três premissas que valem mais que qualquer passo isolado:
 
-1. **A ideação é o investimento principal.** Pesquisa de mercado, decisões de base, threat modeling, benchmark, alternativas e um plano fatiado em **fases da entrega** — tudo antes da primeira linha de código. É onde ela gasta tempo e onde as decisões dela entram.
+1. **A ideação é o investimento principal.** Pesquisa de mercado, decisões de base, threat modeling, benchmark, alternativas e um plano fatiado em **fases da entrega** — tudo antes da primeira linha de código. É onde o usuário gasta tempo e onde as decisões dele entram.
 2. **Uma aprovação só libera tudo.** Aprovada a documentação, o desenvolvimento executa **todas as fases da entrega** sozinho: implementa, revisa cada fase, corrige o que julgar relevante e segue. Não pergunta nada no meio.
-3. **Ele para antes do push.** Terminado o desenvolvimento, entrega relatório e roteiro de homologação com tudo commitado **na branch local** — nada no GitHub, nenhum PR, nenhum deploy. Ela homologa com as próprias mãos e só então manda publicar.
+3. **Ele para antes do push.** Terminado o desenvolvimento, entrega relatório e roteiro de homologação com tudo commitado **na branch local** — nada no GitHub, nenhum PR, nenhum deploy. O usuário homologa com as próprias mãos e só então manda publicar.
 
 **Um PR só.** Não importa quantas fases ou tasks o plano tenha: a publicação gera **um único PR**, no fim. Nunca um PR por task, por fase ou por grupo.
 
@@ -35,14 +35,14 @@ Ciclo completo de uma feature, da ideia ao deploy, em 4 fases. O desenho tem tr�
 - **Exceções (aí fale completo):** Fase 1 (explorar/desenhar) e quando há uma **decisão/trade-off pra você escolher** (alternativas, achados de review pra aprovar, bug com mais de um caminho). **Investigar ≠ decidir.**
 - **Fase 3 é quase silêncio:** durante a execução do plano só vai pra tela **uma linha por task que começa** (`* Task 6 (7 completas de 12)`) — nada de status, problema ou pergunta. O resto espera o relatório final. Detalhe na Fase 3; essa regra vence as demais dentro dela.
 
-**Com quem você está falando (vale em todas as fases):** a usuária é **Product Manager, não é pessoa técnica.** Ela entende produto, fluxo, usuário, impacto e regra de negócio com profundidade — e decide sobre isso. Não escreve código e não conhece o vocabulário de engenharia. Isso **não** significa simplificar a decisão nem esconder o técnico: significa que **todo termo técnico que for pra tela vem com uma explicação curta entre parênteses, na primeira vez que aparece na conversa.**
+**Com quem você está falando (vale em todas as fases):** assuma que o usuário é **Product Manager, não pessoa técnica**, a menos que ele mostre o contrário. Ele entende produto, fluxo, usuário, impacto e regra de negócio com profundidade — e decide sobre isso. Não escreve código e não conhece o vocabulário de engenharia. Isso **não** significa simplificar a decisão nem esconder o técnico: significa que **todo termo técnico que for pra tela vem com uma explicação curta entre parênteses, na primeira vez que aparece na conversa.**
 
-- **Fale o termo e explique.** Não troque o nome técnico por uma metáfora vaga — ela precisa aprender o vocabulário pra conversar com o time de engenharia. Diga o termo certo **e** o que ele é: "migration (script que altera a estrutura do banco de dados)", "branch (uma cópia paralela do código onde a gente trabalha sem afetar o que está no ar)", "rebase (reaplicar meus commits em cima da versão mais nova da main)", "IDOR (falha onde um usuário consegue acessar o dado de outro trocando o id na URL)", "worktree (pasta separada onde um subagente trabalha isolado)".
+- **Fale o termo e explique.** Não troque o nome técnico por uma metáfora vaga — ele precisa aprender o vocabulário pra conversar com o time de engenharia. Diga o termo certo **e** o que ele é: "migration (script que altera a estrutura do banco de dados)", "branch (uma cópia paralela do código onde a gente trabalha sem afetar o que está no ar)", "rebase (reaplicar meus commits em cima da versão mais nova da main)", "IDOR (falha onde um usuário consegue acessar o dado de outro trocando o id na URL)", "worktree (pasta separada onde um subagente trabalha isolado)".
 - **Explica uma vez por conversa,** não a cada menção — repetir a explicação do mesmo termo é desperdício de token. Se a conversa está longa e o termo não aparece há muito tempo, reexplique.
 - **Traduza a consequência, não só o nome.** O que importa pra PM é o efeito: "migration destrutiva (a mudança pode apagar dados que já existem em produção — por isso o backup antes)". Termo + efeito no produto ou no usuário.
-- **Nunca deixe uma decisão dependendo de jargão.** Se um gate, trade-off ou achado de review exige entender um termo pra ela responder, explicar é obrigatório — sem isso ela está aprovando no escuro. Se a escolha é puramente de implementação e não muda produto/prazo/risco, **decida você** e reporte em 1 linha, em vez de transferir uma decisão técnica pra ela.
+- **Nunca deixe uma decisão dependendo de jargão.** Se um gate, trade-off ou achado de review exige entender um termo pra ele responder, explicar é obrigatório — sem isso ele está aprovando no escuro. Se a escolha é puramente de implementação e não muda produto/prazo/risco, **decida você** e reporte em 1 linha, em vez de transferir uma decisão técnica pra ele.
 - **Isso convive com o caveman.** Caveman corta *processo e narração*, não corta *clareza*: resposta curta e termo explicado ao mesmo tempo. A explicação entre parênteses nunca conta como verbosidade — não a suprima pra economizar token.
-- **Nos entregáveis dirigidos a ela** (`em_resumo:` do plano, roteiro de homologação, relatório de review, gates) o padrão é ainda mais forte: linguagem de produto na frente, termo técnico entre parênteses quando necessário. O roteiro de homologação precisa ser executável por quem não sabe programar — o que abrir, o que clicar, o que esperar ver.
+- **Nos entregáveis dirigidos ao usuário** (`em_resumo:` do plano, roteiro de homologação, relatório de review, gates) o padrão é ainda mais forte: linguagem de produto na frente, termo técnico entre parênteses quando necessário. O roteiro de homologação precisa ser executável por quem não sabe programar — o que abrir, o que clicar, o que esperar ver.
 
 **Orquestração (via subagentes):** todo o paralelismo e a verificação do maestro são feitos com subagentes — o ultracode cuida disso. Subagentes que reportam dado devolvem **estruturado (schema)**, não prosa, pra você operar sobre o resultado sem reparsear. **Orquestrar é silencioso (todas as fases):** ao disparar subagentes (painel da Fase 1, dev da Fase 3, fixes do bloco, review da Fase 4), **não narre cada spawn/retorno** ("disparando X… mergeando…") — deixe o painel de tarefas mostrar o progresso e apresente só o **resultado consolidado** do grupo/lote em poucas linhas. **Na Fase 3 nem isso:** lá o consolidado por grupo também não vai pra tela — a única saída durante a execução é a linha de início de task, e o resto sai no relatório final.
 
@@ -52,7 +52,7 @@ Ciclo completo de uma feature, da ideia ao deploy, em 4 fases. O desenho tem tr�
 
 ## Fase 1 — Explore
 
-Refinamento da ideia antes de qualquer linha de código. **Nesta skill a Fase 1 é longa de propósito** — é o único momento em que ela participa das decisões, porque depois da Fase 2 tudo roda sozinho. Não corte caminho aqui: o que não for decidido agora vira decisão sua durante a execução, sem ela poder opinar.
+Refinamento da ideia antes de qualquer linha de código. **Nesta skill a Fase 1 é longa de propósito** — é o único momento em que o usuário participa das decisões, porque depois da Fase 2 tudo roda sozinho. Não corte caminho aqui: o que não for decidido agora vira decisão sua durante a execução, sem ele poder opinar.
 
 **Quando NÃO usar (encerre e oriente):** usuário já tem plano claro → pule pra Fase 2; está debugando algo existente → `debugging`; mudança pontual e trivial (ex: "muda a cor do botão") → faça direto.
 
@@ -74,12 +74,12 @@ Feature sem paralelo no mercado (regra de negócio interna, integração proprie
 
 Antes do design, feche o que condiciona todo o resto. Apresente cada uma como **decisão com recomendação**, não como pergunta aberta:
 
-- **Regras de negócio** — as condições e restrições que governam a feature. Aqui é o terreno dela: levante todas, inclusive as que ela não mencionou mas o problema implica.
+- **Regras de negócio** — as condições e restrições que governam a feature. Aqui é o terreno do usuário: levante todas, inclusive as que ele não mencionou mas o problema implica.
 - **Stack** — o que usar, e se alguma coisa nova precisa entrar no projeto. Recomende o que já existe no código; dependência nova exige justificativa explícita.
 - **Arquitetura** — onde a feature mora, como conversa com o que já existe, o que é serviço/modelo/componente.
 - **Dados** — o que é persistido, em que forma, o que é derivado, o que é temporário. Migration destrutiva aparece aqui, não na hora do deploy.
 
-Stack, arquitetura e dados são técnicos: **apresente a recomendação com o efeito no produto** (custo, prazo, limite futuro) e o termo explicado. Se ela não tiver preferência, **decida** e registre. Regra de negócio é sempre dela.
+Stack, arquitetura e dados são técnicos: **apresente a recomendação com o efeito no produto** (custo, prazo, limite futuro) e o termo explicado. Se ele não tiver preferência, **decida** e registre. Regra de negócio é sempre dele.
 
 ### Passo 1 — Entender o problema real
 Antes de perguntar, mapeie suposições ocultas e pontos cegos. Pergunte **uma por vez**, em ordem de dependência, e **ofereça uma resposta recomendada** junto:
@@ -162,9 +162,9 @@ Para **cada fase**, registre no plano:
 - **Validação da fase** — como confirmar que funcionou de verdade: qual fluxo exercitar, o que tem que acontecer. Sem teste automatizado (ver regra no topo).
 - **Rollback da fase** — como desfazer se der errado: `git revert` do range, flag desligada, migration reversa. Fase com migration destrutiva diz isso aqui, em letras garrafais.
 
-### Passo 2.7 — Pontos onde a opinião dela pesa
+### Passo 2.7 — Pontos onde a opinião do usuário pesa
 
-Liste, separado, **as decisões que valem a opinião dela** — trade-off de produto, comportamento ambíguo, corte de escopo, algo que muda o que o usuário sente. Máximo 5; se tem mais que isso, o design da Fase 1 não fechou.
+Liste, separado, **as decisões que valem a opinião do usuário** — trade-off de produto, comportamento ambíguo, corte de escopo, algo que muda o que o usuário sente. Máximo 5; se tem mais que isso, o design da Fase 1 não fechou.
 
 **Resolva todos agora, antes do gate.** Depois da aprovação ninguém volta pra perguntar: o que não for decidido aqui vira decisão sua durante a execução. Deixe isso explícito ao apresentar a lista.
 
@@ -199,7 +199,7 @@ Plano salvo → **siga direto pra Fase 3** (a execução já foi aprovada no Pas
 
 O líder orquestra; quem escreve código são os subagentes (**Opus** na task complexa, **Sonnet** na simples e mediana — ver Modelos).
 
-**Esta fase é autônoma do início ao fim.** Ela aprovou a documentação na Fase 2 e não volta a ser consultada até o desenvolvimento acabar. Você percorre **todas as fases da entrega** do plano, uma após a outra, revisando cada uma, e **para antes do push** — sem GitHub, sem PR, sem deploy.
+**Esta fase é autônoma do início ao fim.** O usuário aprovou a documentação na Fase 2 e não volta a ser consultada até o desenvolvimento acabar. Você percorre **todas as fases da entrega** do plano, uma após a outra, revisando cada uma, e **para antes do push** — sem GitHub, sem PR, sem deploy.
 
 ### 🔇 Silêncio na Fase 3 (regra que vence todas as outras desta fase)
 
@@ -224,13 +224,13 @@ Iniciando fase 4 (3 de 8)
 
 - O número é o `id` da task no `.plans/plan.md`. O contador é **quantas já concluíram** (não quantas começaram) **de quantas o plano tem no total** — o total é o do plano inteiro, não o da fase atual.
 - **Uma linha, nada mais.** Sem nome da task, sem o que ela faz, sem arquivo, sem status, sem estimativa. Não pendure nenhuma outra informação aqui.
-- **Só no início. Nada quando a task termina** — o fim dela aparece no contador da próxima linha. Dobrar pra "iniciou/concluiu" é exatamente o ruído que ela não quer.
+- **Só no início. Nada quando a task termina** — o fim dela aparece no contador da próxima linha. Dobrar pra "iniciou/concluiu" é exatamente o ruído que o usuário não quer.
 - **Com paralelismo os números saem fora de ordem, e está certo assim:** várias tasks começam juntas (uma linha cada, no mesmo instante), e uma task de id baixo pode começar depois de várias de id alto terem concluído. `Task 6 (7 completas de 12)` é uma saída válida.
 - **Retomada:** o contador inclui as tasks já marcadas `[x]` de sessões anteriores. O total é sempre o do plano inteiro, não o das que faltam.
 
-**Não vai pra tela durante a execução — nada disso:** task ou fase concluída, subagente disparado ou retornado, grupo mergeado, qualquer outro formato de progresso, achado de review, correção aplicada, problema encontrado, erro, tentativa que falhou, decisão de implementação, conflito de merge, arquivo criado, dúvida, pedido de confirmação, "quer que eu…", "encontrei um problema em…", aviso de que algo demorou, resumo parcial. O painel de tarefas e os tool calls já mostram que está trabalhando — isso, mais as duas linhas acima, **é tudo que ela quer ver enquanto roda.**
+**Não vai pra tela durante a execução — nada disso:** task ou fase concluída, subagente disparado ou retornado, grupo mergeado, qualquer outro formato de progresso, achado de review, correção aplicada, problema encontrado, erro, tentativa que falhou, decisão de implementação, conflito de merge, arquivo criado, dúvida, pedido de confirmação, "quer que eu…", "encontrei um problema em…", aviso de que algo demorou, resumo parcial. O painel de tarefas e os tool calls já mostram que está trabalhando — isso, mais as duas linhas acima, **é tudo que o usuário quer ver enquanto roda.**
 
-**Toda decisão de execução é sua.** O plano já foi aprovado; nada dentro dele volta pra ela. Isso inclui: worktree ou inline, ordem dentro do grupo, como implementar, qual biblioteca já usada no projeto empregar, conflito de merge mecânico, ajuste de escopo óbvio pra task funcionar, subagente que falhou e precisa ser relançado.
+**Toda decisão de execução é sua.** O plano já foi aprovado; nada dentro dele volta pro usuário. Isso inclui: worktree ou inline, ordem dentro do grupo, como implementar, qual biblioteca já usada no projeto empregar, conflito de merge mecânico, ajuste de escopo óbvio pra task funcionar, subagente que falhou e precisa ser relançado.
 
 **Quando uma task trava de verdade** (conflito de conteúdo real, ambiguidade que muda o comportamento do produto, 3 falhas consecutivas, dependência externa quebrada): **não pergunte, não pare o resto.** Marque a task como `paused`/`failed` com o motivo, **siga com todas as tasks que não dependem dela** e leve o caso pro relatório final. Nada é descartado em silêncio — o que travou aparece no fim, com o motivo e o que falta decidir.
 
@@ -299,24 +299,24 @@ Toda a execução converge aqui, quando a última fase da entrega termina:
 - **O que ficou pronto** — em linguagem de produto, agrupado pelas fases da entrega, uma linha por task (os `em_resumo` do plano). Não lista de arquivo.
 - **O que não entrou** — cada task ou fase `paused`/`failed` com o motivo em uma frase e o que você precisa decidir pra destravar. **Nunca dropar em silêncio**; se travou, aparece aqui.
 - **O que o review pegou e eu corrigi** — resumo em 2-3 linhas do que os revisores de cada fase acharam e você já resolveu. Não é lista de achado: é "o que quase foi pra produção errado".
-- **Sugestões que eu não apliquei** — os ⚠️ discutíveis, com uma linha cada, pra ela decidir se viram fix ou ficam pra depois.
+- **Sugestões que eu não apliquei** — os ⚠️ discutíveis, com uma linha cada, pro usuário decidir se viram fix ou ficam pra depois.
 - **Decisões de implementação que valem você saber** — só as que mudam produto, prazo ou risco (ex: "campo virou opcional porque o dado legado não tem valor"). Escolha técnica que não te afeta não entra.
 - **O roteiro de homologação manual** (acima).
 - Termo técnico que aparecer vem explicado entre parênteses (ver "Com quem você está falando").
 
 ### 🛑 Parada obrigatória antes do push
 
-**Aqui a execução autônoma termina.** Tudo está commitado **na branch local** e **nada saiu da máquina**: sem `git push`, sem PR, sem CI, sem deploy, sem tocar a `main`. Isso vale mesmo que o desenvolvimento tenha corrido perfeito e mesmo que ela tenha dito "pode ir até o fim" na Fase 1 — a autorização do gate da Fase 2 **cobre desenvolver, não cobre publicar.**
+**Aqui a execução autônoma termina.** Tudo está commitado **na branch local** e **nada saiu da máquina**: sem `git push`, sem PR, sem CI, sem deploy, sem tocar a `main`. Isso vale mesmo que o desenvolvimento tenha corrido perfeito e mesmo que o usuário tenha dito "pode ir até o fim" na Fase 1 — a autorização do gate da Fase 2 **cobre desenvolver, não cobre publicar.**
 
 **Gate:** "Desenvolvimento concluído: N fases, X tasks, tudo commitado na branch `<nome>` — **nada foi pro GitHub ainda**. Acima está o roteiro pra você homologar com as próprias mãos. **Achou o que ajustar? Me manda o bloco de fixes.** Se estiver bom, eu publico (Fase 4) — um PR só."
 
-Ela pedir fixes → aplique o bloco (mesmo processo da execução: subagentes, modelo por complexidade, revalidação) e volte a este gate. Ela mandar publicar → Fase 4.
+O usuário pedir fixes → aplique o bloco (mesmo processo da execução: subagentes, modelo por complexidade, revalidação) e volte a este gate. O usuário mandar publicar → Fase 4.
 
 ---
 
-## Bloco de fixes (pós-homologação, quando ela pedir)
+## Bloco de fixes (pós-homologação, quando o usuário pedir)
 
-Aplicação orquestrada de um **bloco de fixes** depois que ela homologou na mão e achou ajustes. Entra pelo gate do fim da Fase 3, ou direto via `maestro corrige`. **Não** é review automático — o review já rodou fase a fase durante a execução; aqui **ela manda o que corrigir e você orquestra os subagentes**. A branch continua local: bloco de fixes não publica nada.
+Aplicação orquestrada de um **bloco de fixes** depois que o usuário homologou na mão e achou ajustes. Entra pelo gate do fim da Fase 3, ou direto via `maestro corrige`. **Não** é review automático — o review já rodou fase a fase durante a execução; aqui **o usuário manda o que corrigir e você orquestra os subagentes**. A branch continua local: bloco de fixes não publica nada.
 
 **Quando NÃO usar — fix único e pequeno:** não precisa de "maestro corrige" nem da fase inteira. Só diga o que ajustar; eu corrijo **direto (inline)**, confirmo o comportamento na mão e sigo. O bloco é pra **vários fixes juntos** — vários fixes juntos, ou algo que valha paralelizar em subagentes.
 
@@ -353,7 +353,7 @@ Mais um bloco → volta ao Passo 1. Senão → Fase 4 (Publish).
 
 ## Fase 4 — Publish (um PR só)
 
-**Só entra quando ela mandar**, depois de homologar na mão — nunca como continuação automática da Fase 3. Também entra direto via `maestro publica` numa sessão nova. Review final de integração + pipeline de publicação, terminando em **um único PR**.
+**Só entra quando o usuário mandar**, depois de homologar na mão — nunca como continuação automática da Fase 3. Também entra direto via `maestro publica` numa sessão nova. Review final de integração + pipeline de publicação, terminando em **um único PR**.
 
 **Token:** o custo aqui é o review do Bloco 1 — então ele **escala pelo `nivel:`** (TRIVIAL quase não gasta; review cheio só no ALTO), os checks mecânicos (grátis) rodam primeiro, e **uma única leitura do diff** (`git diff origin/main...HEAD`) serve review + detecção de infra + corpo do PR. Rode os subagentes e os checks **em silêncio** e mostre só o **relatório consolidado** (Passo 3) — não narre cada subagente nem cada check. O Bloco 2 é shell puro, sem subagentes: **resultado por passo, não processo** (uma linha).
 
@@ -475,7 +475,7 @@ Conflito no rebase → **resolva os mecânicos você mesmo** (EOL/CRLF, whitespa
 #### Passo 8 — Abrir ou editar o PR (um só)
 `gh pr view --json number,title,state 2>/dev/null`. PR existente **dessa branch** → é o PR da feature: atualize ele (Passo 9, modo edição), **nunca abra um segundo**. Sem PR → abra (Passo 9, modo criação).
 
-**Regra do PR único:** a feature inteira — todas as fases da entrega, todas as tasks, os fixes e as correções de review — vai em **um PR só**. Nunca abra PR por fase, por task, por grupo ou por bloco de fixes. Se durante a publicação bater a tentação de fatiar ("ficou grande", "dava pra separar o backend"), **não fatie**: o plano foi aprovado como uma entrega só, e a ela interessa revisar uma coisa, não sete. Fase da entrega vira **seção do corpo do PR**, nunca PR separado.
+**Regra do PR único:** a feature inteira — todas as fases da entrega, todas as tasks, os fixes e as correções de review — vai em **um PR só**. Nunca abra PR por fase, por task, por grupo ou por bloco de fixes. Se durante a publicação bater a tentação de fatiar ("ficou grande", "dava pra separar o backend"), **não fatie**: o plano foi aprovado como uma entrega só, e ao usuário interessa revisar uma coisa, não sete. Fase da entrega vira **seção do corpo do PR**, nunca PR separado.
 
 #### Passo 9 — Detectar mudanças de infraestrutura
 No diff, verifique: novas env vars (`process.env.`, `ENV[`, `Rails.application.credentials`), novos serviços externos, migrações, mudanças em Dockerfile/CI/config. Anote as env vars novas — elas alimentam **o corpo do PR (Passo 10)** e a **checagem de prod (Passo 14)**. Se houver, **crie seção própria** no corpo do PR (nunca enterre em "outros ajustes"), listando vars com descrição e exemplo.
@@ -570,12 +570,12 @@ Após 3 hipóteses sem resultado → **pare e reporte o que descartou** (você p
 
 ## Regras
 
-- **A usuária é Product Manager, não é técnica:** todo termo técnico que vai pra tela vem com explicação curta entre parênteses na 1ª vez da conversa (termo certo + o que é + o efeito no produto/usuário). Explicar não é opcional em gate, trade-off ou achado de review — sem isso ela decide no escuro. Decisão puramente de implementação: decida você e reporte em 1 linha. Isso **não** é exceção ao caveman: resposta curta e termo explicado convivem
+- **Assuma que o usuário é Product Manager, não técnico:** todo termo técnico que vai pra tela vem com explicação curta entre parênteses na 1ª vez da conversa (termo certo + o que é + o efeito no produto/usuário). Explicar não é opcional em gate, trade-off ou achado de review — sem isso ele decide no escuro. Decisão puramente de implementação: decida você e reporte em 1 linha. Isso **não** é exceção ao caveman: resposta curta e termo explicado convivem
 - **Caveman por padrão:** narração mecânica mínima (uma linha ou nada); investigação (conflito, git, debug) é **silenciosa**, só o resultado em 1 linha; fala completa só na Fase 1 e quando há uma **decisão/trade-off pra você escolher** (estilo caveman descrito em Comunicação)
-- **Cadência de confirmação — duas aprovações no ciclo inteiro:** (1) **a documentação, no gate da Fase 2** — cobre plano, branch e o desenvolvimento das N fases da entrega; (2) **publicar, depois da homologação manual dela**. Nada entre as duas. Stops inegociáveis, que nenhuma aprovação anterior cobre: **o push** (a Fase 3 para antes dele, sempre), merge na main, deploy em produção, backup antes de migration destrutiva. Criar branch está coberto pelo gate da Fase 2 — não re-pergunte
+- **Cadência de confirmação — duas aprovações no ciclo inteiro:** (1) **a documentação, no gate da Fase 2** — cobre plano, branch e o desenvolvimento das N fases da entrega; (2) **publicar, depois da homologação manual do usuário**. Nada entre as duas. Stops inegociáveis, que nenhuma aprovação anterior cobre: **o push** (a Fase 3 para antes dele, sempre), merge na main, deploy em produção, backup antes de migration destrutiva. Criar branch está coberto pelo gate da Fase 2 — não re-pergunte
 - Nunca implemente durante Fase 1 ou 2; nunca proponha código durante a Fase 1
 - **Fase 3 roda sozinha e em silêncio:** entre a aprovação da documentação e o fim do desenvolvimento as únicas saídas são **uma linha ao iniciar cada fase da entrega** (`Iniciando fase 4 (3 de 8)` — concluídas de total) e **uma linha ao iniciar cada task** (`* Task 6 (7 completas de 12)`). Nada ao concluir, nenhum status, nenhum achado de review, nenhuma pergunta. Ela revisa e corrige cada fase por conta própria; o que for discutível vira sugestão no relatório final, não pergunta no meio. Task que trava vira `paused`/`failed` e o resto continua. Tudo sai no **relatório final**
-- **A Fase 3 para antes do push, sem exceção:** terminado o desenvolvimento, está tudo commitado na branch local e **nada saiu da máquina** — sem push, sem PR, sem CI, sem deploy. A autorização do gate da Fase 2 cobre **desenvolver**, não cobre **publicar**. Só a homologação manual dela libera a Fase 4
+- **A Fase 3 para antes do push, sem exceção:** terminado o desenvolvimento, está tudo commitado na branch local e **nada saiu da máquina** — sem push, sem PR, sem CI, sem deploy. A autorização do gate da Fase 2 cobre **desenvolver**, não cobre **publicar**. Só a homologação manual do usuário libera a Fase 4
 - **Um PR só:** a feature inteira vai num único PR, no fim. Nunca PR por fase da entrega, por task, por grupo ou por bloco de fixes. Fase vira seção do corpo do PR
 - Task ambígua **na Fase 2** (antes do plano ser aprovado) → pergunte. Ambiguidade que só aparece durante a Fase 3 → decida você e registre no relatório final; se mudar o comportamento do produto, marque a task `paused` e leve pro relatório em vez de perguntar no meio
 - **Sem teste automatizado, nunca:** não escreva teste, não crie arquivo de teste, não altere suíte, não adicione dependência de teste, não faça TDD. A rede é `verify` + roteiro de homologação manual. Suíte que **já existe** no repo: roda como gate na Fase 4 pra não publicar quebrando, mas não é mantida nem estendida pelo maestro
