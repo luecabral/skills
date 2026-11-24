@@ -85,9 +85,27 @@ Se fizermos [ação], então veremos [resultado esperado].
 #### Regras de negócio
 - [regra que governa esse fluxo]
 - [regra que governa esse fluxo]
+
+# Lançamento
+
+## Enquadramento
+- Plano sugerido: [a definir: sai do enquadramento]
+- Plano decidido com growth: [a definir: depois do ✅ de growth]
+- Fórum com growth: [a definir: link do post]
+
+## Divulgação
+- Texto da novidade: [a definir]
+- Vídeo ou gif: [a definir]
+
+## Comunicações
+- Fórum interno: [a definir]
+- Aviso pros testers: [a definir]
+- Novidade no connect (rascunho): [a definir]
 ```
 
 Regras rápidas das seções: **Oportunidade** é o problema numa frase, não a solução. **Contexto** é concreto (telas, perfis, onde dói). **Consequências** e **Impacto Almejado** em bullets de uma ideia cada. **Solução** em duas frases, sem virar especificação. **Hipótese** sempre no formato `Se fizermos ___, então veremos ___`. **Comportamento Esperado** é o coração: para cada fluxo, um `### Nome do Fluxo`, passos numerados na ótica do usuário, e um `#### Regras de negócio` logo embaixo. Repita o par (fluxo → regras) para cada fluxo. (Detalhe completo na skill `/task`.)
+
+**Lançamento** nasce com os campos em `[a definir]`: o projeto é criado antes do enquadramento e da divulgação. As etapas seguintes preenchem cada linha quando acontecem (o enquadramento grava o link do fórum e o plano sugerido; depois do ✅ de growth, o plano decidido; a divulgação, o texto e o vídeo ou gif; o lançamento, o link de cada comunicação). Se ela já trouxe algum desses dados no brief, preencha. Essas lacunas não viram pergunta no Passo 3.
 
 ## Ferramentas do Linear
 
