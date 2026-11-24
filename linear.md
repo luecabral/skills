@@ -101,6 +101,11 @@ Se fizermos [ação], então veremos [resultado esperado].
 - Fórum interno: [a definir]
 - Aviso pros testers: [a definir]
 - Novidade no connect (rascunho): [a definir]
+
+## Impacto
+- Liberação geral: [a definir: data]
+- 30 dias: [a definir]
+- 90 dias: [a definir]
 ```
 
 Regras rápidas das seções: **Oportunidade** é o problema numa frase, não a solução. **Contexto** é concreto (telas, perfis, onde dói). **Consequências** e **Impacto Almejado** em bullets de uma ideia cada. **Solução** em duas frases, sem virar especificação. **Hipótese** sempre no formato `Se fizermos ___, então veremos ___`. **Comportamento Esperado** é o coração: para cada fluxo, um `### Nome do Fluxo`, passos numerados na ótica do usuário, e um `#### Regras de negócio` logo embaixo. Repita o par (fluxo → regras) para cada fluxo. (Detalhe completo na skill `/task`.)
