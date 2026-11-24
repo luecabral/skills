@@ -1,17 +1,16 @@
 ---
 name: ideacao-monolito
-description: 'Ideação de uma feature para o majestic_monolith (loja, painel do lojista, checkout ou admin), sem escrever código: levanta a tela e o comportamento de hoje, monta o artefato de ideação (intro → benchmark → proposta), fecha o escopo com quem pediu, faz o handoff de design em alta fidelidade (artefato do tipo Design, uma prancheta por tela e estado) e o handoff de dev, e só então prepara o projeto no Linear. Use quando pedirem "ideação de <X>", "vamos idear <X>", "como ficaria <X>?", "faz o handoff de design", "desenha como ficaria <X> na loja/no painel", ou quando uma sessão for aberta para explorar uma feature e montar o projeto para o time.'
+description: 'Ideação de uma feature para o majestic_monolith (loja, painel do lojista, checkout ou admin), sem escrever código: levanta a tela e o comportamento de hoje, monta o artefato de ideação (intro → benchmark → proposta), fecha o escopo com quem pediu, faz o handoff de design em alta fidelidade (artefato do tipo Design, uma prancheta por tela e estado), e só então prepara o projeto no Linear. Use quando pedirem "ideação de <X>", "vamos idear <X>", "como ficaria <X>?", "faz o handoff de design", "desenha como ficaria <X> na loja/no painel", ou quando uma sessão for aberta para explorar uma feature e montar o projeto para o time.'
 argument-hint: '<feature ou problema> (ex.: lista de favoritos)'
 ---
 
 # Ideação de feature
 
-Uma sessão de ideação entrega quatro coisas, nesta ordem:
+Uma sessão de ideação entrega três coisas, nesta ordem:
 
 1. **Artefato de ideação** — entende o problema, compara com o mercado e propõe a solução.
 2. **Handoff de design** — as telas finais, em alta fidelidade, para o time construir.
-3. **Handoff de dev** — o texto com regras, fluxos e componentes de cada tela.
-4. **Projeto no Linear** — só quando pedirem.
+3. **Projeto no Linear** — só quando pedirem.
 
 **Nada de código.** Ideação não edita arquivo do repo. Opção de conserto vira proposta escrita ou tela no artefato. Se ficar em dúvida se é pra implementar, pergunte.
 
@@ -75,7 +74,7 @@ Crie como artefato do tipo **Design** (canvas), com uma prancheta por tela e por
 
 - **Parta da tela real de hoje**, desktop e celular, igual ao que está no ar: layout, cores, fontes, espaçamentos, ícones e textos. Por cima dela, encaixe só a novidade. Quem olha tem que reconhecer a tela de hoje.
 - **Nunca wireframe.** Nada de caixa cinza, bloco genérico ou imagem de exemplo.
-- **Só telas.** Ficam os títulos de seção. Nada de nota, post-it, legenda explicando estado ou nome de componente desenhado sobre a tela. Essa explicação vai no handoff de dev.
+- **Só telas.** Ficam os títulos de seção. Nada de nota, post-it, legenda explicando estado ou nome de componente desenhado sobre a tela. Essa explicação vai no projeto do Linear.
 - **Sem marcar o que mudou.** Nada de contorno tracejado, selo "Novo" ou destaque. A tela aparece limpa, como vai ficar.
 - **Estados:** vazio, carregando, erro e sucesso, mais os estados próprios da feature, cada um na sua prancheta.
 - Quando a tela de destino ainda vai ser construída por outro projeto, traga essa tela já com a novidade e mostre na sua página só a parte que é sua (ex.: só o formulário).
@@ -84,7 +83,7 @@ Crie como artefato do tipo **Design** (canvas), com uma prancheta por tela e por
 
 - Todo elemento com equivalente no `ink_components` (botão, badge, ícone, card, modal, tabela, campo) é desenhado exatamente como ele aparece de verdade: mesma variante, tamanho, cor, canto, fonte e ícone.
 - Confira na fonte: a skill `ink-components`, os templates e o CSS da gem (`bin/bundle info ink_components`) e, se der, uma tela real que já usa o componente.
-- Não invente componente parecido nem variante que não existe. Quando nenhum atende, diga isso no handoff de dev.
+- Não invente componente parecido nem variante que não existe. Quando nenhum atende, diga isso na conversa e registre no projeto do Linear.
 - **Botões e selects com canto de 8px**, nunca pílula, mesmo quando o componente vem arredondado de fábrica. O resto do componente fica igual. Selos que já são pílula na loja continuam iguais.
 - Siga onde cada informação já aparece hoje. Exemplo: no card de produto, a informação de desconto fica embaixo do preço, não como selo.
 - Cores: use as que a loja já usa para a mesma ideia (ex.: o verde do "+5% OFF" do Pix para desconto), não cores de referência externa.
@@ -106,19 +105,7 @@ Abra cada prancheta e tire print, no desktop e no celular. Confira:
 
 Só diga que está pronto depois de olhar. Se não conseguiu tirar o print, diga isso.
 
-## 6. Handoff de dev
-
-Texto para o time, em pt-BR:
-
-- o que construir e onde (arquivo, engine, tela);
-- regras de negócio e regras de exibição;
-- fluxos, inclusive os de erro;
-- componentes do `ink_components` usados em cada tela, e o aviso quando nenhum serve;
-- flag e regra de plano;
-- fora de escopo;
-- riscos (custo de IA, dados pessoais e LGPD, desempenho).
-
-## 7. Projeto no Linear
+## 6. Projeto no Linear
 
 - Só crie quando pedirem. Mostre o texto antes.
 - O projeto leva o link do artefato de ideação e do handoff de design.
