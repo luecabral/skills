@@ -103,6 +103,7 @@ Se fizermos [ação], então veremos [resultado esperado].
 - Fórum com growth: [a definir: link do post]
 
 ## Divulgação
+- Artigo da central de ajuda: [a definir]
 - Texto da novidade: [a definir]
 - Vídeo ou gif: [a definir]
 
