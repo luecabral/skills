@@ -44,7 +44,7 @@ O brief quase nunca chega completo, e projeto com lacuna escondida vira retrabal
 
 Ela responde num "sim" quando concorda, e é isso que faz a conversa andar rápido. Ela é Product Manager e não é técnica: pergunte em linguagem de produto (o que o usuário vê, o que o sistema faz, quem pode o quê), e se um termo técnico for inevitável, explique curto entre parênteses.
 
-**O que conta como lacuna:** seção do template vazia ou genérica (Oportunidade que não é um problema, Contexto sem tela nem perfil, Consequências sem impacto), Hipótese sem resultado esperado, Impacto Almejado sem nada mensurável, fluxo sem caminho de erro/vazio/cancelamento, regra de negócio insinuada mas não declarada ("só quem tem permissão" — quem?), e o nome do projeto se ela não deu um.
+**O que conta como lacuna:** seção do template vazia ou genérica (Oportunidade que não é um problema, Contexto sem tela nem perfil, Consequências sem impacto), Hipótese sem resultado esperado, métrica sem "Como medir sucesso" (cálculo e de que dado depende), Impacto Almejado sem nada mensurável, fluxo sem caminho de erro/vazio/cancelamento, regra de negócio insinuada mas não declarada ("só quem tem permissão" — quem?), e o nome do projeto se ela não deu um.
 
 **O que NÃO perguntar:** o que dá pra inferir do brief sem chutar; time, líder, status e prioridade (são fixos); detalhe de implementação (banco, biblioteca, arquitetura) — isso não é dela e não entra no brief.
 
@@ -75,6 +75,14 @@ Se fizermos [ação], então veremos [resultado esperado].
 - [impacto esperado, quantitativo ou qualitativo]
 - [impacto esperado, quantitativo ou qualitativo]
 
+## Como medir sucesso
+| Métrica | Como calcula | Dado que usa | Já existe hoje? |
+|---|---|---|---|
+| [métrica da hipótese] | [cálculo] | [dado necessário] | [sim: onde / não: a feature registra] |
+
+#### Dado novo que a feature registra
+- [o que precisa passar a ser gravado, em linguagem de produto; também vira regra de negócio no fluxo]
+
 ## Comportamento Esperado
 
 ### [Nome do Fluxo]
@@ -103,6 +111,7 @@ Se fizermos [ação], então veremos [resultado esperado].
 - Novidade no connect (rascunho): [a definir]
 
 ## Impacto
+- Campos no DW: [a definir: issue pro Vantus, aberta na entrada em testers]
 - Liberação geral: [a definir: data]
 - 30 dias: [a definir]
 - 90 dias: [a definir]
